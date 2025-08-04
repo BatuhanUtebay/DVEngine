@@ -55,11 +55,24 @@ class PropertiesPanel(ctk.CTkTabview):
         self.prop_widgets["bg_image_entry"] = ctk.CTkEntry(bg_entry_frame, font=FONT_PROPERTIES_ENTRY, placeholder_text="No image selected...")
         self.prop_widgets["bg_image_entry"].grid(row=0, column=0, sticky="ew", padx=(0,5))
         ctk.CTkButton(bg_entry_frame, text="Browse...", width=80, command=self.select_background_image).grid(row=0, column=1)
+        
+        # Audio File Section
+        audio_frame = ctk.CTkFrame(node_tab, fg_color="transparent")
+        audio_frame.grid(row=2, column=0, sticky="ew", padx=10, pady=(0,5))
+        audio_frame.grid_columnconfigure(0, weight=1)
+        ctk.CTkLabel(audio_frame, text="Audio (MP3):", font=FONT_PROPERTIES_LABEL).pack(side="top", anchor="w", padx=5)
+        
+        audio_entry_frame = ctk.CTkFrame(audio_frame, fg_color="transparent")
+        audio_entry_frame.pack(fill="x", padx=5)
+        audio_entry_frame.grid_columnconfigure(0, weight=1)
+        self.prop_widgets["audio_entry"] = ctk.CTkEntry(audio_entry_frame, font=FONT_PROPERTIES_ENTRY, placeholder_text="No audio selected...")
+        self.prop_widgets["audio_entry"].grid(row=0, column=0, sticky="ew", padx=(0,5))
+        ctk.CTkButton(audio_entry_frame, text="Browse...", width=80, command=self.select_audio_file).grid(row=0, column=1)
 
 
         dialogue_frame = ctk.CTkFrame(node_tab, fg_color="transparent")
-        dialogue_frame.grid(row=2, column=0, sticky="nsew", padx=10, pady=(0, 10))
-        node_tab.grid_rowconfigure(2, weight=1)
+        dialogue_frame.grid(row=3, column=0, sticky="nsew", padx=10, pady=(0, 10))
+        node_tab.grid_rowconfigure(3, weight=1)
         dialogue_frame.grid_columnconfigure(0, weight=1)
         dialogue_frame.grid_rowconfigure(1, weight=1)
         
@@ -67,7 +80,7 @@ class PropertiesPanel(ctk.CTkTabview):
         self.prop_widgets["text_box"] = ctk.CTkTextbox(dialogue_frame, wrap="word", font=FONT_PROPERTIES_ENTRY)
         self.prop_widgets["text_box"].grid(row=1, column=0, columnspan=2, sticky="nsew", padx=5, pady=(0,5))
         
-        ctk.CTkButton(node_tab, text="Save Node Changes", command=self.save_properties_to_node).grid(row=3, column=0, pady=10, padx=10, sticky="ew")
+        ctk.CTkButton(node_tab, text="Save Node Changes", command=self.save_properties_to_node).grid(row=4, column=0, pady=10, padx=10, sticky="ew")
 
         # --- Choices Tab ---
         choices_tab = self.tab("Choices")
@@ -142,6 +155,17 @@ class PropertiesPanel(ctk.CTkTabview):
             self.prop_widgets["bg_image_entry"].delete(0, 'end')
             self.prop_widgets["bg_image_entry"].insert(0, filepath)
 
+    def select_audio_file(self):
+        """Opens a file dialog to select an audio file for the active node."""
+        if not self.app.active_node_id: return
+        filepath = filedialog.askopenfilename(
+            title="Select Audio File",
+            filetypes=[("MP3 Files", "*.mp3")]
+        )
+        if filepath:
+            self.prop_widgets["audio_entry"].delete(0, 'end')
+            self.prop_widgets["audio_entry"].insert(0, filepath)
+
     def update_all_panels(self):
         """Updates all property panel tabs."""
         self.update_properties_panel()
@@ -172,6 +196,7 @@ class PropertiesPanel(ctk.CTkTabview):
             self.prop_widgets["chapter_entry"].delete(0, 'end'); self.prop_widgets["chapter_entry"].insert(0, node.chapter)
             self.prop_widgets["text_box"].delete("1.0", "end"); self.prop_widgets["text_box"].insert("1.0", node.text)
             self.prop_widgets["bg_image_entry"].delete(0, 'end'); self.prop_widgets["bg_image_entry"].insert(0, node.backgroundImage)
+            self.prop_widgets["audio_entry"].delete(0, 'end'); self.prop_widgets["audio_entry"].insert(0, node.audio)
             
             for i, option in enumerate(node.options): self.create_option_widget(i, option)
         else:
@@ -181,6 +206,7 @@ class PropertiesPanel(ctk.CTkTabview):
             self.prop_widgets["theme_combo"].set('')
             self.prop_widgets["chapter_entry"].delete(0, 'end')
             self.prop_widgets["bg_image_entry"].delete(0, 'end')
+            self.prop_widgets["audio_entry"].delete(0, 'end')
             self.prop_widgets["text_box"].delete("1.0", "end")
             self.prop_widgets["text_box"].configure(state="disabled")
 
@@ -590,6 +616,7 @@ class PropertiesPanel(ctk.CTkTabview):
         node.backgroundTheme = self.prop_widgets["theme_combo"].get()
         node.chapter = self.prop_widgets["chapter_entry"].get()
         node.backgroundImage = self.prop_widgets["bg_image_entry"].get()
+        node.audio = self.prop_widgets["audio_entry"].get()
         
         self.app.canvas_manager.redraw_all_nodes()
         self.update_properties_panel()

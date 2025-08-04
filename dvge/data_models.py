@@ -7,7 +7,7 @@ class DialogueNode:
     data for a node, both for the game logic (like text and choices) and for
     the editor's visual representation (like position and canvas item IDs).
     """
-    def __init__(self, x, y, node_id, npc="Narrator", text="", options=None, theme="", chapter="", color="#3A3A3A", backgroundImage=""):
+    def __init__(self, x, y, node_id, npc="Narrator", text="", options=None, theme="", chapter="", color="#3A3A3A", backgroundImage="", audio=""):
         # Editor-specific data
         self.x = x
         self.y = y
@@ -24,6 +24,7 @@ class DialogueNode:
         self.chapter = chapter
         self.color = color
         self.backgroundImage = backgroundImage
+        self.audio = audio
 
     def to_dict(self):
         """
@@ -34,7 +35,7 @@ class DialogueNode:
             "game_data": {
                 "npc": self.npc, "text": self.text, "options": self.options,
                 "backgroundTheme": self.backgroundTheme, "chapter": self.chapter,
-                "backgroundImage": self.backgroundImage
+                "backgroundImage": self.backgroundImage, "audio": self.audio
             },
             "editor_data": {"x": self.x, "y": self.y, "id": self.id, "color": self.color}
         }
@@ -52,7 +53,8 @@ class DialogueNode:
             npc=game_data.get('npc', 'Narrator'), text=game_data.get('text', ''),
             options=game_data.get('options', []), theme=game_data.get('backgroundTheme', ''),
             chapter=game_data.get('chapter', ''), color=editor_data.get('color', '#3A3A3A'),
-            backgroundImage=game_data.get('backgroundImage', '')
+            backgroundImage=game_data.get('backgroundImage', ''),
+            audio=game_data.get('audio', '')
         )
 
     def get_height(self):

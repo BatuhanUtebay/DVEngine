@@ -71,6 +71,18 @@ def export_game(app):
         else:
              game_data['backgroundImage'] = "" # Clear if path is invalid
         
+        # Embed audio as Base64 data URI if it exists
+        if game_data['audio'] and os.path.exists(game_data['audio']):
+            try:
+                with open(game_data['audio'], "rb") as audio_file:
+                    encoded_string = base64.b64encode(audio_file.read()).decode('utf-8')
+                    game_data['audio'] = f"data:audio/mpeg;base64,{encoded_string}"
+            except Exception as e:
+                print(f"Could not process audio for node {node_id}: {e}")
+                game_data['audio'] = "" # Clear if there's an error
+        else:
+            game_data['audio'] = "" # Clear if path is invalid
+        
         dialogue_data[node_id] = game_data
 
     dialogue_json_string = json.dumps(dialogue_data, indent=4)
@@ -132,7 +144,8 @@ body.theme-ritual {{
 @keyframes fadeInOut {{ 0%,100% {{ opacity:0;transform:translateX(100%); }} 10%,90% {{ opacity:1;transform:translateX(0); }} }}
 .chapter-transition {{ position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(5,5,10,0.99);color:#b0bec5;display:flex;justify-content:center;align-items:center;z-index:1000;font-size:2em;text-align:center;font-family:var(--title-font);opacity:0;animation:chapterFade 3s ease-in-out forwards; }}
 @keyframes chapterFade {{ 0%,100% {{ opacity:0; }} 25%,75% {{ opacity:1; }} }}
-</style></head><body><div id="game-container"><div id="story-header"><h1 id="story-title">My DVG Adventure</h1></div><div id="hud"></div><div id="dialogue-box"><div id="npc-name"></div><div id="dialogue-text"></div><div id="options"></div></div></div>
+#start-overlay {{ position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); color: white; display: flex; justify-content: center; align-items: center; z-index: 2000; cursor: pointer; }}
+</style></head><body><div id="game-container"><div id="story-header"><h1 id="story-title">My DVG Adventure</h1></div><div id="hud"></div><div id="dialogue-box"><div id="npc-name"></div><div id="dialogue-text"></div><div id="options"></div></div><audio id="audio-player" src=""></audio><div id="start-overlay"><h1>Click to Start</h1></div></div>
 <script>
 const dialogueData = {dialogue_data};
 const player = {player_data};
@@ -263,6 +276,19 @@ function renderNode(key){{
     currentNode=key;
     setBackground(nodeData);
     updatePlayerStats();
+
+    const audioPlayer = document.getElementById('audio-player');
+    if (nodeData.audio) {{
+        audioPlayer.src = nodeData.audio;
+        audioPlayer.play().catch(e => {{
+            // This catch is important for the first load, 
+            // where autoplay might be blocked.
+            console.log("Autoplay was prevented. Audio will start on first interaction.");
+        }});
+    }} else {{
+        audioPlayer.src = "";
+    }}
+
     if(nodeData.chapter&&nodeData.chapter!==gameState.currentChapter){{
         gameState.currentChapter=nodeData.chapter;
         showChapterTransition(nodeData.chapter);
@@ -286,6 +312,15 @@ function renderNode(key){{
 document.addEventListener('DOMContentLoaded',()=>{{
     updatePlayerStats();
     renderNode('intro');
+
+    const startOverlay = document.getElementById('start-overlay');
+    startOverlay.addEventListener('click', () => {{
+        startOverlay.style.display = 'none';
+        const audioPlayer = document.getElementById('audio-player');
+        if (audioPlayer.src && audioPlayer.paused) {{
+            audioPlayer.play().catch(e => console.error("Audio play failed:", e));
+        }}
+    }}, {{ once: true }});
 }});
 </script></body></html>
 """

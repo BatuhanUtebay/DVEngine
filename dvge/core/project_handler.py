@@ -1,7 +1,7 @@
 # dvge/core/project_handler.py
 import json
 from tkinter import filedialog, messagebox
-from ..data_models import DialogueNode
+from ..data_models import DialogueNode, Quest
 
 def save_project(app):
     """Saves the current project state to a .dvgproj file."""
@@ -12,6 +12,7 @@ def save_project(app):
         "player_stats": app.player_stats,
         "player_inventory": app.player_inventory,
         "story_flags": app.story_flags,
+        "quests": {quest_id: quest.to_dict() for quest_id, quest in app.quests.items()},
         "node_id_counter": app.node_id_counter,
         "project_settings": app.project_settings
     }
@@ -37,6 +38,10 @@ def load_project(app):
     app.story_flags = project_data.get("story_flags", {})
     app.project_settings = project_data.get("project_settings", { "font": "Merriweather", "title_font": "Special Elite", "background": ""})
     
+    app.quests.clear()
+    for quest_id, quest_data in project_data.get("quests", {}).items():
+        app.quests[quest_id] = Quest.from_dict(quest_data)
+
     for node_id, node_data in project_data.get("nodes", {}).items():
         app.nodes[node_data['editor_data']['id']] = DialogueNode.from_dict(node_data)
     

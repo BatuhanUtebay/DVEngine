@@ -1,5 +1,6 @@
 # dvge/data_models.py
 from .constants import *
+from .game_mechanics import Enemy # Import the new Enemy class
 
 class DialogueNode:
     """
@@ -7,14 +8,16 @@ class DialogueNode:
     data for a node, both for the game logic (like text and choices) and for
     the editor's visual representation (like position and canvas item IDs).
     """
-    def __init__(self, x, y, node_id, npc="Narrator", text="", options=None, theme="", chapter="", color="#3A3A3A", backgroundImage="", audio=""):
+    NODE_TYPE = "Dialogue"
+
+    def __init__(self, x, y, node_id, npc="Narrator", text="", options=None, theme="", chapter="", color=NODE_DEFAULT_COLOR, backgroundImage="", audio=""):
         # Editor-specific data
         self.x = x
         self.y = y
         self.id = node_id
-        self.canvas_item_ids = {}  # Stores the IDs of canvas elements for this node
-        self.drag_data = {'x': 0, 'y': 0} # Temporary data for drag operations
-        self.calculated_text_height = 0 # For dynamic resizing based on text length
+        self.canvas_item_ids = {}
+        self.drag_data = {'x': 0, 'y': 0}
+        self.calculated_text_height = 0
 
         # Game-specific data
         self.npc = npc
@@ -28,10 +31,10 @@ class DialogueNode:
 
     def to_dict(self):
         """
-        Serializes the node's data into a dictionary format, separating game data
-        from editor data. This is used for saving the project to a file.
+        Serializes the node's data into a dictionary format.
         """
         return {
+            "node_type": self.NODE_TYPE,
             "game_data": {
                 "npc": self.npc, "text": self.text, "options": self.options,
                 "backgroundTheme": self.backgroundTheme, "chapter": self.chapter,
@@ -43,16 +46,21 @@ class DialogueNode:
     @staticmethod
     def from_dict(data):
         """
-        Creates a DialogueNode instance from a dictionary. This is used when
-        loading a project from a file.
+        Creates a DialogueNode or CombatNode instance from a dictionary.
+        This now acts as a factory for all node types.
         """
+        node_type = data.get("node_type", "Dialogue")
+        if node_type == "Combat":
+            return CombatNode.from_dict(data)
+        
+        # Default to DialogueNode
         game_data = data['game_data']
         editor_data = data['editor_data']
         return DialogueNode(
             x=editor_data['x'], y=editor_data['y'], node_id=editor_data['id'],
             npc=game_data.get('npc', 'Narrator'), text=game_data.get('text', ''),
             options=game_data.get('options', []), theme=game_data.get('backgroundTheme', ''),
-            chapter=game_data.get('chapter', ''), color=editor_data.get('color', '#3A3A3A'),
+            chapter=game_data.get('chapter', ''), color=editor_data.get('color', NODE_DEFAULT_COLOR),
             backgroundImage=game_data.get('backgroundImage', ''),
             audio=game_data.get('audio', '')
         )
@@ -71,3 +79,78 @@ class DialogueNode:
         body_height = max(NODE_BASE_BODY_HEIGHT, self.calculated_text_height + 20)
         y_offset = NODE_HEADER_HEIGHT + body_height + (option_index * OPTION_LINE_HEIGHT) + (OPTION_LINE_HEIGHT / 2)
         return self.x + NODE_WIDTH, self.y + y_offset
+
+class CombatNode(DialogueNode):
+    """
+    A special type of node for handling combat encounters.
+    """
+    NODE_TYPE = "Combat"
+
+    def __init__(self, x, y, node_id, text="A battle begins!", enemies=None, successNode="", failNode="", **kwargs):
+        super().__init__(x, y, node_id, npc="Combat", text=text, **kwargs)
+        self.enemies = enemies if enemies else [] # List of enemy IDs
+        self.successNode = successNode # Node to go to on victory
+        self.failNode = failNode # Node to go to on defeat (e.g., game over)
+
+    def to_dict(self):
+        """Serializes the combat node's data."""
+        data = super().to_dict()
+        data["node_type"] = self.NODE_TYPE
+        data["game_data"]["enemies"] = self.enemies
+        data["game_data"]["successNode"] = self.successNode
+        data["game_data"]["failNode"] = self.failNode
+        # Remove options as they are not used in combat nodes
+        data["game_data"].pop("options", None)
+        return data
+
+    @staticmethod
+    def from_dict(data):
+        """Creates a CombatNode instance from a dictionary."""
+        game_data = data['game_data']
+        editor_data = data['editor_data']
+        return CombatNode(
+            x=editor_data['x'], y=editor_data['y'], node_id=editor_data['id'],
+            text=game_data.get('text', 'A battle begins!'),
+            enemies=game_data.get('enemies', []),
+            successNode=game_data.get('successNode', ''),
+            failNode=game_data.get('failNode', ''),
+            theme=game_data.get('backgroundTheme', ''),
+            chapter=game_data.get('chapter', ''),
+            color=editor_data.get('color', NODE_DEFAULT_COLOR),
+            backgroundImage=game_data.get('backgroundImage', ''),
+            audio=game_data.get('audio', '')
+        )
+    
+    def get_height(self):
+        """Combat nodes have a fixed height for simplicity."""
+        return NODE_HEADER_HEIGHT + NODE_BASE_BODY_HEIGHT + NODE_FOOTER_HEIGHT
+
+
+class Quest:
+    """Represents a single quest or journal entry."""
+    def __init__(self, quest_id, name="New Quest", description="", state="inactive"):
+        self.id = quest_id
+        self.name = name
+        self.description = description
+        self.state = state  # inactive, active, completed, failed
+
+    def to_dict(self):
+        return {"id": self.id, "name": self.name, "description": self.description, "state": self.state}
+
+    @staticmethod
+    def from_dict(data):
+        return Quest(quest_id=data.get('id', ''), name=data.get('name', 'New Quest'),
+                     description=data.get('description', ''), state=data.get('state', 'inactive'))
+
+class GameTimer:
+    """Represents a timer for timed events."""
+    def __init__(self, timer_id, duration=60):
+        self.id = timer_id
+        self.duration = duration # in seconds
+
+    def to_dict(self):
+        return {"id": self.id, "duration": self.duration}
+
+    @staticmethod
+    def from_dict(data):
+        return GameTimer(timer_id=data.get('id', ''), duration=data.get('duration', 60))

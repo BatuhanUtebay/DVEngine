@@ -89,6 +89,8 @@ def export_game(app):
     
     player_data = json.dumps({"stats": app.player_stats, "inventory": app.player_inventory}, indent=4)
     flags_data = json.dumps(app.story_flags, indent=4)
+    quests_data = json.dumps({qid: q.to_dict() for qid, q in app.quests.items()}, indent=4)
+
 
     font_name = app.project_settings.get("font", "Merriweather")
     title_font_name = app.project_settings.get("title_font", "Special Elite")
@@ -96,7 +98,7 @@ def export_game(app):
 
     font_url_name = font_name.replace(' ', '+')
     title_font_url_name = title_font_name.replace(' ', '+')
-    font_link = f'<link href="https://fonts.googleapis.com/css2?family={font_url_name}:ital,wght@0,400;0,700&family={title_font_url_name}&display=swap" rel="stylesheet" />'
+    font_link = f'<link href="https://fonts.googleapis.com/css2?family={font_url_name}:ital,wght@0,400;0,700;1,400&family={title_font_url_name}&display=swap" rel="stylesheet" />'
 
     font_css = f'--primary-font:"{font_name}",serif;'
     title_font_css = f'--title-font:"{title_font_name}",cursive;'
@@ -112,53 +114,179 @@ def export_game(app):
     
     html_template = """
 <!DOCTYPE html><html lang="en"><head><meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" /><title>My DVG Adventure</title><link rel="preconnect" href="https://fonts.googleapis.com" /><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />{font_link}
+<script src="https://unpkg.com/@phosphor-icons/web"></script>
 <style>
 :root {{
     {font_css}{title_font_css}
-    --text-dark:#b0bec5;--text-light:#263238;--text-hud:#90a4ae;--text-accent:#ffcdd2;--bg-grad-start-default:#263238;--bg-grad-end-default:#102027;--current-bg-grad-start:var(--bg-grad-start-default);--current-bg-grad-end:var(--bg-grad-end-default);--hud-bg:rgba(0,10,15,0.88);--dialogue-box-bg:rgba(207,216,220,0.97);--npc-name-bg-default:linear-gradient(135deg,#455a64,#37474f);--dialogue-text-bg-default:rgba(176,190,197,0.9);--button-bg-default:linear-gradient(135deg,#546e7a,#455a64);--button-bg-hover-default:linear-gradient(135deg,#607d8b,#546e7a);--button-skill-bg-default:linear-gradient(135deg,#6d4c41,#5d4037);--border-light:rgba(120,144,156,0.4);--shadow-color:rgba(0,0,0,0.6);--highlight-color-default:#80cbc4;--current-npc-name-bg:var(--npc-name-bg-default);--current-dialogue-text-bg:var(--dialogue-text-bg-default);--current-button-bg:var(--button-bg-default);--current-button-hover-bg:var(--button-bg-hover-default);--current-button-skill-bg:var(--button-skill-bg-default);--current-highlight-color:var(--highlight-color-default);
+    --bg-grad-start-default: #232526; --bg-grad-end-default: #414345;
+    --text-light: #ECEFF1; --text-dark: #263238; --text-muted: #90A4AE;
+    --accent-color: #80CBC4; --accent-dark: #004D40;
+    --dialogue-bg: rgba(38, 50, 56, 0.9);
+    --hud-bg: rgba(38, 50, 56, 0.95);
+    --button-bg: #455A64; --button-hover-bg: #607D8B;
+    --border-color: rgba(120, 144, 156, 0.3);
+    --shadow-color: rgba(0,0,0,0.4);
+    --success-color: #A5D6A7; --error-color: #EF9A9A;
 }}
 body {{
     {background_css}
-    margin:0;padding:0;font-family:var(--primary-font);color:var(--text-dark);min-height:100vh;transition:background 1s ease-in-out; background-size: cover; background-position: center; background-attachment: fixed;
+    margin:0; padding:0; font-family:var(--primary-font); color:var(--text-light); 
+    min-height:100vh; transition:background 0.8s ease-in-out; 
+    background-size: cover; background-position: center; background-attachment: fixed;
+    overflow: hidden;
 }}
-body.theme-dream {{
-    --current-bg-grad-start:#300032;--current-bg-grad-end:#000010;--current-npc-name-bg:linear-gradient(135deg,#5c004b,#4a003b);--current-highlight-color:#e1bee7;--current-dialogue-text-bg:rgba(50,30,60,0.9);
+body.theme-dream {{ --accent-color: #CE93D8; --accent-dark: #4A148C; }}
+body.theme-ritual {{ --accent-color: #EF9A9A; --accent-dark: #B71C1C; }}
+
+#game-container {{ display:flex; flex-direction:column; min-height:100vh; position:relative; }}
+
+#dialogue-box {{
+    position:fixed; bottom:2em; left:50%; transform:translateX(-50%);
+    width:90%; max-width:800px; background:var(--dialogue-bg);
+    border-radius:12px; padding:1.5em 2em; box-shadow:0 10px 30px var(--shadow-color);
+    border: 1px solid var(--border-color); backdrop-filter: blur(10px);
+    animation: slideUp 0.5s ease-out forwards;
 }}
-body.theme-ritual {{
-    --current-bg-grad-start:#5f0000;--current-bg-grad-end:#200000;--current-npc-name-bg:linear-gradient(135deg,#8f0000,#7f0000);--current-highlight-color:#ff8a80;--current-dialogue-text-bg:rgba(70,20,20,0.9);
+@keyframes slideUp {{ from {{ opacity:0; transform: translate(-50%, 50px); }} to {{ opacity:1; transform: translate(-50%, 0); }} }}
+
+#npc-name {{
+    font-family:var(--title-font); font-size:1.6em; margin-bottom:0.7em;
+    color: var(--accent-color); text-shadow: 0 0 10px var(--accent-color);
 }}
-#game-container {{ display:flex;flex-direction:column;min-height:100vh;position:relative; }}
-#story-header {{ text-align:center;padding:1.5em 1em;background:rgba(0,0,0,0.25);border-bottom:1px solid var(--border-light); }}
-#story-title {{ font-family:var(--title-font);font-size:2.5em;margin:0; }}
-#hud {{ position:fixed;top:1.5em;left:1.5em;background:var(--hud-bg);color:var(--text-hud);padding:1em 1.2em;border-radius:8px;box-shadow:0 4px 15px var(--shadow-color);min-width:270px;z-index:100;border:1px solid var(--border-light); }}
-.stat-line {{ display:flex;justify-content:space-between;margin:0.4em 0; }}
-#inventory {{ margin-top:0.8em;padding-top:0.7em;border-top:1px solid var(--border-light); }}
-#dialogue-box {{ position:fixed;bottom:1.5em;left:50%;transform:translateX(-50%);width:90%;max-width:720px;background:var(--dialogue-box-bg);border-radius:10px;padding:1.2em 1.5em;box-shadow:0 8px 25px var(--shadow-color); z-index: 50;}}
-#npc-name {{ font-family:var(--title-font);font-size:1.35em;margin-bottom:0.8em;color:var(--text-dark);text-align:center;padding:0.5em;background:var(--current-npc-name-bg);border-radius:6px; }}
-#dialogue-text {{ font-size:1.1em;line-height:1.65;margin-bottom:1.2em;background:var(--current-dialogue-text-bg);padding:1em;border-radius:6px;border-left:4px solid var(--current-highlight-color);color:var(--text-light);min-height:60px; }}
-#options {{ display:flex;flex-direction:column;gap:0.8em; }}
-#options button {{ padding:0.8em 1.2em;border:none;background:var(--current-button-bg);color:var(--text-dark);border-radius:6px;cursor:pointer;font-size:0.95em;transition:all 0.2s ease-out;text-align:left; }}
-#options button:hover {{ background:var(--current-button-hover-bg);transform:translateY(-2px); }}
-#options button:disabled {{ opacity:0.5;cursor:not-allowed;filter:grayscale(70%); }}
-.notification {{ position:fixed;top:1.5em;right:1.5em;background:var(--hud-bg);color:var(--text-hud);padding:0.8em 1.2em;border-radius:6px;z-index:200;animation:fadeInOut 3s ease-in-out forwards;border-left:3px solid var(--current-highlight-color); }}
-@keyframes fadeInOut {{ 0%,100% {{ opacity:0;transform:translateX(100%); }} 10%,90% {{ opacity:1;transform:translateX(0); }} }}
-.chapter-transition {{ position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(5,5,10,0.99);color:#b0bec5;display:flex;justify-content:center;align-items:center;z-index:1000;font-size:2em;text-align:center;font-family:var(--title-font);opacity:0;animation:chapterFade 3s ease-in-out forwards; }}
-@keyframes chapterFade {{ 0%,100% {{ opacity:0; }} 25%,75% {{ opacity:1; }} }}
-#start-overlay {{ position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); color: white; display: flex; justify-content: center; align-items: center; z-index: 2000; cursor: pointer; }}
-</style></head><body><div id="game-container"><div id="story-header"><h1 id="story-title">My DVG Adventure</h1></div><div id="hud"></div><div id="dialogue-box"><div id="npc-name"></div><div id="dialogue-text"></div><div id="options"></div></div><audio id="audio-player" src=""></audio><div id="start-overlay"><h1>Click to Start</h1></div></div>
+#dialogue-text {{
+    font-size:1.15em; line-height:1.7; margin-bottom:1.5em;
+    color:var(--text-light); min-height:60px; font-style: italic;
+}}
+#options {{ display:flex; flex-direction:column; gap:0.8em; }}
+#options button {{
+    padding:0.9em 1.4em; border:1px solid transparent; background:var(--button-bg);
+    color:var(--text-light); border-radius:8px; cursor:pointer;
+    font-size:1em; transition: all 0.2s ease-out; text-align:left;
+}}
+#options button:hover {{ background:var(--button-hover-bg); border-color: var(--accent-color); transform: translateY(-2px); }}
+#options button:disabled {{ opacity:0.5; cursor:not-allowed; filter:grayscale(70%); }}
+
+#hud-toggle {{
+    position: fixed; top: 20px; left: 20px; z-index: 101;
+    background: var(--hud-bg); color: var(--text-light);
+    border: 1px solid var(--border-color); border-radius: 50%;
+    width: 50px; height: 50px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.8em; transition: all 0.3s ease;
+}}
+#hud-toggle:hover {{ background: var(--accent-dark); color: white; }}
+
+#hud-container {{
+    position: fixed; top: 0; left: -350px; width: 320px; height: 100%;
+    background: var(--hud-bg); padding: 20px;
+    box-shadow: 5px 0 25px var(--shadow-color);
+    transition: left 0.4s ease-in-out; z-index: 100;
+    overflow-y: auto; border-right: 1px solid var(--border-color);
+}}
+#hud-container.open {{ left: 0; }}
+.hud-section {{ margin-bottom: 1.5em; }}
+.hud-section h3 {{
+    font-family: var(--title-font); color: var(--accent-color);
+    margin-top: 0; border-bottom: 1px solid var(--border-color); padding-bottom: 0.5em;
+    display: flex; align-items: center; gap: 0.5em; font-size: 1.4em;
+}}
+.stat-line, .inventory-line, .quest-line {{
+    display: flex; justify-content: space-between; align-items: center;
+    margin: 0.6em 0; padding: 0.4em; border-radius: 4px;
+    transition: background-color 0.2s;
+}}
+.inventory-item, .quest-line {{ cursor: help; }}
+.inventory-item:hover, .quest-line:hover {{ background-color: rgba(255,255,255,0.05); }}
+
+#save-load-buttons {{ position: fixed; top: 20px; right: 20px; z-index: 101; }}
+#save-load-buttons button {{
+    margin-left: 10px; padding: 10px 18px; font-size: 1em;
+    background: var(--button-bg); color: var(--text-light);
+    border: 1px solid var(--border-color); border-radius: 8px;
+    cursor: pointer; transition: all 0.2s ease;
+}}
+#save-load-buttons button:hover {{ background: var(--button-hover-bg); }}
+
+.notification {{
+    position:fixed; bottom:2em; right:2em; background:var(--hud-bg);
+    color:var(--text-light); padding:1em 1.5em; border-radius:8px;
+    z-index:200; animation:fadeInOut 4s ease-in-out forwards;
+    border-left:4px solid var(--accent-color);
+}}
+@keyframes fadeInOut {{ 0%,100% {{ opacity:0; transform:translateY(20px); }} 10%,90% {{ opacity:1; transform:translateY(0); }} }}
+
+.chapter-transition {{
+    position:fixed; top:0; left:0; width:100%; height:100%;
+    background:rgba(5,5,10,0.99); color:var(--text-light);
+    display:flex; justify-content:center; align-items:center; flex-direction: column;
+    z-index:1000; font-size:2.5em; text-align:center; font-family:var(--title-font);
+    opacity:0; animation:chapterFade 4s ease-in-out forwards;
+}}
+.chapter-transition small {{ font-size: 0.5em; margin-top: 1em; font-family: var(--primary-font); font-style: italic; opacity: 0.8; }}
+@keyframes chapterFade {{ 0%,100% {{ opacity:0; }} 20%,80% {{ opacity:1; }} }}
+
+#start-overlay {{
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.85); color: white;
+    display: flex; flex-direction: column; justify-content: center; align-items: center;
+    z-index: 2000; cursor: pointer; backdrop-filter: blur(5px);
+}}
+#start-overlay h1 {{ font-size: 4em; font-family: var(--title-font); margin-bottom: 0.2em; }}
+#start-overlay p {{ font-size: 1.2em; }}
+</style></head><body>
+<div id="game-container">
+    <div id="hud-toggle"><i class="ph-fill ph-backpack"></i></div>
+    <div id="hud-container"></div>
+    <div id="save-load-buttons">
+        <button id="save-button" title="Save Progress"><i class="ph-fill ph-floppy-disk"></i></button>
+        <button id="load-button" title="Load Progress"><i class="ph-fill ph-folder-open"></i></button>
+    </div>
+    <div id="dialogue-box">
+        <div id="npc-name"></div>
+        <div id="dialogue-text"></div>
+        <div id="options"></div>
+    </div>
+    <audio id="audio-player" src=""></audio>
+    <div id="start-overlay">
+        <h1 id="story-title-overlay">My DVG Adventure</h1>
+        <p>Click to Start</p>
+    </div>
+</div>
 <script>
 const dialogueData = {dialogue_data};
-const player = {player_data};
-let currentNode = "intro", previousBackgroundTheme = "theme-default", gameState = {{ currentChapter:"", flags:{flags_data} }};
+let player = {player_data};
+let currentNode = "intro", previousBackgroundTheme = "theme-default", gameState = {{ currentChapter:"", flags:{flags_data}, quests:{quests_data} }};
 
-function updatePlayerStats() {{
-    const hud=document.getElementById('hud');
-    let statsHTML=`<h3>Player</h3>`;
+function updateHud() {{
+    const hud = document.getElementById('hud-container');
+    let statsHTML = `<div class="hud-section"><h3><i class="ph-fill ph-heartbeat"></i> Stats</h3>`;
     for(const stat in player.stats){{
         statsHTML+=`<div class="stat-line"><span>${{stat.charAt(0).toUpperCase()+stat.slice(1)}}:</span> <span>${{player.stats[stat]}}</span></div>`;
     }}
-    statsHTML+=`<div id="inventory"><strong>Inventory:</strong><div>${{player.inventory.join(", ")||"Empty"}}</div></div>`;
-    hud.innerHTML=statsHTML;
+    statsHTML += `</div>`;
+    
+    let inventoryHTML = `<div class="hud-section"><h3><i class="ph-fill ph-treasure-chest"></i> Inventory</h3>`;
+    if (player.inventory.length > 0) {{
+        player.inventory.forEach(item => {{
+            inventoryHTML += `<div class="inventory-line"><span class="inventory-item" title="${{item.description || ''}}">${{item.name}}</span></div>`;
+        }});
+    }} else {{
+        inventoryHTML += `<div>Empty</div>`;
+    }}
+    inventoryHTML += `</div>`;
+
+    let journalHTML = `<div class="hud-section"><h3><i class="ph-fill ph-scroll"></i> Journal</h3>`;
+    const activeQuests = Object.values(gameState.quests).filter(q => q.state === 'active');
+    if (activeQuests.length > 0) {{
+         activeQuests.forEach(quest => {{
+            journalHTML += `<div class="quest-line" title="${{quest.description || ''}}"><span>${{quest.name}}</span></div>`;
+        }});
+    }} else {{
+        journalHTML += `<div>No active quests.</div>`;
+    }}
+    journalHTML += `</div>`;
+
+    hud.innerHTML = statsHTML + inventoryHTML + journalHTML;
 }}
 
 function showNotification(message,duration=3000){{
@@ -172,25 +300,21 @@ function showNotification(message,duration=3000){{
 function showChapterTransition(name){{
     const t=document.createElement("div");
     t.className="chapter-transition";
-    t.innerHTML=`<div>${{name}}</div>`;
+    t.innerHTML=`<div>${{name}}</div><small>A New Chapter Begins</small>`;
     document.body.appendChild(t);
-    setTimeout(()=>{{if(t.parentNode)t.remove()}},3000);
+    setTimeout(()=>{{if(t.parentNode)t.remove()}},4000);
 }}
 
 function setBackground(nodeData) {{
-    if (nodeData.backgroundImage) {{
+    let themeName = nodeData.backgroundTheme || 'theme-default';
+    if (!document.body.classList.contains(themeName)) {{
         document.body.className = '';
-        document.body.style.background = `url(${{nodeData.backgroundImage}})`;
-        document.body.style.backgroundSize = 'cover';
-        document.body.style.backgroundPosition = 'center';
-        document.body.style.backgroundAttachment = 'fixed';
+        document.body.classList.add(themeName);
+    }}
+    if (nodeData.backgroundImage) {{
+        document.body.style.backgroundImage = `url(${{nodeData.backgroundImage}})`;
     }} else {{
-        document.body.style.background = '';
-        let themeName = nodeData.backgroundTheme || 'theme-default';
-        if (!document.body.classList.contains(themeName)) {{
-            document.body.className = '';
-            document.body.classList.add(themeName);
-        }}
+        document.body.style.backgroundImage = ''; // Clear if no image
     }}
 }}
 
@@ -212,13 +336,17 @@ function checkConditions(conditions) {{
                     default: return false;
                 }}
             case 'item':
-                const hasItem = player.inventory.includes(subject);
+                const hasItem = player.inventory.some(item => item.name === subject);
                 return operator === 'has' ? hasItem : !hasItem;
             case 'flag':
                 const flagValue = gameState.flags[subject];
                 if (flagValue === undefined) return false;
                 const comparisonValue = (value === true || String(value).toLowerCase() === 'true');
                 return operator === 'is' ? (flagValue === comparisonValue) : (flagValue !== comparisonValue);
+            case 'quest':
+                const quest = gameState.quests[subject];
+                if (!quest) return false;
+                return operator === 'is' ? (quest.state === value) : (quest.state !== value);
             default: return true;
         }}
     }});
@@ -243,11 +371,11 @@ function applyEffects(effects) {{
                 showNotification(`'${{subject}}' changed by ${{operator}}${{numericValue}}`);
                 break;
             case 'item':
-                if (operator === 'add' && !player.inventory.includes(subject)) {{
-                    player.inventory.push(subject);
+                if (operator === 'add' && !player.inventory.some(item => item.name === subject)) {{
+                    player.inventory.push({{name: subject, description: ""}});
                     showNotification(`Added '${{subject}}' to inventory.`);
                 }} else if (operator === 'remove') {{
-                    const index = player.inventory.indexOf(subject);
+                    const index = player.inventory.findIndex(item => item.name === subject);
                     if (index > -1) {{
                         player.inventory.splice(index, 1);
                         showNotification(`Removed '${{subject}}' from inventory.`);
@@ -259,9 +387,16 @@ function applyEffects(effects) {{
                 gameState.flags[subject] = boolValue;
                 showNotification(`Flag '${{subject}}' set to ${{boolValue}}.`);
                 break;
+            case 'quest':
+                const quest = gameState.quests[subject];
+                if (quest) {{
+                    quest.state = value;
+                    showNotification(`Quest '${{quest.name}}' updated to '${{value}}'.`);
+                }}
+                break;
         }}
     }});
-    updatePlayerStats();
+    updateHud();
 }}
 
 function renderNode(key){{ 
@@ -275,14 +410,12 @@ function renderNode(key){{
     if(!nodeData){{console.error("Node not found:",key);return;}}
     currentNode=key;
     setBackground(nodeData);
-    updatePlayerStats();
+    updateHud();
 
     const audioPlayer = document.getElementById('audio-player');
     if (nodeData.audio) {{
         audioPlayer.src = nodeData.audio;
         audioPlayer.play().catch(e => {{
-            // This catch is important for the first load, 
-            // where autoplay might be blocked.
             console.log("Autoplay was prevented. Audio will start on first interaction.");
         }});
     }} else {{
@@ -309,8 +442,42 @@ function renderNode(key){{
     }});
 }}
 
+function saveGame() {{
+    try {{
+        const saveData = {{
+            player: player,
+            gameState: gameState,
+            currentNode: currentNode
+        }};
+        localStorage.setItem('dvgSaveData', JSON.stringify(saveData));
+        showNotification("Game Saved!");
+    }} catch (e) {{
+        console.error("Failed to save game:", e);
+        showNotification("Error: Could not save game.");
+    }}
+}}
+
+function loadGame() {{
+    try {{
+        const savedJSON = localStorage.getItem('dvgSaveData');
+        if (savedJSON) {{
+            const saveData = JSON.parse(savedJSON);
+            player = saveData.player;
+            gameState = saveData.gameState;
+            currentNode = saveData.currentNode;
+            renderNode(currentNode);
+            showNotification("Game Loaded!");
+        }} else {{
+            showNotification("No save data found.");
+        }}
+    }} catch (e) {{
+        console.error("Failed to load game:", e);
+        showNotification("Error: Could not load save data.");
+    }}
+}}
+
 document.addEventListener('DOMContentLoaded',()=>{{
-    updatePlayerStats();
+    updateHud();
     renderNode('intro');
 
     const startOverlay = document.getElementById('start-overlay');
@@ -321,6 +488,15 @@ document.addEventListener('DOMContentLoaded',()=>{{
             audioPlayer.play().catch(e => console.error("Audio play failed:", e));
         }}
     }}, {{ once: true }});
+
+    document.getElementById('save-button').addEventListener('click', saveGame);
+    document.getElementById('load-button').addEventListener('click', loadGame);
+    
+    const hudToggle = document.getElementById('hud-toggle');
+    const hudContainer = document.getElementById('hud-container');
+    hudToggle.addEventListener('click', () => {{
+        hudContainer.classList.toggle('open');
+    }});
 }});
 </script></body></html>
 """
@@ -328,6 +504,7 @@ document.addEventListener('DOMContentLoaded',()=>{{
         dialogue_data=dialogue_json_string, 
         player_data=player_data,
         flags_data=flags_data,
+        quests_data=quests_data,
         font_link=font_link,
         font_css=font_css,
         title_font_css=title_font_css,

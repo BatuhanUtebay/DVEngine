@@ -18,7 +18,8 @@ class CanvasManager:
         self.drag_start_pos = {}
         self.placeholder_id = None
         
-        self.context_menu = tk.Menu(self.app, tearoff=0, bg="#3D3D3D", fg="white", relief="flat")
+        self.context_menu = tk.Menu(self.app, tearoff=0, bg=COLOR_PRIMARY_FRAME, fg=COLOR_TEXT, relief="flat",
+                                    activebackground=COLOR_ACCENT, activeforeground=COLOR_TEXT)
         self.context_menu.add_command(label="Add New Node Here", command=self.add_node_from_menu)
         self.context_menu.add_command(label="Delete Selected Node(s)", command=self.delete_selected_nodes)
 
@@ -26,7 +27,7 @@ class CanvasManager:
 
     def bind_events(self):
         self.canvas.bind("<ButtonPress-1>", self.on_canvas_press)
-        self.canvas.bind("<ButtonPress-2>", self.on_pan_start)
+        self.canvas.bind("<ButtonPress-2>", self.on_pan_start) # Middle mouse for pan
         self.canvas.bind("<B2-Motion>", self.on_pan_move)
         self.canvas.bind("<Button-3>", self.on_canvas_right_click)
         self.canvas.bind("<B1-Motion>", self.on_canvas_drag)
@@ -37,8 +38,8 @@ class CanvasManager:
         """Draws the background grid on the canvas."""
         self.canvas.delete("grid_line")
         for i in range(0, 10000, GRID_SIZE):
-            self.canvas.create_line([(i, 0), (i, 10000)], tag="grid_line", fill="#333333")
-            self.canvas.create_line([(0, i), (10000, i)], tag="grid_line", fill="#333333")
+            self.canvas.create_line([(i, 0), (i, 10000)], tag="grid_line", fill=COLOR_GRID_LINES, width=1)
+            self.canvas.create_line([(0, i), (10000, i)], tag="grid_line", fill=COLOR_GRID_LINES, width=1)
         self.canvas.tag_lower("grid_line")
 
     def draw_placeholder_if_empty(self):
@@ -51,14 +52,14 @@ class CanvasManager:
 
     def _create_placeholder_text(self):
         """Helper to create the placeholder text widget."""
-        if not self.app.nodes: # Check again in case a node was added
+        if not self.app.nodes:
             canvas_width = self.canvas.winfo_width()
             canvas_height = self.canvas.winfo_height()
             self.placeholder_id = self.canvas.create_text(
                 canvas_width / 2, canvas_height / 2,
                 text="Right-click to add a new node",
                 font=(FONT_FAMILY, 16, "italic"),
-                fill="#555555",
+                fill=COLOR_TEXT_MUTED,
                 tags="placeholder"
             )
 
@@ -85,7 +86,8 @@ class CanvasManager:
         node = self.app.nodes.get(node_id)
         if not node: return
         for item_id in node.canvas_item_ids.values():
-            self.canvas.delete(item_id)
+            if self.canvas.find_withtag(item_id):
+                self.canvas.delete(item_id)
         node.canvas_item_ids.clear()
         
         self.create_node_visual(node)
@@ -96,44 +98,48 @@ class CanvasManager:
         """Creates all the visual components for a single node on the canvas."""
         x, y = node.x, node.y
         tags = ("node", node.id)
-        radius = 10
-
-        temp_text = self.canvas.create_text(0, 0, text=node.text, font=FONT_DIALOGUE, anchor="nw", width=NODE_WIDTH - 20, state='hidden')
+        
+        temp_text = self.canvas.create_text(0, 0, text=node.text, font=FONT_DIALOGUE, anchor="nw", width=NODE_WIDTH - 40, state='hidden')
         bbox = self.canvas.bbox(temp_text)
         node.calculated_text_height = bbox[3] - bbox[1] if bbox else 0
         self.canvas.delete(temp_text)
 
         height = node.get_height()
         is_start_node = node.id == "intro"
-        header_color = "#006400" if is_start_node else "#5A5A5A"
+        header_color = NODE_INTRO_COLOR if is_start_node else node.color if node.color != NODE_DEFAULT_COLOR else "#455A64"
 
-        node.canvas_item_ids['shadow'] = self._create_rounded_rectangle(x+4, y+4, x + NODE_WIDTH+4, y + height+4, radius, fill="#1E1E1E", outline="", tags=tags)
-        node.canvas_item_ids['body'] = self._create_rounded_rectangle(x, y, x + NODE_WIDTH, y + height, radius, fill=node.color, outline="#7A7A7A", width=2, tags=tags)
-        node.canvas_item_ids['header'] = self._create_rounded_rectangle(x, y, x + NODE_WIDTH, y + NODE_HEADER_HEIGHT, radius, fill=header_color, outline="", tags=tags)
+        node.canvas_item_ids['shadow'] = self._create_rounded_rectangle(x+3, y+3, x + NODE_WIDTH+3, y + height+3, NODE_BORDER_RADIUS, fill="#111111", outline="", tags=tags)
+        node.canvas_item_ids['body'] = self._create_rounded_rectangle(x, y, x + NODE_WIDTH, y + height, NODE_BORDER_RADIUS, fill=NODE_DEFAULT_COLOR, outline="", tags=tags)
+        node.canvas_item_ids['header'] = self._create_rounded_rectangle(x, y, x + NODE_WIDTH, y + NODE_HEADER_HEIGHT, NODE_BORDER_RADIUS, fill=header_color, outline="", tags=tags)
         
-        header_text = f"{node.id} | {node.npc}"
-        node.canvas_item_ids['npc_text'] = self.canvas.create_text(x + 15, y + 18, text=header_text, fill="white", anchor="w", font=FONT_NPC, tags=tags)
-        node.canvas_item_ids['dialogue_text'] = self.canvas.create_text(x + 15, y + 50, text=node.text, fill="#CCCCCC", anchor="nw", width=NODE_WIDTH - 30, font=FONT_DIALOGUE, tags=tags)
+        header_text = f"{'★' if is_start_node else ''} {node.id} | {node.npc}"
+        node.canvas_item_ids['npc_text'] = self.canvas.create_text(x + 20, y + 20, text=header_text, fill=COLOR_TEXT, anchor="w", font=FONT_NPC, tags=tags)
+        node.canvas_item_ids['dialogue_text'] = self.canvas.create_text(x + 20, y + 60, text=node.text, fill=COLOR_TEXT_MUTED, anchor="nw", width=NODE_WIDTH - 40, font=FONT_DIALOGUE, tags=tags)
 
         body_height = max(NODE_BASE_BODY_HEIGHT, node.calculated_text_height + 20)
         
         for i, option in enumerate(node.options):
-            y_pos = y + NODE_HEADER_HEIGHT + body_height + (i * OPTION_LINE_HEIGHT) + 12
-            option_text = f"{i+1}. {self.wrap_text(option.get('text', '...'), 30)}"
-            if option.get('conditions'): option_text += " [C]"
-            if option.get('effects'): option_text += " [E]"
+            y_pos = y + NODE_HEADER_HEIGHT + body_height + (i * OPTION_LINE_HEIGHT) + 15
+            option_text = f"{i+1}. {self.wrap_text(option.get('text', '...'), 35)}"
             
-            node.canvas_item_ids[f'option_text_{i}'] = self.canvas.create_text(x + 20, y_pos, text=option_text, fill="#E0E0E0", anchor="w", font=FONT_OPTION, tags=tags)
-            node.canvas_item_ids[f'option_handle_{i}'] = self.canvas.create_oval(x + NODE_WIDTH - 16, y_pos - 6, x + NODE_WIDTH-4, y_pos + 6, fill="#3498DB", outline="", tags=("handle", node.id, f"opt_{i}", "node"))
+            indicator_text = ""
+            if option.get('conditions'): indicator_text += " [C]"
+            if option.get('effects'): indicator_text += " [E]"
+            
+            node.canvas_item_ids[f'option_text_{i}'] = self.canvas.create_text(x + 20, y_pos, text=option_text, fill=COLOR_TEXT, anchor="w", font=FONT_OPTION, tags=tags)
+            if indicator_text:
+                node.canvas_item_ids[f'option_indicator_{i}'] = self.canvas.create_text(x + NODE_WIDTH - 45, y_pos, text=indicator_text, fill=COLOR_ACCENT, anchor="e", font=FONT_OPTION, tags=tags)
+
+            node.canvas_item_ids[f'option_handle_{i}'] = self.canvas.create_oval(x + NODE_WIDTH - 20, y_pos - 8, x + NODE_WIDTH-4, y_pos + 8, fill=COLOR_ACCENT, outline="", tags=("handle", node.id, f"opt_{i}", "node"))
 
         footer_y = y + height - NODE_FOOTER_HEIGHT
         footer_tags = ("node", node.id, "add_option_button")
-        node.canvas_item_ids['footer'] = self._create_rounded_rectangle(x, footer_y, x + NODE_WIDTH, y + height, radius, fill="#4A4A4A", outline="", tags=footer_tags)
-        node.canvas_item_ids['add_button_text'] = self.canvas.create_text(x + NODE_WIDTH/2, footer_y + 17, text="+ Add Choice", fill="white", font=FONT_ADD_BUTTON, tags=footer_tags)
+        # The footer is now just a clickable area, not visually distinct unless hovered
+        node.canvas_item_ids['add_button_text'] = self.canvas.create_text(x + NODE_WIDTH/2, footer_y + 18, text="+ Add Choice", fill=COLOR_TEXT_MUTED, font=FONT_ADD_BUTTON, tags=footer_tags, activefill=COLOR_ACCENT)
 
     def wrap_text(self, text, max_chars):
         """Truncates text to a maximum length for display on the node."""
-        return text[:max_chars] + "..." if len(text) > max_chars else text
+        return text[:max_chars].strip() + "..." if len(text) > max_chars else text
 
     def add_node(self, x, y):
         """Creates a new node in the data model and on the canvas."""
@@ -154,10 +160,10 @@ class CanvasManager:
         """Updates the highlight state of all nodes based on the current selection."""
         for node_id, node in self.app.nodes.items():
             if node.canvas_item_ids.get('body'):
-                if node_id in self.app.selected_node_ids:
-                    self.canvas.itemconfig(node.canvas_item_ids['body'], outline="#3498DB", width=3)
-                else:
-                    self.canvas.itemconfig(node.canvas_item_ids['body'], outline="#7A7A7A", width=2)
+                is_selected = node_id in self.app.selected_node_ids
+                outline_color = NODE_SELECTED_OUTLINE_COLOR if is_selected else ""
+                outline_width = 3 if is_selected else 0
+                self.canvas.itemconfig(node.canvas_item_ids['body'], outline=outline_color, width=outline_width)
 
     def on_canvas_press(self, event):
         """Handles the initial left-click event on the canvas."""
@@ -175,7 +181,7 @@ class CanvasManager:
             self.is_connecting = True
             self.connection_start_info = {'node_id': node_id, 'option_index': opt_index}
             x1, y1 = self.app.nodes[node_id].get_connection_point_out(opt_index)
-            self.temp_connection_line = self.canvas.create_line(x1, y1, canvas_x, canvas_y, fill="#00AFFF", width=2, dash=(4, 4))
+            self.temp_connection_line = self.canvas.create_line(x1, y1, canvas_x, canvas_y, fill=COLOR_ACCENT, width=2.5, dash=(5, 5))
             return
         
         if "add_option_button" in tags:
@@ -187,20 +193,24 @@ class CanvasManager:
 
         if node_id:
             self.drag_mode = 'drag_nodes'
-            if node_id not in self.app.selected_node_ids:
-                self.app.set_selection([node_id], node_id)
-            else:
-                self.app.active_node_id = node_id
-                self.app.properties_panel.update_properties_panel()
+            if not event.state & 0x0001: # If not holding shift for multi-select
+                if node_id not in self.app.selected_node_ids:
+                    self.app.set_selection([node_id], node_id)
+            else: # Holding shift
+                if node_id in self.app.selected_node_ids:
+                    self.app.selected_node_ids.remove(node_id)
+                else:
+                    self.app.selected_node_ids.append(node_id)
+                self.app.set_selection(self.app.selected_node_ids, node_id)
             
             self.drag_start_pos['mouse'] = (canvas_x, canvas_y)
             self.drag_start_pos['nodes'] = {nid: (self.app.nodes[nid].x, self.app.nodes[nid].y) for nid in self.app.selected_node_ids}
         
         else:
             self.drag_mode = 'select_rect'
-            self.app.set_selection([])
+            if not event.state & 0x0001: self.app.set_selection([])
             self.drag_start_pos['mouse'] = (canvas_x, canvas_y)
-            self.selection_rectangle = self.canvas.create_rectangle(canvas_x, canvas_y, canvas_x, canvas_y, outline="#3498DB", dash=(4, 4), width=1)
+            self.selection_rectangle = self.canvas.create_rectangle(canvas_x, canvas_y, canvas_x, canvas_y, outline=COLOR_ACCENT, dash=(4, 4), width=1.5)
 
     def on_canvas_drag(self, event):
         """Handles mouse movement while the left button is held down."""
@@ -235,7 +245,7 @@ class CanvasManager:
 
     def on_canvas_release(self, event):
         """Handles the release of the left mouse button."""
-        if self.drag_mode == 'drag_nodes':
+        if self.drag_mode == 'drag_nodes' and self.drag_start_pos.get('mouse') != (self.canvas.canvasx(event.x), self.canvas.canvasy(event.y)):
             self.app._save_state_for_undo("Drag Nodes")
 
         if self.is_connecting:
@@ -256,7 +266,7 @@ class CanvasManager:
             x1, y1, x2, y2 = self.canvas.bbox(self.selection_rectangle)
             enclosed_items = self.canvas.find_enclosed(x1, y1, x2, y2)
             
-            newly_selected_ids = []
+            newly_selected_ids = self.app.selected_node_ids.copy()
             for item in enclosed_items:
                 tags = self.canvas.gettags(item)
                 node_id = next((tag for tag in tags if tag in self.app.nodes), None)
@@ -310,12 +320,13 @@ class CanvasManager:
         self.app._save_state_for_undo("Delete Nodes")
         nodes_to_delete = list(self.app.selected_node_ids)
         for node_to_delete_id in nodes_to_delete:
-            if node_to_delete_id == "intro": continue
+            if node_to_delete_id == "intro": 
+                messagebox.showwarning("Cannot Delete", "The 'intro' node cannot be deleted.")
+                continue
 
             for node in self.app.nodes.values():
                 for option in node.options:
-                    for key in ['nextNode', 'successNode', 'failNode']:
-                        if option.get(key) == node_to_delete_id: option[key] = ""
+                    if option.get('nextNode') == node_to_delete_id: option['nextNode'] = ""
                     
             if node_to_delete_id in self.app.nodes:
                 node_to_delete = self.app.nodes[node_to_delete_id]
@@ -334,16 +345,16 @@ class CanvasManager:
             for i, option in enumerate(node.options):
                 target_id = option.get("nextNode")
                 if target_id and target_id in self.app.nodes:
-                    self.draw_arrow(node, self.app.nodes[target_id], i, "#00AFFF")
+                    self.draw_arrow(node, self.app.nodes[target_id], i, NODE_CONNECTION_COLOR)
         self.canvas.tag_raise("node")
 
     def draw_arrow(self, source, target, opt_idx, color):
         """Draws a single Bezier curve arrow between two points."""
         x1, y1 = source.get_connection_point_out(opt_idx)
         x2, y2 = target.get_connection_point_in()
-        ctrlx1, ctrly1 = x1 + 60, y1
-        ctrlx2, ctrly2 = x2 - 60, y2
-        line_id = self.canvas.create_line(x1, y1, ctrlx1, ctrly1, ctrlx2, ctrly2, x2, y2, smooth=True, arrow=tk.LAST, fill=color, width=2, tags="connection")
+        ctrlx1, ctrly1 = x1 + 70, y1
+        ctrlx2, ctrly2 = x2 - 70, y2
+        line_id = self.canvas.create_line(x1, y1, ctrlx1, ctrly1, ctrlx2, ctrly2, x2, y2, smooth=True, arrow=tk.LAST, fill=color, width=2.5, tags="connection")
         self.canvas.tag_lower(line_id)
 
     def on_pan_start(self, event): self.canvas.scan_mark(event.x, event.y)
@@ -361,10 +372,8 @@ class CanvasManager:
         canvas_width = self.canvas.winfo_width()
         canvas_height = self.canvas.winfo_height()
         
-        # Calculate the top-left corner of the view to center the node
         target_x = x - canvas_width / 2 + NODE_WIDTH / 2
         target_y = y - canvas_height / 2 + node.get_height() / 2
         
-        # Convert to canvas fractions and move the view
         self.canvas.xview_moveto(target_x / 10000)
         self.canvas.yview_moveto(target_y / 10000)

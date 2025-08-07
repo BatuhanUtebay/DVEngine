@@ -3,63 +3,7 @@ import tkinter as tk
 from tkinter import filedialog, messagebox, colorchooser
 import customtkinter as ctk
 from ..constants import *
-from PIL import Image, ImageTk
-
-class PropertiesPanel(ctk.CTkFrame):
-    def __init__(self, parent, app):
-        super().__init__(parent, fg_color=COLOR_PRIMARY_FRAME, border_width=1, border_color=COLOR_SECONDARY_FRAME)
-        self.app = app
-        
-        self.grid_columnconfigure(0, weight=1)
-        self.grid_rowconfigure(1, weight=1)
-
-        # Header
-        header = ctk.CTkFrame(self, fg_color="transparent")
-        header.grid(row=0, column=0, sticky="ew", padx=10, pady=10)
-        ctk.CTkLabel(header, text="Properties", font=FONT_TITLE).pack(side="left")
-
-        # Tab View
-        self.tab_view = ctk.CTkTabview(self, fg_color=COLOR_SECONDARY_FRAME,
-                                       segmented_button_selected_color=COLOR_ACCENT,
-                                       segmented_button_selected_hover_color=COLOR_ACCENT_HOVER)
-        self.tab_view.grid(row=1, column=0, sticky="nsew", padx=10, pady=(0,10))
-        
-        tab_names = ["Node", "Choices", "Player", "Flags", "Quests", "Project"]
-        for tab_name in tab_names: self.tab_view.add(tab_name)
-        
-        self.prop_widgets = {}
-        self.create_properties_widgets()
-
-    def create_properties_widgets(self):
-        """Creates all the widgets for the right-hand properties panel."""
-        # --- Node Tab ---
-        node_tab = self.tab_view.tab("Node")
-        node_tab.grid_columnconfigure(0, weight=1)
-        
-        # ... (rest of the widgets for Node, Choices, etc. tabs)
-        # This is a simplified version for brevity. The full logic is below.
-        
-        # Example of a styled frame
-        info_frame = ctk.CTkFrame(node_tab, fg_color="transparent")
-        info_frame.grid(row=0, column=0, sticky="ew", padx=10, pady=10)
-        info_frame.grid_columnconfigure(1, weight=1)
-        
-        ctk.CTkLabel(info_frame, text="Node ID:", font=FONT_PROPERTIES_LABEL).grid(row=0, column=0, padx=5, pady=5, sticky="w")
-        self.prop_widgets["id_var"] = tk.StringVar()
-        self.prop_widgets["id_entry"] = ctk.CTkEntry(info_frame, textvariable=self.prop_widgets["id_var"], font=FONT_PROPERTIES_ENTRY)
-        self.prop_widgets["id_entry"].grid(row=0, column=1, padx=5, pady=5, sticky="ew")
-        
-        # ... and so on for all other widgets, applying the new constants and layout ...
-        # The full implementation follows, this is just to show the new structure.
-
-# NOTE: The following is the full, updated implementation of the PropertiesPanel class.
-
-# dvge/ui/properties_panel.py
-import tkinter as tk
-from tkinter import filedialog, messagebox, colorchooser
-import customtkinter as ctk
-from ..constants import *
-from ..data_models import Quest
+from ..data_models import Quest, DiceRollNode
 
 class PropertiesPanel(ctk.CTkFrame):
     def __init__(self, parent, app):
@@ -130,9 +74,27 @@ class PropertiesPanel(ctk.CTkFrame):
         self.prop_widgets["audio_entry"].grid(row=3, column=0, sticky="ew", padx=(5,0))
         ctk.CTkButton(media_frame, text="...", width=40, command=self.select_audio_file).grid(row=3, column=1, padx=(5,5))
 
+        ctk.CTkLabel(media_frame, text="Music (MP3):", font=FONT_PROPERTIES_LABEL, text_color=COLOR_TEXT_MUTED).grid(row=4, column=0, columnspan=2, sticky="w", padx=5, pady=(10,0))
+        self.prop_widgets["music_entry"] = ctk.CTkEntry(media_frame, font=FONT_PROPERTIES_ENTRY, placeholder_text="No music selected...")
+        self.prop_widgets["music_entry"].grid(row=5, column=0, sticky="ew", padx=(5,0))
+        ctk.CTkButton(media_frame, text="...", width=40, command=self.select_music_file).grid(row=5, column=1, padx=(5,5))
+
+        # Auto-advance
+        auto_advance_frame = ctk.CTkFrame(node_tab, fg_color="transparent")
+        auto_advance_frame.grid(row=2, column=0, sticky="ew", padx=10, pady=5)
+        auto_advance_frame.grid_columnconfigure(1, weight=1)
+
+        self.prop_widgets["auto_advance_var"] = tk.BooleanVar()
+        self.prop_widgets["auto_advance_checkbox"] = ctk.CTkCheckBox(auto_advance_frame, text="Auto-advance to next node", variable=self.prop_widgets["auto_advance_var"], command=self.on_auto_advance_change)
+        self.prop_widgets["auto_advance_checkbox"].grid(row=0, column=0, columnspan=2, sticky="w", padx=5)
+
+        ctk.CTkLabel(auto_advance_frame, text="Delay (seconds):", font=FONT_PROPERTIES_LABEL, text_color=COLOR_TEXT_MUTED).grid(row=1, column=0, padx=5, pady=8, sticky="w")
+        self.prop_widgets["auto_advance_delay_entry"] = ctk.CTkEntry(auto_advance_frame, font=FONT_PROPERTIES_ENTRY)
+        self.prop_widgets["auto_advance_delay_entry"].grid(row=1, column=1, padx=5, pady=8, sticky="ew")
+
         dialogue_frame = ctk.CTkFrame(node_tab, fg_color="transparent")
-        dialogue_frame.grid(row=2, column=0, sticky="nsew", padx=10, pady=(10, 10))
-        node_tab.grid_rowconfigure(2, weight=1)
+        dialogue_frame.grid(row=3, column=0, sticky="nsew", padx=10, pady=(10, 10))
+        node_tab.grid_rowconfigure(3, weight=1)
         dialogue_frame.grid_columnconfigure(0, weight=1)
         dialogue_frame.grid_rowconfigure(1, weight=1)
         
@@ -140,7 +102,7 @@ class PropertiesPanel(ctk.CTkFrame):
         self.prop_widgets["text_box"] = ctk.CTkTextbox(dialogue_frame, wrap="word", font=FONT_PROPERTIES_ENTRY, border_spacing=5)
         self.prop_widgets["text_box"].grid(row=1, column=0, sticky="nsew", padx=5, pady=(5,0))
         
-        ctk.CTkButton(node_tab, text="Save Node Changes", command=self.save_properties_to_node, fg_color=COLOR_ACCENT, hover_color=COLOR_ACCENT_HOVER).grid(row=3, column=0, pady=10, padx=10, sticky="ew")
+        ctk.CTkButton(node_tab, text="Save Node Changes", command=self.save_properties_to_node, fg_color=COLOR_ACCENT, hover_color=COLOR_ACCENT_HOVER).grid(row=4, column=0, pady=10, padx=10, sticky="ew")
 
         # --- Choices Tab ---
         choices_tab = self.tab_view.tab("Choices")
@@ -217,9 +179,6 @@ class PropertiesPanel(ctk.CTkFrame):
         
         ctk.CTkButton(project_tab, text="Save Project Settings", command=self.save_project_settings).grid(row=1, column=0, pady=10, padx=10, sticky="ew")
 
-    # ... The rest of the methods (select_background_image, update_all_panels, etc.) remain largely the same in logic,
-    # but their visual output will be affected by the new constants and styled widgets. I've included the full code below.
-
     def select_background_image(self):
         if not self.app.active_node_id: return
         filepath = filedialog.askopenfilename(title="Select Background Image", filetypes=[("Image Files", "*.png *.jpg *.jpeg")])
@@ -233,6 +192,19 @@ class PropertiesPanel(ctk.CTkFrame):
         if filepath:
             self.prop_widgets["audio_entry"].delete(0, 'end')
             self.prop_widgets["audio_entry"].insert(0, filepath)
+            
+    def select_music_file(self):
+        if not self.app.active_node_id: return
+        filepath = filedialog.askopenfilename(title="Select Music File", filetypes=[("MP3 Files", "*.mp3")])
+        if filepath:
+            self.prop_widgets["music_entry"].delete(0, 'end')
+            self.prop_widgets["music_entry"].insert(0, filepath)
+
+    def on_auto_advance_change(self):
+        if not self.app.active_node_id: return
+        node = self.app.nodes[self.app.active_node_id]
+        node.auto_advance = self.prop_widgets["auto_advance_var"].get()
+        self.update_properties_panel()
 
     def update_all_panels(self):
         self.update_properties_panel()
@@ -262,8 +234,14 @@ class PropertiesPanel(ctk.CTkFrame):
             self.prop_widgets["text_box"].delete("1.0", "end"); self.prop_widgets["text_box"].insert("1.0", node.text)
             self.prop_widgets["bg_image_entry"].delete(0, 'end'); self.prop_widgets["bg_image_entry"].insert(0, node.backgroundImage)
             self.prop_widgets["audio_entry"].delete(0, 'end'); self.prop_widgets["audio_entry"].insert(0, node.audio)
+            self.prop_widgets["music_entry"].delete(0, 'end'); self.prop_widgets["music_entry"].insert(0, node.music)
+            self.prop_widgets["auto_advance_var"].set(node.auto_advance)
+            self.prop_widgets["auto_advance_delay_entry"].delete(0, 'end'); self.prop_widgets["auto_advance_delay_entry"].insert(0, str(node.auto_advance_delay))
             
-            for i, option in enumerate(node.options): self.create_option_widget(i, option)
+            if isinstance(node, DiceRollNode):
+                self.create_dice_roll_widgets(node)
+            else:
+                for i, option in enumerate(node.options): self.create_option_widget(i, option)
         else:
             self.prop_widgets["id_var"].set("No node selected")
             self.prop_widgets["id_entry"].configure(state="readonly")
@@ -272,8 +250,56 @@ class PropertiesPanel(ctk.CTkFrame):
             self.prop_widgets["chapter_entry"].delete(0, 'end')
             self.prop_widgets["bg_image_entry"].delete(0, 'end')
             self.prop_widgets["audio_entry"].delete(0, 'end')
+            self.prop_widgets["music_entry"].delete(0, 'end')
             self.prop_widgets["text_box"].delete("1.0", "end")
             self.prop_widgets["text_box"].configure(state="disabled")
+
+    def create_dice_roll_widgets(self, node):
+        dice_frame = ctk.CTkFrame(self.options_frame, fg_color=COLOR_PRIMARY_FRAME)
+        dice_frame.pack(fill="x", pady=5, padx=5)
+        dice_frame.grid_columnconfigure(1, weight=1)
+
+        ctk.CTkLabel(dice_frame, text="Dice Roll Settings", font=FONT_PROPERTIES_LABEL, text_color=COLOR_ACCENT).grid(row=0, column=0, columnspan=2, padx=10, pady=(10,5), sticky="w")
+        
+        ctk.CTkLabel(dice_frame, text="Number of Dice:", font=FONT_PROPERTIES_ENTRY).grid(row=1, column=0, padx=10, pady=5, sticky="w")
+        num_dice_entry = ctk.CTkEntry(dice_frame, font=FONT_PROPERTIES_ENTRY)
+        num_dice_entry.insert(0, str(node.num_dice))
+        num_dice_entry.grid(row=1, column=1, sticky="ew", padx=10)
+        num_dice_entry.bind("<KeyRelease>", lambda e, w=num_dice_entry: self.on_dice_prop_change('num_dice', w.get()))
+
+        ctk.CTkLabel(dice_frame, text="Number of Sides:", font=FONT_PROPERTIES_ENTRY).grid(row=2, column=0, padx=10, pady=5, sticky="w")
+        num_sides_entry = ctk.CTkEntry(dice_frame, font=FONT_PROPERTIES_ENTRY)
+        num_sides_entry.insert(0, str(node.num_sides))
+        num_sides_entry.grid(row=2, column=1, sticky="ew", padx=10)
+        num_sides_entry.bind("<KeyRelease>", lambda e, w=num_sides_entry: self.on_dice_prop_change('num_sides', w.get()))
+
+        ctk.CTkLabel(dice_frame, text="Success Threshold:", font=FONT_PROPERTIES_ENTRY).grid(row=3, column=0, padx=10, pady=5, sticky="w")
+        success_threshold_entry = ctk.CTkEntry(dice_frame, font=FONT_PROPERTIES_ENTRY)
+        success_threshold_entry.insert(0, str(node.success_threshold))
+        success_threshold_entry.grid(row=3, column=1, sticky="ew", padx=10)
+        success_threshold_entry.bind("<KeyRelease>", lambda e, w=success_threshold_entry: self.on_dice_prop_change('success_threshold', w.get()))
+
+        node_ids = ["", "[End Game]"] + sorted(list(self.app.nodes.keys()))
+        
+        ctk.CTkLabel(dice_frame, text="Success Node:", font=FONT_PROPERTIES_ENTRY).grid(row=4, column=0, padx=10, pady=5, sticky="w")
+        success_node_combo = ctk.CTkComboBox(dice_frame, values=node_ids, font=FONT_PROPERTIES_ENTRY)
+        success_node_combo.set(node.success_node)
+        success_node_combo.configure(command=lambda choice: self.on_dice_prop_change('success_node', choice))
+        success_node_combo.grid(row=4, column=1, sticky="ew", padx=10)
+
+        ctk.CTkLabel(dice_frame, text="Failure Node:", font=FONT_PROPERTIES_ENTRY).grid(row=5, column=0, padx=10, pady=5, sticky="w")
+        failure_node_combo = ctk.CTkComboBox(dice_frame, values=node_ids, font=FONT_PROPERTIES_ENTRY)
+        failure_node_combo.set(node.failure_node)
+        failure_node_combo.configure(command=lambda choice: self.on_dice_prop_change('failure_node', choice))
+        failure_node_combo.grid(row=5, column=1, sticky="ew", padx=10)
+
+    def on_dice_prop_change(self, key, value):
+        if not self.app.active_node_id: return
+        node = self.app.nodes[self.app.active_node_id]
+        if isinstance(node, DiceRollNode):
+            self.app._save_state_for_undo("Change Dice Property")
+            setattr(node, key, value)
+            self.app.canvas_manager.redraw_node(self.app.active_node_id)
 
     def create_option_widget(self, index, option_data):
         option_frame = ctk.CTkFrame(self.options_frame, fg_color=COLOR_PRIMARY_FRAME)
@@ -332,7 +358,6 @@ class PropertiesPanel(ctk.CTkFrame):
         type_combo.set(cond_type.capitalize())
         type_combo.pack(side="left", padx=(5,2))
 
-        # ... (rest of condition row logic is the same, just styled by CTk)
         if cond_type == "stat":
             stat_combo = ctk.CTkComboBox(row_frame, values=list(self.app.player_stats.keys()), width=80, command=lambda c: self.on_condition_prop_change(opt_idx, cond_idx, 'subject', c))
             stat_combo.set(cond_data.get("subject", ""))
@@ -344,7 +369,7 @@ class PropertiesPanel(ctk.CTkFrame):
             val_entry.insert(0, str(cond_data.get("value", "")))
             val_entry.bind("<KeyRelease>", lambda e, w=val_entry: self.on_condition_prop_change(opt_idx, cond_idx, 'value', w.get()))
             val_entry.pack(side="left", padx=2, expand=True, fill="x")
-        # ... other types
+
         remove_btn = ctk.CTkButton(row_frame, text="✕", width=28, height=28, fg_color="transparent", hover_color=COLOR_ERROR, command=lambda oi=opt_idx, ci=cond_idx: self.remove_condition(oi, ci))
         remove_btn.pack(side="right", padx=(2,5))
 
@@ -361,7 +386,6 @@ class PropertiesPanel(ctk.CTkFrame):
         type_combo.set(effect_type.capitalize())
         type_combo.pack(side="left", padx=(5,2))
         
-        # ... (rest of effect row logic is the same, just styled by CTk)
         if effect_type == "stat":
             stat_combo = ctk.CTkComboBox(row_frame, values=list(self.app.player_stats.keys()), width=80, command=lambda c: self.on_effect_prop_change(opt_idx, effect_idx, 'subject', c))
             stat_combo.set(effect_data.get("subject", ""))
@@ -373,12 +397,10 @@ class PropertiesPanel(ctk.CTkFrame):
             val_entry.insert(0, str(effect_data.get("value", "")))
             val_entry.bind("<KeyRelease>", lambda e, w=val_entry: self.on_effect_prop_change(opt_idx, effect_idx, 'value', w.get()))
             val_entry.pack(side="left", padx=2, expand=True, fill="x")
-        # ... other types
+
         remove_btn = ctk.CTkButton(row_frame, text="✕", width=28, height=28, fg_color="transparent", hover_color=COLOR_ERROR, command=lambda oi=opt_idx, ei=effect_idx: self.remove_effect(oi, ei))
         remove_btn.pack(side="right", padx=(2,5))
 
-    # All other methods (on_option_prop_change, add_condition, etc.) remain the same logically.
-    # The full implementation is omitted here for brevity but is assumed to be present.
     def on_option_prop_change(self, index, key, value):
         if not self.app.active_node_id: return
         node = self.app.nodes[self.app.active_node_id]
@@ -656,6 +678,12 @@ class PropertiesPanel(ctk.CTkFrame):
         node.chapter = self.prop_widgets["chapter_entry"].get()
         node.backgroundImage = self.prop_widgets["bg_image_entry"].get()
         node.audio = self.prop_widgets["audio_entry"].get()
+        node.music = self.prop_widgets["music_entry"].get()
+        node.auto_advance = self.prop_widgets["auto_advance_var"].get()
+        try:
+            node.auto_advance_delay = float(self.prop_widgets["auto_advance_delay_entry"].get())
+        except ValueError:
+            node.auto_advance_delay = 0
         self.app.canvas_manager.redraw_all_nodes()
         self.update_properties_panel()
         messagebox.showinfo("Saved", f"Changes for {self.app.active_node_id} have been saved.")

@@ -2,7 +2,7 @@
 import tkinter as tk
 from tkinter import messagebox
 from ..constants import *
-from ..data_models import DialogueNode
+from ..data_models import DialogueNode, DiceRollNode
 
 class CanvasManager:
     def __init__(self, app):
@@ -21,6 +21,7 @@ class CanvasManager:
         self.context_menu = tk.Menu(self.app, tearoff=0, bg=COLOR_PRIMARY_FRAME, fg=COLOR_TEXT, relief="flat",
                                     activebackground=COLOR_ACCENT, activeforeground=COLOR_TEXT)
         self.context_menu.add_command(label="Add New Node Here", command=self.add_node_from_menu)
+        self.context_menu.add_command(label="Add Dice Roll Node", command=self.add_dice_roll_node_from_menu)
         self.context_menu.add_command(label="Delete Selected Node(s)", command=self.delete_selected_nodes)
 
         self.bind_events()
@@ -118,30 +119,37 @@ class CanvasManager:
 
         body_height = max(NODE_BASE_BODY_HEIGHT, node.calculated_text_height + 20)
         
-        for i, option in enumerate(node.options):
-            y_pos = y + NODE_HEADER_HEIGHT + body_height + (i * OPTION_LINE_HEIGHT) + 15
-            option_text = f"{i+1}. {self.wrap_text(option.get('text', '...'), 35)}"
-            
-            indicator_text = ""
-            if option.get('conditions'): indicator_text += " [C]"
-            if option.get('effects'): indicator_text += " [E]"
-            
-            node.canvas_item_ids[f'option_text_{i}'] = self.canvas.create_text(x + 20, y_pos, text=option_text, fill=COLOR_TEXT, anchor="w", font=FONT_OPTION, tags=tags)
-            if indicator_text:
-                node.canvas_item_ids[f'option_indicator_{i}'] = self.canvas.create_text(x + NODE_WIDTH - 45, y_pos, text=indicator_text, fill=COLOR_ACCENT, anchor="e", font=FONT_OPTION, tags=tags)
+        if isinstance(node, DiceRollNode):
+            dice_text = f"Roll {node.num_dice}d{node.num_sides} vs {node.success_threshold}"
+            node.canvas_item_ids['dice_text'] = self.canvas.create_text(x + 20, y + 100, text=dice_text, fill=COLOR_TEXT, anchor="nw", font=FONT_OPTION, tags=tags)
+            node.canvas_item_ids['success_text'] = self.canvas.create_text(x + 20, y + 130, text=f"Success: {node.success_node}", fill=COLOR_SUCCESS, anchor="nw", font=FONT_OPTION, tags=tags)
+            node.canvas_item_ids['failure_text'] = self.canvas.create_text(x + 20, y + 150, text=f"Failure: {node.failure_node}", fill=COLOR_ERROR, anchor="nw", font=FONT_OPTION, tags=tags)
+        else:
+            for i, option in enumerate(node.options):
+                y_pos = y + NODE_HEADER_HEIGHT + body_height + (i * OPTION_LINE_HEIGHT) + 15
+                option_text = f"{i+1}. {self.wrap_text(option.get('text', '...'), 35)}"
+                
+                indicator_text = ""
+                if option.get('conditions'): indicator_text += " [C]"
+                if option.get('effects'): indicator_text += " [E]"
+                
+                node.canvas_item_ids[f'option_text_{i}'] = self.canvas.create_text(x + 20, y_pos, text=option_text, fill=COLOR_TEXT, anchor="w", font=FONT_OPTION, tags=tags)
+                if indicator_text:
+                    node.canvas_item_ids[f'option_indicator_{i}'] = self.canvas.create_text(x + NODE_WIDTH - 45, y_pos, text=indicator_text, fill=COLOR_ACCENT, anchor="e", font=FONT_OPTION, tags=tags)
 
-            node.canvas_item_ids[f'option_handle_{i}'] = self.canvas.create_oval(x + NODE_WIDTH - 20, y_pos - 8, x + NODE_WIDTH-4, y_pos + 8, fill=COLOR_ACCENT, outline="", tags=("handle", node.id, f"opt_{i}", "node"))
+                node.canvas_item_ids[f'option_handle_{i}'] = self.canvas.create_oval(x + NODE_WIDTH - 20, y_pos - 8, x + NODE_WIDTH-4, y_pos + 8, fill=COLOR_ACCENT, outline="", tags=("handle", node.id, f"opt_{i}", "node"))
 
         footer_y = y + height - NODE_FOOTER_HEIGHT
         footer_tags = ("node", node.id, "add_option_button")
         # The footer is now just a clickable area, not visually distinct unless hovered
-        node.canvas_item_ids['add_button_text'] = self.canvas.create_text(x + NODE_WIDTH/2, footer_y + 18, text="+ Add Choice", fill=COLOR_TEXT_MUTED, font=FONT_ADD_BUTTON, tags=footer_tags, activefill=COLOR_ACCENT)
+        if not isinstance(node, DiceRollNode):
+            node.canvas_item_ids['add_button_text'] = self.canvas.create_text(x + NODE_WIDTH/2, footer_y + 18, text="+ Add Choice", fill=COLOR_TEXT_MUTED, font=FONT_ADD_BUTTON, tags=footer_tags, activefill=COLOR_ACCENT)
 
     def wrap_text(self, text, max_chars):
         """Truncates text to a maximum length for display on the node."""
         return text[:max_chars].strip() + "..." if len(text) > max_chars else text
 
-    def add_node(self, x, y):
+    def add_node(self, x, y, node_type="dialogue"):
         """Creates a new node in the data model and on the canvas."""
         self.app._save_state_for_undo("Add Node")
         if self.placeholder_id:
@@ -151,7 +159,12 @@ class CanvasManager:
             self.app.node_id_counter += 1
         node_id_str = f"node_{self.app.node_id_counter}"
         self.app.node_id_counter += 1
-        new_node = DialogueNode(x=x, y=y, node_id=node_id_str)
+        
+        if node_type == "dice_roll":
+            new_node = DiceRollNode(x=x, y=y, node_id=node_id_str)
+        else:
+            new_node = DialogueNode(x=x, y=y, node_id=node_id_str)
+            
         self.app.nodes[node_id_str] = new_node
         self.create_node_visual(new_node)
         self.app.set_selection([node_id_str], node_id_str)
@@ -310,6 +323,10 @@ class CanvasManager:
         """Adds a new node at the position of the right-click."""
         self.add_node(*self.right_click_pos)
         
+    def add_dice_roll_node_from_menu(self):
+        """Adds a new dice roll node at the position of the right-click."""
+        self.add_node(*self.right_click_pos, node_type="dice_roll")
+        
     def delete_selected_nodes(self, event=None):
         """Deletes all currently selected nodes."""
         if not self.app.selected_node_ids: return
@@ -342,10 +359,16 @@ class CanvasManager:
         """Draws all the connection arrows between nodes."""
         self.canvas.delete("connection")
         for node in self.app.nodes.values():
-            for i, option in enumerate(node.options):
-                target_id = option.get("nextNode")
-                if target_id and target_id in self.app.nodes:
-                    self.draw_arrow(node, self.app.nodes[target_id], i, NODE_CONNECTION_COLOR)
+            if isinstance(node, DiceRollNode):
+                if node.success_node and node.success_node in self.app.nodes:
+                    self.draw_arrow(node, self.app.nodes[node.success_node], 0, COLOR_SUCCESS)
+                if node.failure_node and node.failure_node in self.app.nodes:
+                    self.draw_arrow(node, self.app.nodes[node.failure_node], 1, COLOR_ERROR)
+            else:
+                for i, option in enumerate(node.options):
+                    target_id = option.get("nextNode")
+                    if target_id and target_id in self.app.nodes:
+                        self.draw_arrow(node, self.app.nodes[target_id], i, NODE_CONNECTION_COLOR)
         self.canvas.tag_raise("node")
 
     def draw_arrow(self, source, target, opt_idx, color):

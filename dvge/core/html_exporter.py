@@ -82,6 +82,18 @@ def export_game(app):
                 game_data['audio'] = "" # Clear if there's an error
         else:
             game_data['audio'] = "" # Clear if path is invalid
+
+        # Embed music as Base64 data URI if it exists
+        if game_data['music'] and os.path.exists(game_data['music']):
+            try:
+                with open(game_data['music'], "rb") as music_file:
+                    encoded_string = base64.b64encode(music_file.read()).decode('utf-8')
+                    game_data['music'] = f"data:audio/mpeg;base64,{encoded_string}"
+            except Exception as e:
+                print(f"Could not process music for node {node_id}: {e}")
+                game_data['music'] = "" # Clear if there's an error
+        else:
+            game_data['music'] = "" # Clear if path is invalid
         
         dialogue_data[node_id] = game_data
 
@@ -127,6 +139,7 @@ def export_game(app):
     --border-color: rgba(120, 144, 156, 0.3);
     --shadow-color: rgba(0,0,0,0.4);
     --success-color: #A5D6A7; --error-color: #EF9A9A;
+    --quest-active-color: #F1C40F; --quest-completed-color: #2ECC71; --quest-failed-color: #E74C3C;
 }}
 body {{
     {background_css}
@@ -197,6 +210,10 @@ body.theme-ritual {{ --accent-color: #EF9A9A; --accent-dark: #B71C1C; }}
 }}
 .inventory-item, .quest-line {{ cursor: help; }}
 .inventory-item:hover, .quest-line:hover {{ background-color: rgba(255,255,255,0.05); }}
+.quest-line.active {{ border-left: 3px solid var(--quest-active-color); }}
+.quest-line.completed {{ border-left: 3px solid var(--quest-completed-color); text-decoration: line-through; color: var(--text-muted);}}
+.quest-line.failed {{ border-left: 3px solid var(--quest-failed-color); text-decoration: line-through; color: var(--text-muted);}}
+
 
 #save-load-buttons {{ position: fixed; top: 20px; right: 20px; z-index: 101; }}
 #save-load-buttons button {{
@@ -247,6 +264,7 @@ body.theme-ritual {{ --accent-color: #EF9A9A; --accent-dark: #B71C1C; }}
         <div id="options"></div>
     </div>
     <audio id="audio-player" src=""></audio>
+    <audio id="music-player" src="" loop></audio>
     <div id="start-overlay">
         <h1 id="story-title-overlay">My DVG Adventure</h1>
         <p>Click to Start</p>
@@ -256,6 +274,7 @@ body.theme-ritual {{ --accent-color: #EF9A9A; --accent-dark: #B71C1C; }}
 const dialogueData = {dialogue_data};
 let player = {player_data};
 let currentNode = "intro", previousBackgroundTheme = "theme-default", gameState = {{ currentChapter:"", flags:{flags_data}, quests:{quests_data} }};
+let autoAdvanceTimer = null;
 
 function updateHud() {{
     const hud = document.getElementById('hud-container');
@@ -276,14 +295,36 @@ function updateHud() {{
     inventoryHTML += `</div>`;
 
     let journalHTML = `<div class="hud-section"><h3><i class="ph-fill ph-scroll"></i> Journal</h3>`;
-    const activeQuests = Object.values(gameState.quests).filter(q => q.state === 'active');
+    const quests = Object.values(gameState.quests);
+    const activeQuests = quests.filter(q => q.state === 'active');
+    const completedQuests = quests.filter(q => q.state === 'completed');
+    const failedQuests = quests.filter(q => q.state === 'failed');
+
     if (activeQuests.length > 0) {{
+        journalHTML += `<h4>Active</h4>`;
          activeQuests.forEach(quest => {{
-            journalHTML += `<div class="quest-line" title="${{quest.description || ''}}"><span>${{quest.name}}</span></div>`;
+            journalHTML += `<div class="quest-line active" title="${{quest.description || ''}}"><span>${{quest.name}}</span></div>`;
         }});
-    }} else {{
-        journalHTML += `<div>No active quests.</div>`;
     }}
+    
+    if (completedQuests.length > 0) {{
+        journalHTML += `<h4>Completed</h4>`;
+         completedQuests.forEach(quest => {{
+            journalHTML += `<div class="quest-line completed" title="${{quest.description || ''}}"><span>${{quest.name}}</span></div>`;
+        }});
+    }}
+
+    if (failedQuests.length > 0) {{
+        journalHTML += `<h4>Failed</h4>`;
+         failedQuests.forEach(quest => {{
+            journalHTML += `<div class="quest-line failed" title="${{quest.description || ''}}"><span>${{quest.name}}</span></div>`;
+        }});
+    }}
+
+    if (activeQuests.length === 0 && completedQuests.length === 0 && failedQuests.length === 0) {{
+        journalHTML += `<div>No quests.</div>`;
+    }}
+
     journalHTML += `</div>`;
 
     hud.innerHTML = statsHTML + inventoryHTML + journalHTML;
@@ -400,6 +441,7 @@ function applyEffects(effects) {{
 }}
 
 function renderNode(key){{ 
+    if (autoAdvanceTimer) clearTimeout(autoAdvanceTimer);
     if (key === '[End Game]') {{
         document.getElementById('dialogue-text').textContent = 'The story ends here.';
         document.getElementById('options').innerHTML = '';
@@ -422,6 +464,18 @@ function renderNode(key){{
         audioPlayer.src = "";
     }}
 
+    const musicPlayer = document.getElementById('music-player');
+    if (nodeData.music && musicPlayer.src !== nodeData.music) {{
+        musicPlayer.src = nodeData.music;
+        musicPlayer.play().catch(e => {{
+            console.log("Autoplay was prevented. Music will start on first interaction.");
+        }});
+    }} else if (!nodeData.music) {{
+        musicPlayer.src = "";
+        musicPlayer.pause();
+    }}
+
+
     if(nodeData.chapter&&nodeData.chapter!==gameState.currentChapter){{
         gameState.currentChapter=nodeData.chapter;
         showChapterTransition(nodeData.chapter);
@@ -430,16 +484,43 @@ function renderNode(key){{
     document.getElementById("dialogue-text").textContent=nodeData.text;
     const o=document.getElementById("options");
     o.innerHTML="";
-    (nodeData.options||[]).forEach(opt=>{{
-        if(!checkConditions(opt.conditions)) return;
+
+    if (nodeData.auto_advance && nodeData.options && nodeData.options.length > 0) {{
+        const nextNode = nodeData.options[0].nextNode;
+        const delay = nodeData.auto_advance_delay * 1000;
+        if (delay > 0) {{
+            autoAdvanceTimer = setTimeout(() => renderNode(nextNode), delay);
+        }} else if (nodeData.audio) {{
+            audioPlayer.onended = () => renderNode(nextNode);
+        }}
+    }} else if (nodeData.node_type === "DiceRoll") {{
         const b=document.createElement("button");
-        b.textContent=opt.text;
+        b.textContent=`Roll ${{{nodeData.num_dice}}}d${{{nodeData.num_sides}}}`;
         b.onclick=()=>{{
-            applyEffects(opt.effects);
-            renderNode(opt.nextNode);
+            let total = 0;
+            for(let i=0; i < nodeData.num_dice; i++){{
+                total += Math.floor(Math.random() * nodeData.num_sides) + 1;
+            }}
+            showNotification(`You rolled a ${{total}}`);
+            if(total >= nodeData.success_threshold){{
+                renderNode(nodeData.success_node);
+            }} else {{
+                renderNode(nodeData.failure_node);
+            }}
         }};
         o.appendChild(b);
-    }});
+    }} else {{
+        (nodeData.options||[]).forEach(opt=>{{
+            if(!checkConditions(opt.conditions)) return;
+            const b=document.createElement("button");
+            b.textContent=opt.text;
+            b.onclick=()=>{{
+                applyEffects(opt.effects);
+                renderNode(opt.nextNode);
+            }};
+            o.appendChild(b);
+        }});
+    }}
 }}
 
 function saveGame() {{
@@ -486,6 +567,10 @@ document.addEventListener('DOMContentLoaded',()=>{{
         const audioPlayer = document.getElementById('audio-player');
         if (audioPlayer.src && audioPlayer.paused) {{
             audioPlayer.play().catch(e => console.error("Audio play failed:", e));
+        }}
+        const musicPlayer = document.getElementById('music-player');
+        if (musicPlayer.src && musicPlayer.paused) {{
+            musicPlayer.play().catch(e => console.error("Music play failed:", e));
         }}
     }}, {{ once: true }});
 

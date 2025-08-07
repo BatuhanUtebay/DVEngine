@@ -10,7 +10,7 @@ class DialogueNode:
     """
     NODE_TYPE = "Dialogue"
 
-    def __init__(self, x, y, node_id, npc="Narrator", text="", options=None, theme="", chapter="", color=NODE_DEFAULT_COLOR, backgroundImage="", audio=""):
+    def __init__(self, x, y, node_id, npc="Narrator", text="", options=None, theme="", chapter="", color=NODE_DEFAULT_COLOR, backgroundImage="", audio="", music="", auto_advance=False, auto_advance_delay=0):
         # Editor-specific data
         self.x = x
         self.y = y
@@ -28,6 +28,9 @@ class DialogueNode:
         self.color = color
         self.backgroundImage = backgroundImage
         self.audio = audio
+        self.music = music
+        self.auto_advance = auto_advance
+        self.auto_advance_delay = auto_advance_delay
 
     def to_dict(self):
         """
@@ -38,7 +41,9 @@ class DialogueNode:
             "game_data": {
                 "npc": self.npc, "text": self.text, "options": self.options,
                 "backgroundTheme": self.backgroundTheme, "chapter": self.chapter,
-                "backgroundImage": self.backgroundImage, "audio": self.audio
+                "backgroundImage": self.backgroundImage, "audio": self.audio,
+                "music": self.music, "auto_advance": self.auto_advance,
+                "auto_advance_delay": self.auto_advance_delay
             },
             "editor_data": {"x": self.x, "y": self.y, "id": self.id, "color": self.color}
         }
@@ -52,6 +57,8 @@ class DialogueNode:
         node_type = data.get("node_type", "Dialogue")
         if node_type == "Combat":
             return CombatNode.from_dict(data)
+        if node_type == "DiceRoll":
+            return DiceRollNode.from_dict(data)
         
         # Default to DialogueNode
         game_data = data['game_data']
@@ -62,7 +69,10 @@ class DialogueNode:
             options=game_data.get('options', []), theme=game_data.get('backgroundTheme', ''),
             chapter=game_data.get('chapter', ''), color=editor_data.get('color', NODE_DEFAULT_COLOR),
             backgroundImage=game_data.get('backgroundImage', ''),
-            audio=game_data.get('audio', '')
+            audio=game_data.get('audio', ''),
+            music=game_data.get('music', ''),
+            auto_advance=game_data.get('auto_advance', False),
+            auto_advance_delay=game_data.get('auto_advance_delay', 0)
         )
 
     def get_height(self):
@@ -125,6 +135,52 @@ class CombatNode(DialogueNode):
         """Combat nodes have a fixed height for simplicity."""
         return NODE_HEADER_HEIGHT + NODE_BASE_BODY_HEIGHT + NODE_FOOTER_HEIGHT
 
+class DiceRollNode(DialogueNode):
+    """
+    A special type of node for handling dice rolls.
+    """
+    NODE_TYPE = "DiceRoll"
+
+    def __init__(self, x, y, node_id, text="A challenge appears!", num_dice=1, num_sides=6, success_threshold=4, success_node="", failure_node="", **kwargs):
+        super().__init__(x, y, node_id, npc="Dice Roll", text=text, **kwargs)
+        self.num_dice = num_dice
+        self.num_sides = num_sides
+        self.success_threshold = success_threshold
+        self.success_node = success_node
+        self.failure_node = failure_node
+
+    def to_dict(self):
+        """Serializes the dice roll node's data."""
+        data = super().to_dict()
+        data["node_type"] = self.NODE_TYPE
+        data["game_data"]["num_dice"] = self.num_dice
+        data["game_data"]["num_sides"] = self.num_sides
+        data["game_data"]["success_threshold"] = self.success_threshold
+        data["game_data"]["success_node"] = self.success_node
+        data["game_data"]["failure_node"] = self.failure_node
+        # Remove options as they are not used in dice roll nodes
+        data["game_data"].pop("options", None)
+        return data
+
+    @staticmethod
+    def from_dict(data):
+        """Creates a DiceRollNode instance from a dictionary."""
+        game_data = data['game_data']
+        editor_data = data['editor_data']
+        return DiceRollNode(
+            x=editor_data['x'], y=editor_data['y'], node_id=editor_data['id'],
+            text=game_data.get('text', 'A challenge appears!'),
+            num_dice=game_data.get('num_dice', 1),
+            num_sides=game_data.get('num_sides', 6),
+            success_threshold=game_data.get('success_threshold', 4),
+            success_node=game_data.get('success_node', ''),
+            failure_node=game_data.get('failure_node', ''),
+            theme=game_data.get('backgroundTheme', ''),
+            chapter=game_data.get('chapter', ''),
+            color=editor_data.get('color', NODE_DEFAULT_COLOR),
+            backgroundImage=game_data.get('backgroundImage', ''),
+            audio=game_data.get('audio', '')
+        )
 
 class Quest:
     """Represents a single quest or journal entry."""

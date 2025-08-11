@@ -17,6 +17,7 @@ class CanvasManager:
         self.drag_mode = None
         self.drag_start_pos = {}
         self.placeholder_id = None
+        self.is_dragging = False  # Add flag to track dragging state
         
         self.context_menu = tk.Menu(self.app, tearoff=0, bg=COLOR_PRIMARY_FRAME, fg=COLOR_TEXT, relief="flat",
                                     activebackground=COLOR_ACCENT, activeforeground=COLOR_TEXT)
@@ -206,6 +207,7 @@ class CanvasManager:
 
         if node_id:
             self.drag_mode = 'drag_nodes'
+            self.is_dragging = False  # Reset dragging flag
             if not event.state & 0x0001: # If not holding shift for multi-select
                 if node_id not in self.app.selected_node_ids:
                     self.app.set_selection([node_id], node_id)
@@ -238,10 +240,15 @@ class CanvasManager:
             self.canvas.coords(self.selection_rectangle, start_x, start_y, canvas_x, canvas_y)
         
         elif self.drag_mode == 'drag_nodes' and self.app.selected_node_ids:
+            # Set dragging flag on first movement
+            if not self.is_dragging:
+                self.is_dragging = True
+            
             mouse_start_x, mouse_start_y = self.drag_start_pos['mouse']
             dx = canvas_x - mouse_start_x
             dy = canvas_y - mouse_start_y
             
+            # Update node positions and move visual elements
             for node_id in self.app.selected_node_ids:
                 node = self.app.nodes[node_id]
                 node_start_x, node_start_y = self.drag_start_pos['nodes'][node_id]
@@ -250,19 +257,25 @@ class CanvasManager:
                 move_dx, move_dy = new_x - node.x, new_y - node.y
                 
                 if move_dx != 0 or move_dy != 0:
+                    # Move all visual elements for this node
                     for item_id in node.canvas_item_ids.values():
-                        self.canvas.move(item_id, move_dx, move_dy)
+                        if self.canvas.find_withtag(item_id):
+                            self.canvas.move(item_id, move_dx, move_dy)
+                    # Update node position in data model
                     node.x, node.y = new_x, new_y
             
+            # Redraw connections during drag to show live updates
             self.draw_connections()
 
     def on_canvas_release(self, event):
         """Handles the release of the left mouse button."""
-        if self.drag_mode == 'drag_nodes' and self.drag_start_pos.get('mouse') != (self.canvas.canvasx(event.x), self.canvas.canvasy(event.y)):
+        # Save state for undo if nodes were actually dragged
+        if self.drag_mode == 'drag_nodes' and self.is_dragging:
             self.app._save_state_for_undo("Drag Nodes")
-
+        
         if self.is_connecting:
-            if self.temp_connection_line: self.canvas.delete(self.temp_connection_line)
+            if self.temp_connection_line: 
+                self.canvas.delete(self.temp_connection_line)
             target_item = self.canvas.find_closest(self.canvas.canvasx(event.x), self.canvas.canvasy(event.y))
             if target_item:
                 target_tags = self.canvas.gettags(target_item[0])
@@ -273,7 +286,8 @@ class CanvasManager:
                     opt_index = self.connection_start_info['option_index']
                     self.app.nodes[source_node_id].options[opt_index]['nextNode'] = target_node_id
                     self.draw_connections()
-                    if self.app.active_node_id == source_node_id: self.app.properties_panel.update_properties_panel()
+                    if self.app.active_node_id == source_node_id: 
+                        self.app.properties_panel.update_properties_panel()
         
         elif self.drag_mode == 'select_rect' and self.selection_rectangle:
             x1, y1, x2, y2 = self.canvas.bbox(self.selection_rectangle)
@@ -289,20 +303,32 @@ class CanvasManager:
             self.app.set_selection(newly_selected_ids)
             self.canvas.delete(self.selection_rectangle)
 
-        elif self.drag_mode == 'drag_nodes':
+        elif self.drag_mode == 'drag_nodes' and self.is_dragging:
+            # Snap to grid and finalize positions
             for node_id in self.app.selected_node_ids:
                 node = self.app.nodes[node_id]
                 snapped_x = round(node.x / GRID_SIZE) * GRID_SIZE
                 snapped_y = round(node.y / GRID_SIZE) * GRID_SIZE
                 move_dx, move_dy = snapped_x - node.x, snapped_y - node.y
+                
                 if move_dx != 0 or move_dy != 0:
+                    # Move visual elements to snapped position
                     for item_id in node.canvas_item_ids.values():
-                        self.canvas.move(item_id, move_dx, move_dy)
-                node.x, node.y = snapped_x, snapped_y
+                        if self.canvas.find_withtag(item_id):
+                            self.canvas.move(item_id, move_dx, move_dy)
+                    # Update node position to snapped coordinates
+                    node.x, node.y = snapped_x, snapped_y
             
+            # Final redraw of connections with correct positions
             self.draw_connections()
 
-        self.is_connecting, self.temp_connection_line, self.drag_mode, self.drag_start_pos, self.selection_rectangle = False, None, None, {}, None
+        # Reset drag state
+        self.is_connecting = False
+        self.temp_connection_line = None
+        self.drag_mode = None
+        self.drag_start_pos = {}
+        self.selection_rectangle = None
+        self.is_dragging = False
 
     def on_canvas_right_click(self, event):
         """Handles right-click events to show the context menu."""
@@ -341,14 +367,23 @@ class CanvasManager:
                 messagebox.showwarning("Cannot Delete", "The 'intro' node cannot be deleted.")
                 continue
 
+            # Clean up connections to this node
             for node in self.app.nodes.values():
                 for option in node.options:
-                    if option.get('nextNode') == node_to_delete_id: option['nextNode'] = ""
+                    if option.get('nextNode') == node_to_delete_id: 
+                        option['nextNode'] = ""
+                # Also check special node types
+                if hasattr(node, 'success_node') and node.success_node == node_to_delete_id:
+                    node.success_node = ""
+                if hasattr(node, 'failure_node') and node.failure_node == node_to_delete_id:
+                    node.failure_node = ""
                     
+            # Delete visual elements
             if node_to_delete_id in self.app.nodes:
                 node_to_delete = self.app.nodes[node_to_delete_id]
                 for item_id in node_to_delete.canvas_item_ids.values():
-                    self.canvas.delete(item_id)
+                    if self.canvas.find_withtag(item_id):
+                        self.canvas.delete(item_id)
                 self.app.nodes.pop(node_to_delete_id, None)
         
         self.app.set_selection([])
@@ -380,8 +415,12 @@ class CanvasManager:
         line_id = self.canvas.create_line(x1, y1, ctrlx1, ctrly1, ctrlx2, ctrly2, x2, y2, smooth=True, arrow=tk.LAST, fill=color, width=2.5, tags="connection")
         self.canvas.tag_lower(line_id)
 
-    def on_pan_start(self, event): self.canvas.scan_mark(event.x, event.y)
-    def on_pan_move(self, event): self.canvas.scan_dragto(event.x, event.y, gain=1)
+    def on_pan_start(self, event): 
+        self.canvas.scan_mark(event.x, event.y)
+        
+    def on_pan_move(self, event): 
+        self.canvas.scan_dragto(event.x, event.y, gain=1)
+        
     def on_zoom(self, event):
         factor = 1.1 if event.delta > 0 else 0.9
         self.canvas.scale("all", self.canvas.canvasx(event.x), self.canvas.canvasy(event.y), factor, factor)

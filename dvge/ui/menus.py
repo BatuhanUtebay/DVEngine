@@ -57,7 +57,7 @@ def create_menu(app):
     edit_menu.add_separator()
     edit_menu.add_command(
         label="Validate Project",
-        command=_validate_project_menu
+        command=lambda: _validate_project_menu(app)
     )
     menu_bar.add_cascade(label="Edit", menu=edit_menu)
 
@@ -70,6 +70,16 @@ def create_menu(app):
     view_menu.add_command(
         label="Center View",
         command=lambda: _center_view(app)
+    )
+    view_menu.add_separator()
+    view_menu.add_command(
+        label="Live Preview",
+        command=lambda: _open_live_preview(app),
+        accelerator="Ctrl+P"
+    )
+    view_menu.add_command(
+        label="Quick Test Selected Node",
+        command=lambda: _quick_test_node(app)
     )
     menu_bar.add_cascade(label="View", menu=view_menu)
 
@@ -124,6 +134,18 @@ def _center_view(app):
         app.canvas_manager.center_view()
 
 
+def _open_live_preview(app):
+    """Opens live preview from menu."""
+    if hasattr(app, 'preview_toolbar'):
+        app.preview_toolbar.preview_controls._open_preview()
+
+
+def _quick_test_node(app):
+    """Quick tests selected node from menu."""
+    if hasattr(app, 'preview_toolbar'):
+        app.preview_toolbar.preview_controls._quick_test()
+
+
 def _show_about_dialog(app):
     """Shows the about dialog."""
     from ..core.utils import show_info
@@ -149,6 +171,7 @@ def _show_shortcuts_dialog(app):
         "Ctrl+Z - Undo\n"
         "Ctrl+Y - Redo\n"
         "Ctrl+F - Find Node\n"
+        "Ctrl+P - Live Preview\n"
         "Delete - Delete Selected Nodes\n"
         "Right Click - Context Menu\n"
         "Middle Mouse - Pan Canvas\n"

@@ -31,15 +31,21 @@ class InteractionHandler:
             self.app, tearoff=0, bg=COLOR_PRIMARY_FRAME, 
             fg=COLOR_TEXT, relief="flat",
             activebackground=COLOR_ACCENT, activeforeground=COLOR_TEXT
-        )
-        self.context_menu.add_command(
-            label="Add New Node Here", 
-            command=self._add_node_from_menu
-        )
-        self.context_menu.add_command(
-            label="Add Dice Roll Node", 
-            command=self._add_dice_roll_node_from_menu
-        )
+    )
+    
+    # Node creation submenu
+        node_menu = tk.Menu(self.context_menu, tearoff=0, bg=COLOR_PRIMARY_FRAME, fg=COLOR_TEXT)
+        node_menu.add_command(label="Dialogue Node", command=lambda: self._add_node_type("dialogue"))
+        node_menu.add_command(label="Dice Roll Node", command=lambda: self._add_node_type("dice_roll"))
+        node_menu.add_command(label="Combat Node", command=lambda: self._add_node_type("combat"))
+        node_menu.add_separator()
+        node_menu.add_command(label="Shop Node", command=lambda: self._add_node_type("shop"))
+        node_menu.add_command(label="Random Event Node", command=lambda: self._add_node_type("random_event"))
+        node_menu.add_command(label="Timer Node", command=lambda: self._add_node_type("timer"))
+        node_menu.add_command(label="Inventory Node", command=lambda: self._add_node_type("inventory"))
+    
+        self.context_menu.add_cascade(label="Add Node", menu=node_menu)
+        self.context_menu.add_separator()
         self.context_menu.add_command(
             label="Delete Selected Node(s)", 
             command=self._delete_selected_nodes
@@ -293,6 +299,10 @@ class InteractionHandler:
     def _delete_selected_nodes(self):
         """Deletes all currently selected nodes."""
         self.app.canvas_manager.delete_selected_nodes()
+    
+    def _add_node_type(self, node_type):
+        """Adds a specific node type at the right-click position."""
+        self.app.canvas_manager.add_node(*self.right_click_pos, node_type=node_type)
 
     def on_pan_start(self, event):
         """Handles the start of canvas panning."""

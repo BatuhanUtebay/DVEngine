@@ -4,6 +4,7 @@
 
 import customtkinter as ctk
 from ...constants import *
+from .enhanced_condition_effect_widgets import EnhancedConditionEffectWidgets
 
 
 class ConditionEffectWidgets:
@@ -11,6 +12,7 @@ class ConditionEffectWidgets:
     
     def __init__(self, app):
         self.app = app
+        self.enhanced_widgets = EnhancedConditionEffectWidgets(app)
 
     def create_condition_row(self, parent, opt_idx, cond_idx, cond_data, update_callback):
         """Creates a complete row for editing a single condition."""
@@ -26,7 +28,7 @@ class ConditionEffectWidgets:
         # Type selector dropdown
         type_combo = ctk.CTkComboBox(
             row_frame, 
-            values=["Stat", "Item", "Flag", "Quest"], 
+            values=["Stat", "Item", "Flag", "Quest", "Variable"], 
             width=75, 
             command=on_type_change, 
             font=FONT_PROPERTIES_ENTRY
@@ -43,6 +45,8 @@ class ConditionEffectWidgets:
             self._create_flag_condition_widgets(row_frame, opt_idx, cond_idx, cond_data)
         elif cond_type == "quest":
             self._create_quest_condition_widgets(row_frame, opt_idx, cond_idx, cond_data)
+        elif cond_type == "variable":
+            self.enhanced_widgets.create_variable_condition_widgets(row_frame, opt_idx, cond_idx, cond_data)
 
         # Remove button for this condition
         remove_btn = ctk.CTkButton(
@@ -70,7 +74,7 @@ class ConditionEffectWidgets:
         # Type selector dropdown
         type_combo = ctk.CTkComboBox(
             row_frame, 
-            values=["Stat", "Item", "Flag", "Quest"], 
+            values=["Stat", "Item", "Flag", "Quest", "Variable"], 
             width=75, 
             command=on_type_change, 
             font=FONT_PROPERTIES_ENTRY
@@ -87,6 +91,8 @@ class ConditionEffectWidgets:
             self._create_flag_effect_widgets(row_frame, opt_idx, effect_idx, effect_data)
         elif effect_type == "quest":
             self._create_quest_effect_widgets(row_frame, opt_idx, effect_idx, effect_data)
+        elif effect_type == "variable":
+            self.enhanced_widgets.create_variable_effect_widgets(row_frame, opt_idx, effect_idx, effect_data)
 
         # Remove button for this effect
         remove_btn = ctk.CTkButton(

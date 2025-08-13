@@ -6,6 +6,7 @@ import customtkinter as ctk
 from ..constants import *
 from ..models import DialogueNode, Quest, GameTimer, Enemy
 from .state_manager import StateManager
+from .variable_system import VariableSystem
 
 
 class DVGApp(ctk.CTk):
@@ -24,6 +25,11 @@ class DVGApp(ctk.CTk):
         
         # Initialize managers and handlers
         self.state_manager = StateManager(self)
+        
+        # Initialize variable system
+        self.variable_system = VariableSystem()
+        self.variable_system.set_variables_ref(self.variables)
+        self.variable_system.set_flags_ref(self.story_flags)
         
         # Import handlers here to avoid circular imports
         from .project_handler import ProjectHandler
@@ -78,11 +84,17 @@ class DVGApp(ctk.CTk):
         self.bind_all("<Control-s>", lambda event: self.save_project_handler())
         self.bind_all("<Control-o>", lambda event: self.load_project_handler())
         self.bind_all("<Control-n>", lambda event: self.new_project_handler())
+        self.bind_all("<Control-p>", lambda e: self._open_live_preview())
 
     def _open_search_dialog(self):
         """Opens the search dialog."""
         from ..ui.dialogs.search_dialog import SearchDialog
         SearchDialog(self)
+
+    def _open_live_preview(self):
+        """Opens live preview via keyboard shortcut."""
+        if hasattr(self, 'preview_toolbar'):
+            self.preview_toolbar.preview_controls._open_preview()
 
     def undo(self, event=None):
         """Undo the last action."""
@@ -106,12 +118,21 @@ class DVGApp(ctk.CTk):
         # Update UI
         self.canvas_manager.update_selection_visuals()
         self.properties_panel.update_properties_panel()
+        
+        # Update preview toolbar if it exists
+        if hasattr(self, 'preview_toolbar'):
+            self.preview_toolbar.update_node_info(self.active_node_id)
 
     def new_project_handler(self):
         """Create a new project."""
         from ..core.utils import ask_yes_no
         if ask_yes_no("New Project", "Create a new project? Unsaved changes will be lost."):
             self._initialize_project_state()
+            
+            # Re-initialize variable system with new references
+            self.variable_system.set_variables_ref(self.variables)
+            self.variable_system.set_flags_ref(self.story_flags)
+            
             self.state_manager.clear_history()
             self.canvas_manager.redraw_all_nodes()
             self.properties_panel.update_all_panels()
@@ -123,7 +144,12 @@ class DVGApp(ctk.CTk):
         
     def load_project_handler(self): 
         """Load a project from file."""
-        return self.project_handler.load_project()
+        success = self.project_handler.load_project()
+        if success:
+            # Re-initialize variable system after loading
+            self.variable_system.set_variables_ref(self.variables)
+            self.variable_system.set_flags_ref(self.story_flags)
+        return success
         
     def export_game_handler(self): 
         """Export the game to HTML."""

@@ -3,7 +3,9 @@
 """Node rendering functionality for the canvas."""
 
 from ...constants import *
-from ...models import DiceRollNode
+from ...models import DiceRollNode, ShopNode, RandomEventNode, TimerNode, InventoryNode
+from .advanced_node_renderer import AdvancedNodeRenderer
+
 
 
 class NodeRenderer:
@@ -11,6 +13,7 @@ class NodeRenderer:
     
     def __init__(self, canvas):
         self.canvas = canvas
+        self.advanced_renderer = AdvancedNodeRenderer(canvas)
     
     def create_node_visual(self, node):
         """Creates all the visual components for a single node on the canvas."""
@@ -84,9 +87,13 @@ class NodeRenderer:
     def _create_node_content(self, node, x, y, tags):
         """Creates the content area (options or special node content)."""
         body_height = max(NODE_BASE_BODY_HEIGHT, node.calculated_text_height + 20)
-        
+    
         if isinstance(node, DiceRollNode):
             self._create_dice_roll_content(node, x, y, body_height, tags)
+        elif isinstance(node, (ShopNode, RandomEventNode, TimerNode, InventoryNode)):
+        # Use advanced renderer for these node types
+            advanced_content = self.advanced_renderer.create_advanced_node_content(node, x, y, tags)
+            node.canvas_item_ids.update(advanced_content)
         else:
             self._create_dialogue_options(node, x, y, body_height, tags)
 

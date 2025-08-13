@@ -4,7 +4,7 @@
 
 import customtkinter as ctk
 from ...constants import *
-from ...models import DiceRollNode
+from ...models import DiceRollNode, CombatNode, ShopNode, RandomEventNode, TimerNode, InventoryNode
 from ..widgets.condition_effect_widgets import ConditionEffectWidgets
 
 
@@ -53,6 +53,16 @@ class ChoicePropertiesTab:
             
             if isinstance(node, DiceRollNode):
                 self._create_dice_roll_widgets(node)
+            elif isinstance(node, CombatNode):
+                self._create_combat_widgets(node)
+            elif isinstance(node, ShopNode):
+                self._create_shop_widgets(node)
+            elif isinstance(node, RandomEventNode):
+                self._create_random_event_widgets(node)
+            elif isinstance(node, TimerNode):
+                self._create_timer_widgets(node)
+            elif isinstance(node, InventoryNode):
+                self._create_inventory_widgets(node)
             else:
                 self._create_dialogue_options(node)
 
@@ -136,6 +146,207 @@ class ChoicePropertiesTab:
             command=lambda choice: self._on_dice_prop_change('failure_node', choice)
         )
         failure_node_combo.grid(row=5, column=1, sticky="ew", padx=10)
+
+    def _create_combat_widgets(self, node):
+        """Creates widgets for combat node configuration."""
+        combat_frame = ctk.CTkFrame(self.options_frame, fg_color=COLOR_PRIMARY_FRAME)
+        combat_frame.pack(fill="x", pady=5, padx=5)
+        combat_frame.grid_columnconfigure(1, weight=1)
+
+        ctk.CTkLabel(
+            combat_frame, text="Combat Settings", 
+            font=FONT_PROPERTIES_LABEL, text_color=COLOR_ACCENT
+        ).grid(row=0, column=0, columnspan=2, padx=10, pady=(10,5), sticky="w")
+
+        node_ids = ["", "[End Game]"] + sorted(list(self.app.nodes.keys()))
+        
+        # Success node
+        ctk.CTkLabel(
+            combat_frame, text="Victory Node:", font=FONT_PROPERTIES_ENTRY
+        ).grid(row=1, column=0, padx=10, pady=5, sticky="w")
+        
+        success_node_combo = ctk.CTkComboBox(
+            combat_frame, values=node_ids, font=FONT_PROPERTIES_ENTRY
+        )
+        success_node_combo.set(node.successNode)
+        success_node_combo.configure(
+            command=lambda choice: self._on_combat_prop_change('successNode', choice)
+        )
+        success_node_combo.grid(row=1, column=1, sticky="ew", padx=10)
+
+        # Failure node
+        ctk.CTkLabel(
+            combat_frame, text="Defeat Node:", font=FONT_PROPERTIES_ENTRY
+        ).grid(row=2, column=0, padx=10, pady=5, sticky="w")
+        
+        failure_node_combo = ctk.CTkComboBox(
+            combat_frame, values=node_ids, font=FONT_PROPERTIES_ENTRY
+        )
+        failure_node_combo.set(node.failNode)
+        failure_node_combo.configure(
+            command=lambda choice: self._on_combat_prop_change('failNode', choice)
+        )
+        failure_node_combo.grid(row=2, column=1, sticky="ew", padx=10)
+
+    def _create_shop_widgets(self, node):
+        """Creates widgets for shop node with exit choices."""
+        shop_frame = ctk.CTkFrame(self.options_frame, fg_color=COLOR_PRIMARY_FRAME)
+        shop_frame.pack(fill="x", pady=5, padx=5)
+        shop_frame.grid_columnconfigure(1, weight=1)
+
+        ctk.CTkLabel(
+            shop_frame, text="Shop Navigation", 
+            font=FONT_PROPERTIES_LABEL, text_color=COLOR_ACCENT
+        ).grid(row=0, column=0, columnspan=2, padx=10, pady=(10,5), sticky="w")
+
+        # Continue node (where to go when leaving shop)
+        ctk.CTkLabel(
+            shop_frame, text="Exit Shop To:", font=FONT_PROPERTIES_ENTRY
+        ).grid(row=1, column=0, padx=10, pady=5, sticky="w")
+        
+        node_ids = ["", "[End Game]"] + sorted(list(self.app.nodes.keys()))
+        continue_combo = ctk.CTkComboBox(
+            shop_frame, values=node_ids, font=FONT_PROPERTIES_ENTRY
+        )
+        continue_combo.set(node.continue_node)
+        continue_combo.configure(
+            command=lambda choice: self._on_shop_prop_change('continue_node', choice)
+        )
+        continue_combo.grid(row=1, column=1, sticky="ew", padx=10, pady=5)
+
+        # Add note about shop configuration
+        note_label = ctk.CTkLabel(
+            shop_frame, 
+            text="Configure shop items in the 'Advanced' tab",
+            font=FONT_PROPERTIES_ENTRY, text_color=COLOR_TEXT_MUTED
+        )
+        note_label.grid(row=2, column=0, columnspan=2, padx=10, pady=5)
+
+    def _create_random_event_widgets(self, node):
+        """Creates widgets for random event node outcomes."""
+        event_frame = ctk.CTkFrame(self.options_frame, fg_color=COLOR_PRIMARY_FRAME)
+        event_frame.pack(fill="x", pady=5, padx=5)
+        event_frame.grid_columnconfigure(0, weight=1)
+
+        ctk.CTkLabel(
+            event_frame, text="Random Event Outcomes", 
+            font=FONT_PROPERTIES_LABEL, text_color=COLOR_ACCENT
+        ).grid(row=0, column=0, padx=10, pady=(10,5), sticky="w")
+
+        # Auto trigger setting
+        auto_var = ctk.BooleanVar(value=node.auto_trigger)
+        auto_check = ctk.CTkCheckBox(
+            event_frame, text="Trigger automatically on entry", 
+            variable=auto_var,
+            command=lambda: self._on_random_prop_change('auto_trigger', auto_var.get())
+        )
+        auto_check.grid(row=1, column=0, padx=10, pady=5, sticky="w")
+
+        # Outcomes list
+        for i, outcome in enumerate(node.random_outcomes):
+            outcome_frame = ctk.CTkFrame(event_frame, fg_color=COLOR_SECONDARY_FRAME)
+            outcome_frame.grid(row=2+i, column=0, sticky="ew", padx=10, pady=2)
+            outcome_frame.grid_columnconfigure(2, weight=1)
+
+            # Weight
+            weight_entry = ctk.CTkEntry(outcome_frame, width=60, placeholder_text="Weight")
+            weight_entry.insert(0, str(outcome.get('weight', 1)))
+            weight_entry.grid(row=0, column=0, padx=5, pady=5)
+            weight_entry.bind("<KeyRelease>", lambda e, idx=i, w=weight_entry: self._update_outcome(idx, 'weight', w.get()))
+
+            # Description
+            desc_entry = ctk.CTkEntry(outcome_frame, placeholder_text="Description")
+            desc_entry.insert(0, outcome.get('description', ''))
+            desc_entry.grid(row=0, column=1, padx=5, pady=5, sticky="ew")
+            desc_entry.bind("<KeyRelease>", lambda e, idx=i, w=desc_entry: self._update_outcome(idx, 'description', w.get()))
+
+            # Next node
+            node_ids = ["", "[End Game]"] + sorted(list(self.app.nodes.keys()))
+            node_combo = ctk.CTkComboBox(outcome_frame, values=node_ids, width=150)
+            node_combo.set(outcome.get('next_node', ''))
+            node_combo.configure(command=lambda choice, idx=i: self._update_outcome(idx, 'next_node', choice))
+            node_combo.grid(row=0, column=2, padx=5, pady=5, sticky="ew")
+
+            # Remove button
+            ctk.CTkButton(
+                outcome_frame, text="✕", width=30, height=30,
+                fg_color="transparent", hover_color=COLOR_ERROR,
+                command=lambda idx=i: self._remove_outcome(idx)
+            ).grid(row=0, column=3, padx=5, pady=5)
+
+        # Add outcome button
+        ctk.CTkButton(
+            event_frame, text="+ Add Outcome", 
+            command=self._add_outcome
+        ).grid(row=2+len(node.random_outcomes), column=0, pady=10, padx=10, sticky="ew")
+
+    def _create_timer_widgets(self, node):
+        """Creates widgets for timer node configuration."""
+        timer_frame = ctk.CTkFrame(self.options_frame, fg_color=COLOR_PRIMARY_FRAME)
+        timer_frame.pack(fill="x", pady=5, padx=5)
+        timer_frame.grid_columnconfigure(1, weight=1)
+
+        ctk.CTkLabel(
+            timer_frame, text="Timer Settings", 
+            font=FONT_PROPERTIES_LABEL, text_color=COLOR_ACCENT
+        ).grid(row=0, column=0, columnspan=2, padx=10, pady=(10,5), sticky="w")
+
+        # Next node (where to go after timer expires)
+        ctk.CTkLabel(
+            timer_frame, text="After Timer:", font=FONT_PROPERTIES_ENTRY
+        ).grid(row=1, column=0, padx=10, pady=5, sticky="w")
+        
+        node_ids = ["", "[End Game]"] + sorted(list(self.app.nodes.keys()))
+        next_combo = ctk.CTkComboBox(
+            timer_frame, values=node_ids, font=FONT_PROPERTIES_ENTRY
+        )
+        next_combo.set(node.next_node)
+        next_combo.configure(
+            command=lambda choice: self._on_timer_prop_change('next_node', choice)
+        )
+        next_combo.grid(row=1, column=1, sticky="ew", padx=10, pady=5)
+
+        # Add note about timer configuration
+        note_label = ctk.CTkLabel(
+            timer_frame, 
+            text="Configure timer duration in the 'Advanced' tab",
+            font=FONT_PROPERTIES_ENTRY, text_color=COLOR_TEXT_MUTED
+        )
+        note_label.grid(row=2, column=0, columnspan=2, padx=10, pady=5)
+
+    def _create_inventory_widgets(self, node):
+        """Creates widgets for inventory node configuration."""
+        inv_frame = ctk.CTkFrame(self.options_frame, fg_color=COLOR_PRIMARY_FRAME)
+        inv_frame.pack(fill="x", pady=5, padx=5)
+        inv_frame.grid_columnconfigure(1, weight=1)
+
+        ctk.CTkLabel(
+            inv_frame, text="Inventory Navigation", 
+            font=FONT_PROPERTIES_LABEL, text_color=COLOR_ACCENT
+        ).grid(row=0, column=0, columnspan=2, padx=10, pady=(10,5), sticky="w")
+
+        # Continue node (where to go when closing inventory)
+        ctk.CTkLabel(
+            inv_frame, text="Close Inventory To:", font=FONT_PROPERTIES_ENTRY
+        ).grid(row=1, column=0, padx=10, pady=5, sticky="w")
+        
+        node_ids = ["", "[End Game]"] + sorted(list(self.app.nodes.keys()))
+        continue_combo = ctk.CTkComboBox(
+            inv_frame, values=node_ids, font=FONT_PROPERTIES_ENTRY
+        )
+        continue_combo.set(node.continue_node)
+        continue_combo.configure(
+            command=lambda choice: self._on_inventory_prop_change('continue_node', choice)
+        )
+        continue_combo.grid(row=1, column=1, sticky="ew", padx=10, pady=5)
+
+        # Add note about inventory configuration
+        note_label = ctk.CTkLabel(
+            inv_frame, 
+            text="Configure crafting recipes in the 'Advanced' tab",
+            font=FONT_PROPERTIES_ENTRY, text_color=COLOR_TEXT_MUTED
+        )
+        note_label.grid(row=2, column=0, columnspan=2, padx=10, pady=5)
 
     def _create_dialogue_options(self, node):
         """Creates widgets for dialogue options."""
@@ -239,6 +450,7 @@ class ChoicePropertiesTab:
             command=lambda oi=option_index: self._add_effect(oi)
         ).pack(fill="x", pady=5)
 
+    # Event handlers for dice roll nodes
     def _on_dice_prop_change(self, key, value):
         """Handles dice roll property changes."""
         if not self.app.active_node_id:
@@ -247,16 +459,122 @@ class ChoicePropertiesTab:
         node = self.app.nodes[self.app.active_node_id]
         if isinstance(node, DiceRollNode):
             self.app._save_state_for_undo("Change Dice Property")
+            try:
+                if key in ['num_dice', 'num_sides', 'success_threshold']:
+                    setattr(node, key, int(value))
+                else:
+                    setattr(node, key, value)
+            except ValueError:
+                pass
+            self.app.canvas_manager.redraw_node(self.app.active_node_id)
+
+    # Event handlers for combat nodes
+    def _on_combat_prop_change(self, key, value):
+        """Handles combat property changes."""
+        if not self.app.active_node_id:
+            return
+        
+        node = self.app.nodes[self.app.active_node_id]
+        if isinstance(node, CombatNode):
+            self.app._save_state_for_undo("Change Combat Property")
             setattr(node, key, value)
             self.app.canvas_manager.redraw_node(self.app.active_node_id)
 
+    # Event handlers for shop nodes
+    def _on_shop_prop_change(self, key, value):
+        """Handles shop property changes."""
+        if not self.app.active_node_id:
+            return
+        
+        node = self.app.nodes[self.app.active_node_id]
+        if isinstance(node, ShopNode):
+            self.app._save_state_for_undo("Change Shop Property")
+            setattr(node, key, value)
+            self.app.canvas_manager.redraw_node(self.app.active_node_id)
+
+    # Event handlers for random event nodes
+    def _on_random_prop_change(self, key, value):
+        """Handles random event property changes."""
+        if not self.app.active_node_id:
+            return
+        
+        node = self.app.nodes[self.app.active_node_id]
+        if isinstance(node, RandomEventNode):
+            self.app._save_state_for_undo("Change Random Event Property")
+            setattr(node, key, value)
+
+    def _update_outcome(self, index, key, value):
+        """Updates a random outcome."""
+        if not self.app.active_node_id:
+            return
+        
+        node = self.app.nodes[self.app.active_node_id]
+        if isinstance(node, RandomEventNode) and index < len(node.random_outcomes):
+            self.app._save_state_for_undo("Update Outcome")
+            if key == 'weight':
+                try:
+                    node.random_outcomes[index][key] = float(value)
+                except ValueError:
+                    node.random_outcomes[index][key] = 1
+            else:
+                node.random_outcomes[index][key] = value
+
+    def _add_outcome(self):
+        """Adds a new random outcome."""
+        if not self.app.active_node_id:
+            return
+        
+        node = self.app.nodes[self.app.active_node_id]
+        if isinstance(node, RandomEventNode):
+            self.app._save_state_for_undo("Add Outcome")
+            node.random_outcomes.append({
+                'weight': 1,
+                'description': 'New outcome',
+                'next_node': ''
+            })
+            self.update_panel()
+
+    def _remove_outcome(self, index):
+        """Removes a random outcome."""
+        if not self.app.active_node_id:
+            return
+        
+        node = self.app.nodes[self.app.active_node_id]
+        if isinstance(node, RandomEventNode) and index < len(node.random_outcomes):
+            self.app._save_state_for_undo("Remove Outcome")
+            del node.random_outcomes[index]
+            self.update_panel()
+
+    # Event handlers for timer nodes
+    def _on_timer_prop_change(self, key, value):
+        """Handles timer property changes."""
+        if not self.app.active_node_id:
+            return
+        
+        node = self.app.nodes[self.app.active_node_id]
+        if isinstance(node, TimerNode):
+            self.app._save_state_for_undo("Change Timer Property")
+            setattr(node, key, value)
+
+    # Event handlers for inventory nodes
+    def _on_inventory_prop_change(self, key, value):
+        """Handles inventory property changes."""
+        if not self.app.active_node_id:
+            return
+        
+        node = self.app.nodes[self.app.active_node_id]
+        if isinstance(node, InventoryNode):
+            self.app._save_state_for_undo("Change Inventory Property")
+            setattr(node, key, value)
+
+    # Standard dialogue option handlers
     def _on_option_prop_change(self, index, key, value):
         """Handles option property changes."""
         if not self.app.active_node_id:
             return
         
         node = self.app.nodes[self.app.active_node_id]
-        if index < len(node.options):
+        if hasattr(node, 'options') and index < len(node.options):
             self.app._save_state_for_undo("Change Option Property")
             node.options[index][key] = value
             
@@ -271,7 +589,7 @@ class ChoicePropertiesTab:
             return
         
         node = self.app.nodes[self.app.active_node_id]
-        if opt_idx < len(node.options):
+        if hasattr(node, 'options') and opt_idx < len(node.options):
             self.app._save_state_for_undo("Add Condition")
             node.options[opt_idx]["conditions"].append({
                 'type': 'stat', 'subject': '', 'operator': '>=', 'value': 10
@@ -285,7 +603,7 @@ class ChoicePropertiesTab:
             return
         
         node = self.app.nodes[self.app.active_node_id]
-        if opt_idx < len(node.options):
+        if hasattr(node, 'options') and opt_idx < len(node.options):
             self.app._save_state_for_undo("Add Effect")
             node.options[opt_idx]["effects"].append({
                 'type': 'stat', 'subject': '', 'operator': '+=', 'value': 1
@@ -296,11 +614,14 @@ class ChoicePropertiesTab:
     def add_option_to_node(self, node_id):
         """Adds a new option to the specified node."""
         if node_id and node_id in self.app.nodes:
-            self.app._save_state_for_undo("Add Choice")
-            self.app.nodes[node_id].options.append({
-                "text": "New Option", "nextNode": "", "conditions": [], "effects": []
-            })
-            return True
+            node = self.app.nodes[node_id]
+            # Only add options to dialogue nodes
+            if hasattr(node, 'options'):
+                self.app._save_state_for_undo("Add Choice")
+                node.options.append({
+                    "text": "New Option", "nextNode": "", "conditions": [], "effects": []
+                })
+                return True
         return False
 
     def _add_choice_from_panel(self):
@@ -317,7 +638,9 @@ class ChoicePropertiesTab:
         if not self.app.active_node_id:
             return
         
-        self.app._save_state_for_undo("Remove Choice")
-        del self.app.nodes[self.app.active_node_id].options[index]
-        self.app.canvas_manager.redraw_node(self.app.active_node_id)
-        self.update_panel()
+        node = self.app.nodes[self.app.active_node_id]
+        if hasattr(node, 'options') and index < len(node.options):
+            self.app._save_state_for_undo("Remove Choice")
+            del node.options[index]
+            self.app.canvas_manager.redraw_node(self.app.active_node_id)
+            self.update_panel()

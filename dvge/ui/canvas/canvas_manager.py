@@ -103,24 +103,38 @@ class CanvasManager:
     def add_node(self, x, y, node_type="dialogue"):
         """Creates a new node in the data model and on the canvas."""
         self.app._save_state_for_undo("Add Node")
-        
+    
         if self.placeholder_id:
             self.canvas.delete(self.placeholder_id)
             self.placeholder_id = None
-        
-        # Generate unique node ID
+    
+    # Generate unique node ID
         while f"node_{self.app.node_id_counter}" in self.app.nodes:
             self.app.node_id_counter += 1
-        
+    
         node_id_str = f"node_{self.app.node_id_counter}"
         self.app.node_id_counter += 1
-        
-        # Create appropriate node type
+    
+    # Import all node types
+        from ...models import (DialogueNode, DiceRollNode, CombatNode, 
+                          ShopNode, RandomEventNode, TimerNode, InventoryNode)
+    
+    # Create appropriate node type
         if node_type == "dice_roll":
             new_node = DiceRollNode(x=x, y=y, node_id=node_id_str)
-        else:
+        elif node_type == "combat":
+            new_node = CombatNode(x=x, y=y, node_id=node_id_str)
+        elif node_type == "shop":
+            new_node = ShopNode(x=x, y=y, node_id=node_id_str)
+        elif node_type == "random_event":
+            new_node = RandomEventNode(x=x, y=y, node_id=node_id_str)
+        elif node_type == "timer":
+            new_node = TimerNode(x=x, y=y, node_id=node_id_str)
+        elif node_type == "inventory":
+            new_node = InventoryNode(x=x, y=y, node_id=node_id_str)
+        else:  # Default to dialogue
             new_node = DialogueNode(x=x, y=y, node_id=node_id_str)
-            
+        
         self.app.nodes[node_id_str] = new_node
         self.create_node_visual(new_node)
         self.app.set_selection([node_id_str], node_id_str)

@@ -1,4 +1,8 @@
 # dvge/core/validation.py
+
+"""Project validation functionality."""
+
+
 class ProjectValidator:
     """Validates project integrity and finds issues."""
     

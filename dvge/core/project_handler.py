@@ -1,9 +1,12 @@
 # dvge/core/project_handler.py
+
+"""Project file handling for loading and saving DVGE projects."""
+
 import json
 import os
 from tkinter import filedialog, messagebox
-from ..data_models import DialogueNode, Quest, GameTimer
-from ..game_mechanics import Enemy
+from ..models import create_node_from_dict, Quest, GameTimer, Enemy
+
 
 class ProjectHandler:
     """Handles loading and saving of project files."""
@@ -110,12 +113,11 @@ class ProjectHandler:
 
         # Load nodes
         for node_id, node_data in project_data.get("nodes", {}).items():
-            self.app.nodes[node_data['editor_data']['id']] = DialogueNode.from_dict(node_data)
+            self.app.nodes[node_data['editor_data']['id']] = create_node_from_dict(node_data)
         
         # Reset undo/redo
-        self.app.undo_stack.clear()
-        self.app.redo_stack.clear()
-        self.app._save_state_for_undo("Load Project")
+        self.app.state_manager.clear_history()
+        self.app.state_manager.save_state("Load Project")
 
         # Update UI
         self.app.canvas_manager.redraw_all_nodes()

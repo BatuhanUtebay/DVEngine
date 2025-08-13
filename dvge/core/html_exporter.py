@@ -1,8 +1,8 @@
-# dvge/core/html_exporter.py
 import json
 import base64
 import os
 from tkinter import filedialog, messagebox
+
 
 class HTMLExporter:
     """Handles HTML game export functionality."""
@@ -77,6 +77,9 @@ class HTMLExporter:
         for node_id, node in self.app.nodes.items():
             game_data = node.to_dict()['game_data']
             
+            # Add node type to game data
+            game_data['node_type'] = node.to_dict()['node_type']
+            
             # Embed image as Base64 data URI if it exists
             if game_data.get('backgroundImage') and os.path.exists(game_data['backgroundImage']):
                 try:
@@ -143,7 +146,6 @@ class HTMLExporter:
             dialogue_data[node_id] = game_data
         
         return dialogue_data
-    
     def _generate_html(self, dialogue_data, player_data, flags_data, quests_data):
         """Generate the complete HTML file content."""
         font_name = self.app.project_settings.get("font", "Merriweather")
@@ -502,6 +504,7 @@ class HTMLExporter:
         <div id="hud-toggle"><i class="ph-fill ph-backpack"></i></div>
         <div id="hud-container"></div>
         <div id="save-load-buttons">
+        <div id="save-load-buttons">
             <button id="save-button" title="Save Progress"><i class="ph-fill ph-floppy-disk"></i></button>
             <button id="load-button" title="Load Progress"><i class="ph-fill ph-folder-open"></i></button>
         </div>
@@ -603,7 +606,7 @@ class HTMLExporter:
             if (nodeData.backgroundImage) {{
                 document.body.style.backgroundImage = `url(${{nodeData.backgroundImage}})`;
             }} else {{
-                document.body.style.backgroundImage = ''; // Clear if no image
+                document.body.style.backgroundImage = '';
             }}
         }}
 
@@ -697,7 +700,11 @@ class HTMLExporter:
                 return;
             }}
             const nodeData=dialogueData[key];
-            if(!nodeData){{console.error("Node not found:",key);return;}}
+            if(!nodeData){{
+                console.error("Node not found:",key);
+                console.log("Available nodes:", Object.keys(dialogueData));
+                return;
+            }}
             currentNode=key;
             setBackground(nodeData);
             updateHud();
@@ -727,10 +734,12 @@ class HTMLExporter:
                 gameState.currentChapter=nodeData.chapter;
                 showChapterTransition(nodeData.chapter);
             }}
-            document.getElementById("npc-name").textContent=nodeData.npc;
-            document.getElementById("dialogue-text").textContent=nodeData.text;
+            document.getElementById("npc-name").textContent=nodeData.npc || "Narrator";
+            document.getElementById("dialogue-text").textContent=nodeData.text || "";
             const o=document.getElementById("options");
             o.innerHTML="";
+
+            console.log("Rendering node:", key, "Type:", nodeData.node_type);
 
             if (nodeData.auto_advance && nodeData.options && nodeData.options.length > 0) {{
                 const nextNode = nodeData.options[0].nextNode;
@@ -741,42 +750,103 @@ class HTMLExporter:
                     audioPlayer.onended = () => renderNode(nextNode);
                 }}
             }} else if (nodeData.node_type === "DiceRoll") {{
+                console.log("Creating dice roll button. Node data:", nodeData);
                 const b=document.createElement("button");
-                b.textContent=`Roll ${{nodeData.num_dice}}d${{nodeData.num_sides}}`;
+                b.textContent=`Roll ${{nodeData.num_dice || 1}}d${{nodeData.num_sides || 6}} (Need ${{nodeData.success_threshold || 4}}+)`;
                 b.onclick=()=>{{
-                    let total = 0;
-                    for(let i=0; i < nodeData.num_dice; i++){{
-                        total += Math.floor(Math.random() * nodeData.num_sides) + 1;
-                    }}
-                    showNotification(`You rolled a ${{total}}`);
-                    if(total >= nodeData.success_threshold){{
-                        renderNode(nodeData.success_node);
-                    }} else {{
-                        renderNode(nodeData.failure_node);
-                    }}
+                    // Disable button during roll
+                    b.disabled = true;
+                    b.textContent = "Rolling...";
+                    
+                    // Animate the roll
+                    let rollCount = 0;
+                    const maxRolls = 10;
+                    const numDice = nodeData.num_dice || 1;
+                    const numSides = nodeData.num_sides || 6;
+                    const threshold = nodeData.success_threshold || 4;
+                    
+                    const rollInterval = setInterval(() => {{
+                        rollCount++;
+                        let displayTotal = 0;
+                        for(let i = 0; i < numDice; i++) {{
+                            displayTotal += Math.floor(Math.random() * numSides) + 1;
+                        }}
+                        b.textContent = `Rolling... ${{displayTotal}}`;
+                        
+                        if(rollCount >= maxRolls) {{
+                            clearInterval(rollInterval);
+                            
+                            // Calculate final result
+                            let finalTotal = 0;
+                            let diceResults = [];
+                            for(let i = 0; i < numDice; i++) {{
+                                let roll = Math.floor(Math.random() * numSides) + 1;
+                                diceResults.push(roll);
+                                finalTotal += roll;
+                            }}
+                            
+                            // Show final result
+                            const diceText = diceResults.length > 1 ? ` (${{diceResults.join(' + ')}})` : '';
+                            b.textContent = `Rolled: ${{finalTotal}}${{diceText}}`;
+                            
+                            // Determine success/failure
+                            const isSuccess = finalTotal >= threshold;
+                            showNotification(`You rolled ${{finalTotal}}${{diceText}}! ${{isSuccess ? 'Success!' : 'Failed...'}}`);
+                            
+                            console.log("Dice roll result:", finalTotal, "Success:", isSuccess);
+                            console.log("Success node:", nodeData.success_node, "Failure node:", nodeData.failure_node);
+                            
+                            // Navigate after a short delay
+                            setTimeout(() => {{
+                                if(isSuccess) {{
+                                    renderNode(nodeData.success_node || '[End Game]');
+                                }} else {{
+                                    renderNode(nodeData.failure_node || '[End Game]');
+                                }}
+                            }}, 1500);
+                        }}
+                    }}, 100);
                 }};
                 o.appendChild(b);
             }} else if (nodeData.node_type === "Combat") {{
+                console.log("Creating combat button. Node data:", nodeData);
                 const b=document.createElement("button");
                 b.textContent="Begin Combat";
                 b.onclick=()=>{{
-                    // Simple combat simulation
+                    // Disable button during combat
+                    b.disabled = true;
+                    b.textContent = "Fighting...";
+                    
                     const playerHealth = player.stats.health || 100;
                     const playerAttack = player.stats.strength || 10;
                     const playerDefense = player.stats.defense || 5;
                     
-                    let combatResult = true; // Assume player wins for now
+                    // Simple combat simulation with some randomness
+                    const combatPower = playerAttack + playerDefense + (playerHealth / 10);
+                    const randomFactor = Math.random() * 20 + 90; // 90-110% of combat power
+                    const finalPower = combatPower * (randomFactor / 100);
                     
-                    // You can expand this with actual combat logic
-                    if (Math.random() > 0.5) {{
-                        combatResult = true;
-                        showNotification("Victory! You won the battle!");
-                        renderNode(nodeData.successNode);
-                    }} else {{
-                        combatResult = false;
-                        showNotification("Defeat! You lost the battle!");
-                        renderNode(nodeData.failNode);
-                    }}
+                    // Simulate combat duration
+                    setTimeout(() => {{
+                        const isVictory = finalPower > 50; // Adjust threshold as needed
+                        
+                        console.log("Combat result:", isVictory ? "Victory" : "Defeat");
+                        console.log("Success node:", nodeData.successNode, "Fail node:", nodeData.failNode);
+                        
+                        if (isVictory) {{
+                            b.textContent = "Victory!";
+                            showNotification("Victory! You won the battle!");
+                            setTimeout(() => {{
+                                renderNode(nodeData.successNode || '[End Game]');
+                            }}, 1000);
+                        }} else {{
+                            b.textContent = "Defeated...";
+                            showNotification("Defeat! You lost the battle!");
+                            setTimeout(() => {{
+                                renderNode(nodeData.failNode || '[End Game]');
+                            }}, 1000);
+                        }}
+                    }}, 1500);
                 }};
                 o.appendChild(b);
             }} else {{
@@ -876,95 +946,6 @@ class HTMLExporter:
             else:
                 return f"background: {background_setting};"
         else:
-            return "background:linear-gradient(135deg,var(--bg-grad-start-default) 0%,var(--bg-grad-end-default) 100%);"
+            return "background:linear-gradient(135deg,var(--bg-grad-start-default) 0%,var(--bg-grad-end-default) 100%);"# dvge/core/html_exporter.py
 
-    def _get_file_mime_type(self, filepath):
-        """Get the MIME type based on file extension."""
-        ext = os.path.splitext(filepath)[1].lower()
-        
-        # Image types
-        if ext in ['.jpg', '.jpeg']:
-            return 'image/jpeg'
-        elif ext == '.png':
-            return 'image/png'
-        elif ext == '.gif':
-            return 'image/gif'
-        elif ext == '.webp':
-            return 'image/webp'
-        elif ext == '.svg':
-            return 'image/svg+xml'
-        
-        # Audio types
-        elif ext == '.mp3':
-            return 'audio/mpeg'
-        elif ext == '.wav':
-            return 'audio/wav'
-        elif ext == '.ogg':
-            return 'audio/ogg'
-        elif ext == '.m4a':
-            return 'audio/mp4'
-        elif ext == '.flac':
-            return 'audio/flac'
-        
-        # Default fallbacks
-        elif ext in ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp']:
-            return 'image/png'  # Default image
-        elif ext in ['.mp3', '.wav', '.ogg', '.m4a', '.flac']:
-            return 'audio/mpeg'  # Default audio
-        
-        return 'application/octet-stream'  # Generic binary
-
-    def _validate_file_size(self, filepath, max_size_mb=50):
-        """Validate that the file size is reasonable for embedding."""
-        try:
-            file_size = os.path.getsize(filepath)
-            size_mb = file_size / (1024 * 1024)
-            
-            if size_mb > max_size_mb:
-                messagebox.showwarning(
-                    "Large File Warning", 
-                    f"File {os.path.basename(filepath)} is {size_mb:.1f}MB. "
-                    f"Large files may cause performance issues in the exported game."
-                )
-                return messagebox.askyesno(
-                    "Continue Export?", 
-                    "Do you want to continue with this large file?"
-                )
-            
-            return True
-            
-        except Exception as e:
-            print(f"Error checking file size for {filepath}: {e}")
-            return True  # Allow export to continue
-
-    def _encode_media_file(self, filepath, file_type):
-        """Encode a media file to base64 with proper validation."""
-        if not filepath or not os.path.exists(filepath):
-            return ""
-        
-        # Validate file size
-        if not self._validate_file_size(filepath):
-            return ""
-        
-        try:
-            mime_type = self._get_file_mime_type(filepath)
-            
-            with open(filepath, "rb") as file:
-                encoded_string = base64.b64encode(file.read()).decode('utf-8')
-                return f"data:{mime_type};base64,{encoded_string}"
-                
-        except Exception as e:
-            print(f"Could not encode {file_type} file {filepath}: {e}")
-            messagebox.showwarning(
-                "Media File Error", 
-                f"Could not process {file_type} file: {os.path.basename(filepath)}\n"
-                f"Error: {e}\n\nThe file will be skipped."
-            )
-            return ""
-
-    def get_supported_formats(self):
-        """Get lists of supported file formats."""
-        return {
-            'images': ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp'],
-            'audio': ['.mp3', '.wav', '.ogg', '.m4a', '.flac']
-        }
+"""HTML game export functionality."""

@@ -31,9 +31,9 @@ class InteractionHandler:
             self.app, tearoff=0, bg=COLOR_PRIMARY_FRAME, 
             fg=COLOR_TEXT, relief="flat",
             activebackground=COLOR_ACCENT, activeforeground=COLOR_TEXT
-    )
+        )
     
-    # Node creation submenu
+        # Node creation submenu
         node_menu = tk.Menu(self.context_menu, tearoff=0, bg=COLOR_PRIMARY_FRAME, fg=COLOR_TEXT)
         node_menu.add_command(label="Dialogue Node", command=lambda: self._add_node_type("dialogue"))
         node_menu.add_command(label="Dice Roll Node", command=lambda: self._add_node_type("dice_roll"))
@@ -68,11 +68,18 @@ class InteractionHandler:
         canvas_x, canvas_y = self.canvas.canvasx(event.x), self.canvas.canvasy(event.y)
         item = self.canvas.find_closest(canvas_x, canvas_y)
         tags = self.canvas.gettags(item[0]) if item else []
-        node_id = next((tag for tag in tags if tag in self.app.nodes), None)
+        
+        # Find the node ID from tags
+        node_id = None
+        for tag in tags:
+            if tag in self.app.nodes:
+                node_id = tag
+                break
 
-        if "handle" in tags:
+        # Check for handle click first (highest priority)
+        if "handle" in tags and node_id:
             self._handle_connection_start(tags, node_id, canvas_x, canvas_y)
-        elif "add_option_button" in tags:
+        elif "add_option_button" in tags and node_id:
             self._handle_add_option_click(node_id)
         elif node_id:
             self._handle_node_selection(node_id, event, canvas_x, canvas_y)
@@ -81,18 +88,34 @@ class InteractionHandler:
 
     def _handle_connection_start(self, tags, node_id, canvas_x, canvas_y):
         """Handles starting a connection from an option handle."""
-        opt_tag = next((t for t in tags if t.startswith("opt_")), None)
+        # Find the option index from the tags
+        opt_tag = None
+        for tag in tags:
+            if tag.startswith("opt_"):
+                opt_tag = tag
+                break
+                
         if not opt_tag:
             return
         
-        opt_index = int(opt_tag.split('_')[1])
+        try:
+            opt_index = int(opt_tag.split('_')[1])
+        except (IndexError, ValueError):
+            return
+        
+        # Check if the node has enough options
+        node = self.app.nodes.get(node_id)
+        if not node or not hasattr(node, 'options') or opt_index >= len(node.options):
+            return
+        
         self.is_connecting = True
         self.connection_start_info = {'node_id': node_id, 'option_index': opt_index}
         
-        x1, y1 = self.app.nodes[node_id].get_connection_point_out(opt_index)
+        # Get the connection start point
+        x1, y1 = node.get_connection_point_out(opt_index)
         self.temp_connection_line = self.canvas.create_line(
             x1, y1, canvas_x, canvas_y, fill=COLOR_ACCENT, 
-            width=2.5, dash=(5, 5)
+            width=2.5, dash=(5, 5), tags="temp_connection"
         )
 
     def _handle_add_option_click(self, node_id):
@@ -149,10 +172,12 @@ class InteractionHandler:
 
     def _update_temp_connection(self, canvas_x, canvas_y):
         """Updates the temporary connection line during dragging."""
-        x1, y1 = self.app.nodes[self.connection_start_info['node_id']].get_connection_point_out(
-            self.connection_start_info['option_index']
-        )
-        self.canvas.coords(self.temp_connection_line, x1, y1, canvas_x, canvas_y)
+        node_id = self.connection_start_info['node_id']
+        opt_index = self.connection_start_info['option_index']
+        
+        if node_id in self.app.nodes:
+            x1, y1 = self.app.nodes[node_id].get_connection_point_out(opt_index)
+            self.canvas.coords(self.temp_connection_line, x1, y1, canvas_x, canvas_y)
 
     def _update_selection_rectangle(self, canvas_x, canvas_y):
         """Updates the selection rectangle during dragging."""
@@ -170,6 +195,9 @@ class InteractionHandler:
         
         # Update node positions and move visual elements
         for node_id in self.app.selected_node_ids:
+            if node_id not in self.app.nodes:
+                continue
+                
             node = self.app.nodes[node_id]
             node_start_x, node_start_y = self.drag_start_pos['nodes'][node_id]
             
@@ -208,42 +236,65 @@ class InteractionHandler:
         if self.temp_connection_line:
             self.canvas.delete(self.temp_connection_line)
         
-        target_item = self.canvas.find_closest(
-            self.canvas.canvasx(event.x), self.canvas.canvasy(event.y)
-        )
+        canvas_x, canvas_y = self.canvas.canvasx(event.x), self.canvas.canvasy(event.y)
+        target_item = self.canvas.find_closest(canvas_x, canvas_y)
         
         if target_item:
             target_tags = self.canvas.gettags(target_item[0])
-            target_node_id = next((tag for tag in target_tags if tag in self.app.nodes), None)
             
-            if target_node_id:
+            # Find target node ID from tags
+            target_node_id = None
+            for tag in target_tags:
+                if tag in self.app.nodes:
+                    target_node_id = tag
+                    break
+            
+            if target_node_id and target_node_id != self.connection_start_info['node_id']:
                 self.app._save_state_for_undo("Create Connection")
                 source_node_id = self.connection_start_info['node_id']
                 opt_index = self.connection_start_info['option_index']
-                self.app.nodes[source_node_id].options[opt_index]['nextNode'] = target_node_id
-                self.app.canvas_manager.draw_connections()
                 
-                if self.app.active_node_id == source_node_id:
-                    self.app.properties_panel.update_properties_panel()
+                # Ensure the source node and option still exist
+                source_node = self.app.nodes.get(source_node_id)
+                if (source_node and hasattr(source_node, 'options') and 
+                    opt_index < len(source_node.options)):
+                    source_node.options[opt_index]['nextNode'] = target_node_id
+                    self.app.canvas_manager.draw_connections()
+                    
+                    if self.app.active_node_id == source_node_id:
+                        self.app.properties_panel.update_properties_panel()
 
     def _handle_selection_completion(self):
         """Handles completion of rectangle selection."""
-        x1, y1, x2, y2 = self.canvas.bbox(self.selection_rectangle)
-        enclosed_items = self.canvas.find_enclosed(x1, y1, x2, y2)
+        if not self.selection_rectangle:
+            return
+            
+        bbox = self.canvas.bbox(self.selection_rectangle)
+        if bbox:
+            x1, y1, x2, y2 = bbox
+            enclosed_items = self.canvas.find_enclosed(x1, y1, x2, y2)
+            
+            newly_selected_ids = self.app.selected_node_ids.copy()
+            for item in enclosed_items:
+                tags = self.canvas.gettags(item)
+                node_id = None
+                for tag in tags:
+                    if tag in self.app.nodes:
+                        node_id = tag
+                        break
+                if node_id and node_id not in newly_selected_ids:
+                    newly_selected_ids.append(node_id)
+            
+            self.app.set_selection(newly_selected_ids)
         
-        newly_selected_ids = self.app.selected_node_ids.copy()
-        for item in enclosed_items:
-            tags = self.canvas.gettags(item)
-            node_id = next((tag for tag in tags if tag in self.app.nodes), None)
-            if node_id and node_id not in newly_selected_ids:
-                newly_selected_ids.append(node_id)
-        
-        self.app.set_selection(newly_selected_ids)
         self.canvas.delete(self.selection_rectangle)
 
     def _handle_drag_completion(self):
         """Handles completion of node dragging with grid snapping."""
         for node_id in self.app.selected_node_ids:
+            if node_id not in self.app.nodes:
+                continue
+                
             node = self.app.nodes[node_id]
             snapped_x = round(node.x / GRID_SIZE) * GRID_SIZE
             snapped_y = round(node.y / GRID_SIZE) * GRID_SIZE
@@ -273,9 +324,16 @@ class InteractionHandler:
         """Handles right-click events to show the context menu."""
         self.right_click_pos = (self.canvas.canvasx(event.x), self.canvas.canvasy(event.y))
         
-        item = self.canvas.find_closest(self.canvas.canvasx(event.x), self.canvas.canvasy(event.y))
+        canvas_x, canvas_y = self.canvas.canvasx(event.x), self.canvas.canvasy(event.y)
+        item = self.canvas.find_closest(canvas_x, canvas_y)
         tags = self.canvas.gettags(item[0]) if item else []
-        node_id = next((tag for tag in tags if tag in self.app.nodes), None)
+        
+        # Find node ID from tags
+        node_id = None
+        for tag in tags:
+            if tag in self.app.nodes:
+                node_id = tag
+                break
         
         is_node_selected = bool(self.app.selected_node_ids)
         self.context_menu.entryconfig(

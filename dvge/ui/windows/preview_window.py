@@ -1,4 +1,4 @@
-# dvge/ui/windows/enhanced_preview_window.py
+# dvge/ui/windows/preview_window.py
 
 """Enhanced preview window with shop, inventory, and timer interfaces."""
 
@@ -8,8 +8,8 @@ from ...constants import *
 from ...core.preview_engine import EnhancedPreviewGameEngine
 
 
-class EnhancedPreviewWindow(ctk.CTkToplevel):
-    """Enhanced preview window with full support for special node types."""
+class PreviewWindow(ctk.CTkToplevel):
+    """Main preview window class that handles all node types."""
     
     def __init__(self, parent_app):
         super().__init__(parent_app)
@@ -242,7 +242,7 @@ class EnhancedPreviewWindow(ctk.CTkToplevel):
                     text=option['text'], 
                     anchor="w",
                     fg_color=COLOR_SUCCESS,
-                    command=lambda: self._handle_option_action(option)
+                    command=lambda idx=i: self.preview_engine.choose_option(idx)
                 )
             elif action == 'open_inventory':
                 btn = ctk.CTkButton(
@@ -250,7 +250,7 @@ class EnhancedPreviewWindow(ctk.CTkToplevel):
                     text=option['text'], 
                     anchor="w",
                     fg_color=COLOR_ACCENT,
-                    command=lambda: self._handle_option_action(option)
+                    command=lambda idx=i: self.preview_engine.choose_option(idx)
                 )
             elif action == 'random_event':
                 btn = ctk.CTkButton(
@@ -278,26 +278,14 @@ class EnhancedPreviewWindow(ctk.CTkToplevel):
             btn.pack(fill="x", pady=2)
             
         # Handle special node types
-        if node_data['node_type'] == 'DiceRollNode':
+        node_type = node_data.get('node_type', 'Dialogue')
+        if node_type == 'DiceRollNode' and node_data.get('dice_data'):
             self._create_dice_roll_button(node_data['dice_data'])
-        elif node_data['node_type'] == 'CombatNode':
+        elif node_type == 'CombatNode' and node_data.get('combat_data'):
             self._create_combat_button(node_data['combat_data'])
-        elif node_data['node_type'] == 'RandomOutcome':
+        elif node_type == 'RandomOutcome':
             # Auto-continue after showing outcome
             self.after(2000, self.preview_engine.complete_pending_navigation)
-            
-    def _handle_option_action(self, option):
-        """Handles special option actions."""
-        action = option.get('action')
-        if action == 'open_shop':
-            # This will trigger the shop callback
-            self.preview_engine.choose_option(option['index'])
-        elif action == 'open_inventory':
-            # This will trigger the inventory callback
-            self.preview_engine.choose_option(option['index'])
-        else:
-            # Regular navigation
-            self.preview_engine.choose_option(option['index'])
             
     def _on_shop_open(self, shop_data):
         """Called when shop should be opened."""
@@ -317,7 +305,7 @@ class EnhancedPreviewWindow(ctk.CTkToplevel):
         """Called when timer should start."""
         if show_countdown:
             self.timer_frame.grid()
-            self._start_timer_countdown(duration_seconds)
+            self._start_timer_countdown(duration_seconds, next_node)
         else:
             # Just wait without showing countdown
             self.timer_after_id = self.after(
@@ -325,16 +313,17 @@ class EnhancedPreviewWindow(ctk.CTkToplevel):
                 lambda: self.preview_engine.timer_expired(next_node)
             )
             
-    def _start_timer_countdown(self, duration_seconds):
+    def _start_timer_countdown(self, duration_seconds, next_node):
         """Starts a visual countdown timer."""
         self.timer_remaining = duration_seconds
+        self.timer_next_node = next_node
         self._update_timer_display()
         
     def _update_timer_display(self):
         """Updates the timer display."""
         if self.timer_remaining <= 0:
             self.timer_frame.grid_remove()
-            self.preview_engine.timer_expired(getattr(self, 'timer_next_node', None))
+            self.preview_engine.timer_expired(self.timer_next_node)
             return
             
         minutes = self.timer_remaining // 60
@@ -880,3 +869,9 @@ class NodeJumpDialog(ctk.CTkToplevel):
         if selection:
             self.selected_node = self.listbox.get(selection[0])
             self.destroy()
+
+
+# Enhanced preview window class for backward compatibility
+class EnhancedPreviewWindow(PreviewWindow):
+    """Enhanced preview window alias for backward compatibility."""
+    pass

@@ -1,6 +1,6 @@
-# dvge/ui/panels/fixed_advanced_node_properties.py
+# dvge/ui/panels/advanced_node_properties.py
 
-"""Fixed advanced node properties for specialized node types."""
+"""Advanced node properties for specialized node types."""
 
 import customtkinter as ctk
 from tkinter import messagebox
@@ -8,7 +8,7 @@ from ...constants import *
 from ...models import ShopNode, RandomEventNode, TimerNode, InventoryNode, DiceRollNode, CombatNode
 
 
-class FixedAdvancedNodePropertiesTab:
+class AdvancedNodePropertiesTab:
     """Handles advanced node type properties with full functionality."""
     
     def __init__(self, parent, app):
@@ -194,17 +194,17 @@ class FixedAdvancedNodePropertiesTab:
         """Updates content area based on node type."""
         self._clear_content()
         
-        if node_type == "Shop":
+        if node_type == "ShopNode":
             self._create_shop_properties(node)
-        elif node_type == "RandomEvent":
+        elif node_type == "RandomEventNode":
             self._create_random_event_properties(node)
-        elif node_type == "Timer":
+        elif node_type == "TimerNode":
             self._create_timer_properties(node)
-        elif node_type == "Inventory":
+        elif node_type == "InventoryNode":
             self._create_inventory_properties(node)
-        elif node_type == "DiceRoll":
+        elif node_type == "DiceRollNode":
             self._create_dice_roll_properties(node)
-        elif node_type == "Combat":
+        elif node_type == "CombatNode":
             self._create_combat_properties(node)
         else:
             self._create_standard_properties_info()
@@ -220,16 +220,16 @@ class FixedAdvancedNodePropertiesTab:
         currency_frame = self._create_property_frame("Currency Variable")
         currency_entry = ctk.CTkEntry(currency_frame, font=FONT_PROPERTIES_ENTRY)
         currency_entry.insert(0, node.currency_variable)
-        currency_entry.pack(fill="x", pady=5)
+        currency_entry.pack(fill="x", pady=5, padx=10)
         currency_entry.bind("<KeyRelease>", lambda e: self._update_shop_property(node, 'currency_variable', currency_entry.get()))
         
         # Continue node
         continue_frame = self._create_property_frame("Continue to Node")
-        node_ids = ["", "[End Game]"] + sorted(list(self.app.nodes.keys()))
+        node_ids = ["", "[End Game]"] + sorted([nid for nid in self.app.nodes.keys() if nid != node.id])
         continue_combo = ctk.CTkComboBox(continue_frame, values=node_ids, font=FONT_PROPERTIES_ENTRY)
         continue_combo.set(node.continue_node)
         continue_combo.configure(command=lambda choice: self._update_shop_property(node, 'continue_node', choice))
-        continue_combo.pack(fill="x", pady=5)
+        continue_combo.pack(fill="x", pady=5, padx=10)
         
         # Items for sale
         sale_frame = self._create_property_frame("Items for Sale")
@@ -249,7 +249,7 @@ class FixedAdvancedNodePropertiesTab:
             variable=auto_var,
             command=lambda: self._update_random_property(node, 'auto_trigger', auto_var.get())
         )
-        auto_check.pack(pady=5)
+        auto_check.pack(pady=5, padx=10)
         
         # Random outcomes
         outcomes_frame = self._create_property_frame("Random Outcomes")
@@ -260,7 +260,7 @@ class FixedAdvancedNodePropertiesTab:
         # Wait time
         time_frame = self._create_property_frame("Wait Time")
         time_subframe = ctk.CTkFrame(time_frame, fg_color="transparent")
-        time_subframe.pack(fill="x", pady=5)
+        time_subframe.pack(fill="x", pady=5, padx=10)
         time_subframe.grid_columnconfigure(0, weight=1)
         
         time_entry = ctk.CTkEntry(time_subframe, font=FONT_PROPERTIES_ENTRY, width=100)
@@ -278,11 +278,11 @@ class FixedAdvancedNodePropertiesTab:
         
         # Next node
         next_frame = self._create_property_frame("Next Node")
-        node_ids = ["", "[End Game]"] + sorted(list(self.app.nodes.keys()))
+        node_ids = ["", "[End Game]"] + sorted([nid for nid in self.app.nodes.keys() if nid != node.id])
         next_combo = ctk.CTkComboBox(next_frame, values=node_ids, font=FONT_PROPERTIES_ENTRY)
         next_combo.set(node.next_node)
         next_combo.configure(command=lambda choice: self._update_timer_property(node, 'next_node', choice))
-        next_combo.pack(fill="x", pady=5)
+        next_combo.pack(fill="x", pady=5, padx=10)
         
         # Options
         options_frame = self._create_property_frame("Timer Options")
@@ -292,24 +292,24 @@ class FixedAdvancedNodePropertiesTab:
             options_frame, text="Show countdown", 
             variable=countdown_var,
             command=lambda: self._update_timer_property(node, 'show_countdown', countdown_var.get())
-        ).pack(anchor="w", pady=2)
+        ).pack(anchor="w", pady=2, padx=10)
         
         skip_var = ctk.BooleanVar(value=node.allow_skip)
         ctk.CTkCheckBox(
             options_frame, text="Allow skip", 
             variable=skip_var,
             command=lambda: self._update_timer_property(node, 'allow_skip', skip_var.get())
-        ).pack(anchor="w", pady=2)
+        ).pack(anchor="w", pady=2, padx=10)
 
     def _create_inventory_properties(self, node):
         """Creates inventory-specific property widgets."""
         # Continue node
         continue_frame = self._create_property_frame("Continue to Node")
-        node_ids = ["", "[End Game]"] + sorted(list(self.app.nodes.keys()))
+        node_ids = ["", "[End Game]"] + sorted([nid for nid in self.app.nodes.keys() if nid != node.id])
         continue_combo = ctk.CTkComboBox(continue_frame, values=node_ids, font=FONT_PROPERTIES_ENTRY)
         continue_combo.set(node.continue_node)
         continue_combo.configure(command=lambda choice: self._update_inventory_property(node, 'continue_node', choice))
-        continue_combo.pack(fill="x", pady=5)
+        continue_combo.pack(fill="x", pady=5, padx=10)
         
         # Auto open
         auto_frame = self._create_property_frame("Auto Open")
@@ -319,7 +319,7 @@ class FixedAdvancedNodePropertiesTab:
             variable=auto_var,
             command=lambda: self._update_inventory_property(node, 'auto_open', auto_var.get())
         )
-        auto_check.pack(pady=5)
+        auto_check.pack(pady=5, padx=10)
         
         # Crafting recipes
         recipes_frame = self._create_property_frame("Crafting Recipes")
@@ -332,7 +332,7 @@ class FixedAdvancedNodePropertiesTab:
         
         # Number of dice
         dice_subframe = ctk.CTkFrame(dice_frame, fg_color="transparent")
-        dice_subframe.pack(fill="x", pady=5)
+        dice_subframe.pack(fill="x", pady=5, padx=10)
         dice_subframe.grid_columnconfigure((0,1,2), weight=1)
         
         ctk.CTkLabel(dice_subframe, text="Dice:").grid(row=0, column=0, sticky="w")
@@ -355,21 +355,21 @@ class FixedAdvancedNodePropertiesTab:
         
         # Success/Failure nodes
         nodes_frame = self._create_property_frame("Result Nodes")
-        node_ids = ["", "[End Game]"] + sorted(list(self.app.nodes.keys()))
+        node_ids = ["", "[End Game]"] + sorted([nid for nid in self.app.nodes.keys() if nid != node.id])
         
         success_combo = ctk.CTkComboBox(nodes_frame, values=node_ids, font=FONT_PROPERTIES_ENTRY)
         success_combo.set(node.success_node)
         success_combo.configure(command=lambda choice: self._update_dice_property(node, 'success_node', choice))
-        success_combo.pack(fill="x", pady=2)
+        success_combo.pack(fill="x", pady=2, padx=10)
         
-        ctk.CTkLabel(nodes_frame, text="Success Node").pack(anchor="w")
+        ctk.CTkLabel(nodes_frame, text="Success Node").pack(anchor="w", padx=10)
         
         failure_combo = ctk.CTkComboBox(nodes_frame, values=node_ids, font=FONT_PROPERTIES_ENTRY)
         failure_combo.set(node.failure_node)
         failure_combo.configure(command=lambda choice: self._update_dice_property(node, 'failure_node', choice))
-        failure_combo.pack(fill="x", pady=2)
+        failure_combo.pack(fill="x", pady=2, padx=10)
         
-        ctk.CTkLabel(nodes_frame, text="Failure Node").pack(anchor="w")
+        ctk.CTkLabel(nodes_frame, text="Failure Node").pack(anchor="w", padx=10)
 
     def _create_combat_properties(self, node):
         """Creates combat-specific property widgets."""
@@ -378,26 +378,26 @@ class FixedAdvancedNodePropertiesTab:
         enemies_text = ', '.join(node.enemies) if node.enemies else ''
         enemies_entry = ctk.CTkEntry(enemies_frame, font=FONT_PROPERTIES_ENTRY)
         enemies_entry.insert(0, enemies_text)
-        enemies_entry.pack(fill="x", pady=5)
+        enemies_entry.pack(fill="x", pady=5, padx=10)
         enemies_entry.bind("<KeyRelease>", lambda e: self._update_combat_enemies(node, enemies_entry.get()))
         
         # Result nodes
         nodes_frame = self._create_property_frame("Result Nodes")
-        node_ids = ["", "[End Game]"] + sorted(list(self.app.nodes.keys()))
+        node_ids = ["", "[End Game]"] + sorted([nid for nid in self.app.nodes.keys() if nid != node.id])
         
         success_combo = ctk.CTkComboBox(nodes_frame, values=node_ids, font=FONT_PROPERTIES_ENTRY)
         success_combo.set(node.successNode)
         success_combo.configure(command=lambda choice: self._update_combat_property(node, 'successNode', choice))
-        success_combo.pack(fill="x", pady=2)
+        success_combo.pack(fill="x", pady=2, padx=10)
         
-        ctk.CTkLabel(nodes_frame, text="Victory Node").pack(anchor="w")
+        ctk.CTkLabel(nodes_frame, text="Victory Node").pack(anchor="w", padx=10)
         
         failure_combo = ctk.CTkComboBox(nodes_frame, values=node_ids, font=FONT_PROPERTIES_ENTRY)
         failure_combo.set(node.failNode)
         failure_combo.configure(command=lambda choice: self._update_combat_property(node, 'failNode', choice))
-        failure_combo.pack(fill="x", pady=2)
+        failure_combo.pack(fill="x", pady=2, padx=10)
         
-        ctk.CTkLabel(nodes_frame, text="Defeat Node").pack(anchor="w")
+        ctk.CTkLabel(nodes_frame, text="Defeat Node").pack(anchor="w", padx=10)
 
     def _create_standard_properties_info(self):
         """Shows info for standard node types."""
@@ -483,7 +483,7 @@ class FixedAdvancedNodePropertiesTab:
             desc_entry.bind("<KeyRelease>", lambda e, idx=i, w=desc_entry: self._update_outcome(node, idx, 'description', w.get()))
             
             # Next node
-            node_ids = ["", "[End Game]"] + sorted(list(self.app.nodes.keys()))
+            node_ids = ["", "[End Game]"] + sorted([nid for nid in self.app.nodes.keys() if nid != node.id])
             node_combo = ctk.CTkComboBox(outcome_frame, values=node_ids, width=150)
             node_combo.set(outcome.get('next_node', ''))
             node_combo.configure(command=lambda choice, idx=i: self._update_outcome(node, idx, 'next_node', choice))

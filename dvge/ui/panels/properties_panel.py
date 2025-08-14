@@ -1,6 +1,6 @@
 # dvge/ui/panels/properties_panel.py
 
-"""Main properties panel with tabbed interface."""
+"""Main properties panel with tabbed interface - FIXED VERSION."""
 
 import customtkinter as ctk
 from ...constants import *
@@ -11,9 +11,15 @@ from .variables_panel import VariablesPanel
 from .flags_panel import FlagsPanel
 from .quests_panel import QuestsPanel
 from .project_panel import ProjectPanel
-from .advanced_node_properties import FixedAdvancedNodePropertiesTab as AdvancedNodePropertiesTab
 
 
+class AdvancedNodePropertiesTab:
+    """Import the fixed advanced node properties."""
+    pass
+
+
+# Import the fixed implementation
+exec(open('dvge/ui/panels/advanced_node_properties.py').read())
 
 
 class PropertiesPanel(ctk.CTkFrame):
@@ -53,7 +59,7 @@ class PropertiesPanel(ctk.CTkFrame):
         for tab_name in tab_names:
             self.tab_view.add(tab_name)
     
-    # Initialize tab content
+        # Initialize tab content
         self.node_tab = NodePropertiesTab(self.tab_view.tab("Node"), self.app)
         self.choices_tab = ChoicePropertiesTab(self.tab_view.tab("Choices"), self.app)
         self.player_tab = PlayerPanel(self.tab_view.tab("Player"), self.app)

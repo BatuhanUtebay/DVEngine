@@ -46,14 +46,22 @@ class HTMLExporter:
                 qid: q.to_dict() for qid, q in self.app.quests.items()
             }, indent=4)
             variables_data = json.dumps(getattr(self.app, 'variables', {}), indent=4)
+            enemies_data = json.dumps({
+                eid: e.to_dict() for eid, e in getattr(self.app, 'enemies', {}).items()
+            }, indent=4)
+            timers_data = json.dumps({
+                tid: t.to_dict() for tid, t in getattr(self.app, 'timers', {}).items()
+            }, indent=4)
 
-            # Generate HTML
+            # Update the _generate_html call:
             html_content = self._generate_html(
                 dialogue_json_string, 
                 player_data, 
                 flags_data, 
                 quests_data,
-                variables_data
+                variables_data,
+                enemies_data,
+                timers_data
             )
 
             # Save file
@@ -76,8 +84,8 @@ class HTMLExporter:
     def _process_dialogue_data(self):
         """Process node data for export, including media encoding."""
         dialogue_data = {}
-        
-        # Initialize variable system for text substitution
+    
+    # Initialize variable system for text substitution
         temp_var_system = VariableSystem()
         temp_var_system.set_variables_ref(getattr(self.app, 'variables', {}))
         temp_var_system.set_flags_ref(self.app.story_flags)
@@ -159,12 +167,12 @@ class HTMLExporter:
             for option in game_data.get('options', []):
                 if 'text' in option:
                     option['text'] = temp_var_system.substitute_text(option['text'])
-            
-            dialogue_data[node_id] = game_data
         
+            dialogue_data[node_id] = game_data
+    
         return dialogue_data
     
-    def _generate_html(self, dialogue_data, player_data, flags_data, quests_data, variables_data):
+    def _generate_html(self, dialogue_data, player_data, flags_data, quests_data, variables_data, enemies_data=None, timers_data=None):
         """Generate the complete HTML file content."""
         font_name = self.app.project_settings.get("font", "Merriweather")
         title_font_name = self.app.project_settings.get("title_font", "Special Elite")
@@ -268,6 +276,22 @@ class HTMLExporter:
         }}
         
         .shop-interface.active {{ display: block; }}
+
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+             background: rgba(0,0,0,0.7); z-index: 999; display: none; }
+        .modal-overlay.active { display: block; }
+
+        .shop-item-info { flex: 1; }
+        .shop-item-name { font-weight: bold; color: var(--text-light); }
+        .shop-item-description { color: var(--text-muted); font-size: 0.9em; margin-top: 0.3em; }
+
+        .inventory-tabs { display: flex; margin-bottom: 1em; gap: 0.5em; }
+        .inventory-tab { padding: 0.5em 1em; background: var(--button-bg); 
+                border: none; color: var(--text-light); cursor: pointer; border-radius: 6px; }
+        .inventory-tab.active { background: var(--accent-color); color: var(--text-dark); }
+
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
+        .timer-display { animation: pulse 2s infinite; }
         
         .shop-header {{ display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5em; }}
         .shop-title {{ font-family: var(--title-font); font-size: 1.8em; color: var(--accent-color); }}
@@ -678,23 +702,23 @@ class HTMLExporter:
             updateHud();
         }}
 
-        function renderNode(key) {{ 
+        function renderNode(key) { 
             if (autoAdvanceTimer) clearTimeout(autoAdvanceTimer);
             if (timerInterval) clearInterval(timerInterval);
-            
-            if (key === '[End Game]') {{
+    
+            if (key === '[End Game]') {
                 document.getElementById('dialogue-text').textContent = 'The story ends here.';
                 document.getElementById('options').innerHTML = '';
                 document.getElementById('npc-name').textContent = 'Game Over';
                 return;
-            }}
-            
+            }
+    
             const nodeData = dialogueData[key];
-            if (!nodeData) {{
+            if (!nodeData) {
                 console.error("Node not found:", key);
                 return;
-            }}
-            
+            }
+    
             currentNode = key;
             setBackground(nodeData);
             updateHud();
@@ -729,23 +753,31 @@ class HTMLExporter:
             const optionsContainer = document.getElementById("options");
             optionsContainer.innerHTML = "";
 
-            // Handle different node types
-            if (nodeData.node_type === "Shop") {{
-                handleShopNode(nodeData);
-            }} else if (nodeData.node_type === "RandomEvent") {{
-                handleRandomEventNode(nodeData);
-            }} else if (nodeData.node_type === "Timer") {{
-                handleTimerNode(nodeData);
-            }} else if (nodeData.node_type === "Inventory") {{
-                handleInventoryNode(nodeData);
-            }} else if (nodeData.node_type === "DiceRoll") {{
-                handleDiceRollNode(nodeData);
-            }} else if (nodeData.node_type === "Combat") {{
-                handleCombatNode(nodeData);
-            }} else {{
-                handleDialogueNode(nodeData);
-            }}
-        }}
+            // Handle different node types with switch statement
+            switch (nodeData.node_type) {
+                case "Shop":
+                    handleShopNode(nodeData);
+                    break;
+                case "RandomEvent":
+                    handleRandomEventNode(nodeData);
+                    break;
+                case "Timer":
+                    handleTimerNode(nodeData);
+                    break;
+                case "Inventory":
+                    handleInventoryNode(nodeData);
+                    break;
+                case "DiceRoll":
+                    handleDiceRollNode(nodeData);
+                    break;
+                case "Combat":
+                    handleCombatNode(nodeData);
+                    break;
+                default:
+                    handleDialogueNode(nodeData);
+                    break;
+            }
+        }
 
         function handleShopNode(nodeData) {{
             currentShopData = nodeData;
@@ -1120,7 +1152,7 @@ class HTMLExporter:
             // Handle auto-advance
             if (nodeData.auto_advance && nodeData.options && nodeData.options.length > 0) {{
                 const nextNode = nodeData.options[0].nextNode;
-                const delay = nodeData.auto_advance_delay * 1000;
+                const delay = (nodeData.auto_advance_delay || 0) * 1000;
                 if (delay > 0) {{
                     autoAdvanceTimer = setTimeout(() => renderNode(nextNode), delay);
                 }} else if (nodeData.audio) {{
@@ -1141,6 +1173,295 @@ class HTMLExporter:
             }}
         }}
 
+        function openShop(shopData) {{
+            currentShopData = shopData;
+            document.getElementById('shop-interface').classList.add('active');
+            document.getElementById('modal-overlay').classList.add('active');
+            document.getElementById('shop-currency-amount').textContent = gameState.variables[shopData.currency_variable] || 0;
+            showShopTab('buy');
+        }}
+
+        function showShopTab(tabType) {{
+            // Update tab appearance
+            document.querySelectorAll('.shop-tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelector(`[onclick="showShopTab('${{tabType}}')"]`).classList.add('active');
+            
+            const shopItems = document.getElementById('shop-items');
+            shopItems.innerHTML = '';
+            
+            if (tabType === 'buy') {{
+                (currentShopData.items_for_sale || []).forEach(item => {{
+                    const itemDiv = document.createElement('div');
+                    itemDiv.className = 'shop-item';
+                    itemDiv.innerHTML = `
+                        <div class="shop-item-info">
+                            <div class="shop-item-name">${{item.name}}</div>
+                            <div class="shop-item-description">${{item.description || ''}}</div>
+                        </div>
+                        <div class="shop-item-price">${{item.price}} ${{currentShopData.currency_variable}}</div>
+                        <button onclick="buyItem('${{item.name}}', ${{item.price}})">Buy</button>
+                    `;
+                    shopItems.appendChild(itemDiv);
+                }});
+            }} else {{
+                (currentShopData.items_to_buy || []).forEach(buyItem => {{
+                    const hasItem = player.inventory.some(item => item.name === buyItem.name);
+                    if (hasItem) {{
+                        const itemDiv = document.createElement('div');
+                        itemDiv.className = 'shop-item';
+                        itemDiv.innerHTML = `
+                            <div class="shop-item-info">
+                                <div class="shop-item-name">${{buyItem.name}}</div>
+                                <div class="shop-item-description">${{buyItem.description || ''}}</div>
+                            </div>
+                            <div class="shop-item-price">${{buyItem.price}} ${{currentShopData.currency_variable}}</div>
+                            <button onclick="sellItem('${{buyItem.name}}', ${{buyItem.price}})">Sell</button>
+                        `;
+                        shopItems.appendChild(itemDiv);
+                    }}
+                }});
+                
+                if (shopItems.children.length === 0) {{
+                    shopItems.innerHTML = '<div style="text-align: center; color: var(--text-muted); padding: 2em;">You have no items to sell</div>';
+                }}
+            }}
+        }}
+
+        function buyItem(itemName, price) {{
+            const currency = gameState.variables[currentShopData.currency_variable] || 0;
+            if (currency >= price) {{
+                gameState.variables[currentShopData.currency_variable] = currency - price;
+                player.inventory.push({{ name: itemName, description: "" }});
+                showNotification(`Bought ${{itemName}} for ${{price}} ${{currentShopData.currency_variable}}!`);
+                document.getElementById('shop-currency-amount').textContent = gameState.variables[currentShopData.currency_variable];
+                updateHud();
+                showShopTab('buy'); // Refresh display
+            }} else {{
+                showNotification(`Not enough ${{currentShopData.currency_variable}}! Need ${{price}}, have ${{currency}}`);
+            }}
+        }}
+
+        function sellItem(itemName, price) {{
+            const itemIndex = player.inventory.findIndex(item => item.name === itemName);
+            if (itemIndex >= 0) {{
+                player.inventory.splice(itemIndex, 1);
+                gameState.variables[currentShopData.currency_variable] = (gameState.variables[currentShopData.currency_variable] || 0) + price;
+                showNotification(`Sold ${{itemName}} for ${{price}} ${{currentShopData.currency_variable}}!`);
+                document.getElementById('shop-currency-amount').textContent = gameState.variables[currentShopData.currency_variable];
+                updateHud();
+                showShopTab('sell'); // Refresh display
+            }}
+        }}
+
+        function closeShop() {{
+            document.getElementById('shop-interface').classList.remove('active');
+            document.getElementById('modal-overlay').classList.remove('active');
+            if (currentShopData && currentShopData.continue_node) {{
+                renderNode(currentShopData.continue_node);
+            }}
+        }}
+
+        function openInventory(inventoryData) {{
+            currentInventoryData = inventoryData;
+            document.getElementById('inventory-interface').classList.add('active');
+            document.getElementById('modal-overlay').classList.add('active');
+            showInventoryTab('items');
+        }}
+
+        function showInventoryTab(tabType) {{
+            // Update tab appearance
+            document.querySelectorAll('.inventory-tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelector(`[onclick="showInventoryTab('${{tabType}}')"]`).classList.add('active');
+            
+            if (tabType === 'items') {{
+                document.getElementById('inventory-grid').style.display = 'grid';
+                document.getElementById('crafting-recipes').style.display = 'none';
+                showInventoryItems();
+            }} else {{
+                document.getElementById('inventory-grid').style.display = 'none';
+                document.getElementById('crafting-recipes').style.display = 'block';
+                showCraftingRecipes();
+            }}
+        }}
+
+        function showInventoryItems() {{
+            const inventoryGrid = document.getElementById('inventory-grid');
+            inventoryGrid.innerHTML = '';
+            
+            if (player.inventory.length === 0) {{
+                inventoryGrid.innerHTML = '<div style="grid-column: 1/-1; text-align: center; color: var(--text-muted); padding: 2em;">Your inventory is empty</div>';
+                return;
+            }}
+            
+            player.inventory.forEach(item => {{
+                const itemDiv = document.createElement('div');
+                itemDiv.className = 'inventory-item';
+                itemDiv.innerHTML = `
+                    <div class="inventory-item-name">${{item.name}}</div>
+                    <div class="inventory-item-description">${{item.description || ''}}</div>
+                `;
+                inventoryGrid.appendChild(itemDiv);
+            }});
+        }}
+
+        function showCraftingRecipes() {{
+            const recipesContainer = document.getElementById('crafting-recipes-list');
+            recipesContainer.innerHTML = '';
+            
+            if (!currentInventoryData.crafting_recipes || currentInventoryData.crafting_recipes.length === 0) {{
+                recipesContainer.innerHTML = '<div style="text-align: center; color: var(--text-muted); padding: 2em;">No crafting recipes available</div>';
+                return;
+            }}
+            
+            currentInventoryData.crafting_recipes.forEach(recipe => {{
+                const canCraft = recipe.ingredients.every(ingredient => 
+                    player.inventory.some(item => item.name === ingredient)
+                );
+                
+                const recipeDiv = document.createElement('div');
+                recipeDiv.className = 'recipe';
+                recipeDiv.innerHTML = `
+                    <div class="recipe-name">${{recipe.name}}</div>
+                    <div class="recipe-ingredients">Requires: ${{recipe.ingredients.join(', ')}}</div>
+                    <div class="recipe-result">Creates: ${{recipe.result}}</div>
+                    <button onclick="craftItem('${{recipe.name}}')" ${{!canCraft ? 'disabled' : ''}}>
+                        ${{canCraft ? 'Craft' : 'Missing Items'}}
+                    </button>
+                `;
+                recipesContainer.appendChild(recipeDiv);
+            }});
+        }}
+
+        function craftItem(recipeName) {{
+            const recipe = currentInventoryData.crafting_recipes.find(r => r.name === recipeName);
+            if (!recipe) return;
+            
+            // Check ingredients
+            const hasAllIngredients = recipe.ingredients.every(ingredient => 
+                player.inventory.some(item => item.name === ingredient)
+            );
+            
+            if (hasAllIngredients) {{
+                // Remove ingredients
+                recipe.ingredients.forEach(ingredient => {{
+                    const itemIndex = player.inventory.findIndex(item => item.name === ingredient);
+                    if (itemIndex >= 0) {{
+                        player.inventory.splice(itemIndex, 1);
+                    }}
+                }});
+                
+                // Add result
+                player.inventory.push({{ name: recipe.result, description: "" }});
+                showNotification(`Crafted ${{recipe.result}}!`);
+                updateHud();
+                showCraftingRecipes(); // Refresh display
+            }}
+        }}
+
+        function closeInventory() {{
+            document.getElementById('inventory-interface').classList.remove('active');
+            document.getElementById('modal-overlay').classList.remove('active');
+            if (currentInventoryData && currentInventoryData.continue_node) {{
+                renderNode(currentInventoryData.continue_node);
+            }}
+        }}
+
+        function triggerRandomEvent(nodeData) {{
+            if (!nodeData.random_outcomes || nodeData.random_outcomes.length === 0) return;
+            
+            // Calculate weighted random selection
+            const totalWeight = nodeData.random_outcomes.reduce((sum, outcome) => sum + (outcome.weight || 1), 0);
+            const randomValue = Math.random() * totalWeight;
+            
+            let currentWeight = 0;
+            let selectedOutcome = null;
+            
+            for (const outcome of nodeData.random_outcomes) {{
+                currentWeight += outcome.weight || 1;
+                if (randomValue <= currentWeight) {{
+                    selectedOutcome = outcome;
+                    break;
+                }}
+            }}
+            
+            if (selectedOutcome) {{
+                // Show outcome
+                const outcomeDiv = document.createElement('div');
+                outcomeDiv.className = 'random-outcome';
+                outcomeDiv.innerHTML = `
+                    <h3>Random Event Result</h3>
+                    <p>${{selectedOutcome.description}}</p>
+                `;
+                document.getElementById('options').innerHTML = '';
+                document.getElementById('options').appendChild(outcomeDiv);
+                
+                showNotification(`Random Event: ${{selectedOutcome.description}}`);
+                
+                // Navigate after delay
+                setTimeout(() => {{
+                    if (selectedOutcome.next_node) {{
+                        renderNode(selectedOutcome.next_node);
+                    }}
+                }}, 2000);
+            }}
+        }}
+
+        function skipTimer() {{
+            if (timerInterval) {{
+                clearInterval(timerInterval);
+                const nodeData = dialogueData[currentNode];
+                if (nodeData && nodeData.next_node) {{
+                    renderNode(nodeData.next_node);
+                }}
+            }}
+        }}
+
+        function formatTime(seconds) {{
+            const mins = Math.floor(seconds / 60);
+            const secs = seconds % 60;
+            return mins > 0 ? `${{mins}}:${{secs.toString().padStart(2, '0')}}` : secs.toString();
+        }}
+
+        function performDiceRoll(nodeData) {{
+            const numDice = nodeData.num_dice || 1;
+            const numSides = nodeData.num_sides || 6;
+            const threshold = nodeData.success_threshold || 4;
+            
+            let total = 0;
+            let rolls = [];
+            for (let i = 0; i < numDice; i++) {{
+                const roll = Math.floor(Math.random() * numSides) + 1;
+                rolls.push(roll);
+                total += roll;
+            }}
+            
+            const success = total >= threshold;
+            const rollText = rolls.length > 1 ? ` (${{rolls.join(' + ')}})` : '';
+            showNotification(`Rolled: ${{total}}${{rollText}} - ${{success ? 'Success!' : 'Failed!'}}`);
+            
+            setTimeout(() => {{
+                const nextNode = success ? nodeData.success_node : nodeData.failure_node;
+                if (nextNode) {{
+                    renderNode(nextNode);
+                }}
+            }}, 1500);
+        }}
+
+        function performCombat(nodeData) {{
+            const playerPower = (player.stats.strength || 10) + (player.stats.defense || 5) + ((player.stats.health || 100) / 10);
+            const randomFactor = Math.random() * 20 + 90; // 90-110%
+            const finalPower = playerPower * (randomFactor / 100);
+            const victory = finalPower > 50;
+            
+            showNotification(`Combat Power: ${{finalPower.toFixed(1)}} - ${{victory ? 'Victory!' : 'Defeat!'}}`);
+            
+            setTimeout(() => {{
+                const nextNode = victory ? nodeData.successNode : nodeData.failNode;
+                if (nextNode) {{
+                    renderNode(nextNode);
+                }}
+            }}, 1500);
+        }}
         function saveGame() {{
             try {{
                 const saveData = {{
@@ -1177,6 +1498,86 @@ class HTMLExporter:
                 showNotification("Error: Could not load save data.");
             }}
         }}
+        function handleShopNode(nodeData) {
+            currentShopData = nodeData;
+            const optionsContainer = document.getElementById("options");
+    
+            const shopButton = document.createElement("button");
+            shopButton.textContent = "🏪 Enter Shop";
+            shopButton.onclick = () => openShop(nodeData);
+            optionsContainer.appendChild(shopButton);
+    
+            if (nodeData.continue_node) {
+                const continueButton = document.createElement("button");
+                continueButton.textContent = "Continue on your way";
+                continueButton.onclick = () => renderNode(nodeData.continue_node);
+                optionsContainer.appendChild(continueButton);
+            }
+        }
+
+        function handleTimerNode(nodeData) {
+            const optionsContainer = document.getElementById("options");
+            const totalSeconds = nodeData.total_seconds || nodeData.wait_time || 5;
+            let remainingSeconds = totalSeconds;
+    
+            const timerDiv = document.createElement('div');
+            timerDiv.className = 'timer-interface';
+    
+            let timerHTML = `<div class="timer-display" id="timer-display">${formatTime     (remainingSeconds)}</div>`;
+    
+            if (nodeData.show_countdown !== false) {
+                timerHTML += `<div class="timer-progress">
+                    <div class="timer-progress-bar" id="timer-progress" style="width: 100%"></div>
+                </div>`;
+            }
+    
+            if (nodeData.allow_skip) {
+                timerHTML += `<button onclick="skipTimer()">Skip Wait</button>`;
+            }
+    
+            timerDiv.innerHTML = timerHTML;
+            optionsContainer.appendChild(timerDiv);
+    
+            // Start countdown
+            timerInterval = setInterval(() => {
+                remainingSeconds--;
+                document.getElementById('timer-display').textContent = formatTime       (remainingSeconds);
+        
+                const progressBar = document.getElementById('timer-progress');
+                if (progressBar) {
+                    const progress = (remainingSeconds / totalSeconds) * 100;
+                    progressBar.style.width = Math.max(0, progress) + '%';
+                }
+        
+                if (remainingSeconds <= 0) {
+                    clearInterval(timerInterval);
+                    if (nodeData.next_node) {
+                        renderNode(nodeData.next_node);
+                    }
+                }
+            }, 1000);
+        }
+
+        function handleInventoryNode(nodeData) {
+            currentInventoryData = nodeData;
+            const optionsContainer = document.getElementById("options");
+    
+            if (nodeData.auto_open) {
+                openInventory(nodeData);
+            } else {
+                const inventoryButton = document.createElement("button");
+                inventoryButton.textContent = "🎒 Open Inventory";
+                inventoryButton.onclick = () => openInventory(nodeData);
+                optionsContainer.appendChild(inventoryButton);
+            }
+    
+            if (nodeData.continue_node) {
+                const continueButton = document.createElement("button");
+                continueButton.textContent = "Continue";
+                continueButton.onclick = () => renderNode(nodeData.continue_node);
+                optionsContainer.appendChild(continueButton);
+            }
+        }
 
         document.addEventListener('DOMContentLoaded', () => {{
             updateHud();

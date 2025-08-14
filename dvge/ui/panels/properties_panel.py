@@ -11,7 +11,9 @@ from .variables_panel import VariablesPanel
 from .flags_panel import FlagsPanel
 from .quests_panel import QuestsPanel
 from .project_panel import ProjectPanel
-from .advanced_node_properties import AdvancedNodePropertiesTab
+from .advanced_node_properties import FixedAdvancedNodePropertiesTab as AdvancedNodePropertiesTab
+
+
 
 
 class PropertiesPanel(ctk.CTkFrame):

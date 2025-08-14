@@ -1,15 +1,16 @@
-# dvge/core/preview_engine.py
+# dvge/core/enhanced_preview_engine.py
 
-"""Live preview game engine for testing games within the editor."""
+"""Enhanced preview game engine with full support for special node types."""
 
 import copy
 import random
+import time
 from typing import Dict, Any, List, Optional, Callable
-from ..models import DiceRollNode, CombatNode
+from ..models import DiceRollNode, CombatNode, ShopNode, RandomEventNode, TimerNode, InventoryNode
 
 
-class PreviewGameEngine:
-    """Handles game logic for live preview mode."""
+class EnhancedPreviewGameEngine:
+    """Enhanced game engine with full support for special node types."""
     
     def __init__(self, app):
         self.app = app
@@ -19,6 +20,12 @@ class PreviewGameEngine:
         self.on_node_change: Optional[Callable] = None
         self.on_state_change: Optional[Callable] = None
         self.on_message: Optional[Callable] = None
+        self.on_shop_open: Optional[Callable] = None
+        self.on_inventory_open: Optional[Callable] = None
+        self.on_timer_start: Optional[Callable] = None
+        
+        # Timer tracking
+        self.active_timers = {}
         
     def reset_game_state(self):
         """Resets the game to initial state."""
@@ -33,6 +40,10 @@ class PreviewGameEngine:
         self.current_node_id = "intro"
         self.node_history = []
         self.is_game_over = False
+        self.pending_navigation = None
+        
+        # Clear timers
+        self.active_timers.clear()
         
         # Initialize variable system for text substitution
         from .variable_system import VariableSystem
@@ -70,15 +81,167 @@ class PreviewGameEngine:
         if not self.node_history or self.node_history[-1] != self.current_node_id:
             self.node_history.append(self.current_node_id)
             
-        # Process node data
-        node_data = self._process_node_for_preview(node)
-        
-        # Notify UI
-        if self.on_node_change:
-            self.on_node_change(node_data)
+        # Process node based on type
+        if isinstance(node, ShopNode):
+            self._handle_shop_node(node)
+        elif isinstance(node, RandomEventNode):
+            self._handle_random_event_node(node)
+        elif isinstance(node, TimerNode):
+            self._handle_timer_node(node)
+        elif isinstance(node, InventoryNode):
+            self._handle_inventory_node(node)
+        else:
+            # Process as regular node
+            node_data = self._process_node_for_preview(node)
+            if self.on_node_change:
+                self.on_node_change(node_data)
+                
+        # Notify UI of state change
         if self.on_state_change:
             self.on_state_change(self.get_debug_state())
             
+    def _handle_shop_node(self, node: ShopNode):
+        """Handles shop node processing."""
+        # Process basic node data
+        node_data = self._process_node_for_preview(node)
+        
+        # Add shop-specific data
+        node_data.update({
+            'node_type': 'ShopNode',
+            'shop_data': {
+                'items_for_sale': copy.deepcopy(node.items_for_sale),
+                'items_to_buy': copy.deepcopy(node.items_to_buy),
+                'currency_variable': node.currency_variable,
+                'continue_node': node.continue_node
+            }
+        })
+        
+        # Update options to include shop interaction
+        shop_options = []
+        
+        # Add shop interaction option
+        shop_options.append({
+            'index': 0,
+            'text': '🏪 Browse Shop',
+            'action': 'open_shop',
+            'nextNode': '',
+            'effects': []
+        })
+        
+        # Add continue option if specified
+        if node.continue_node:
+            shop_options.append({
+                'index': 1,
+                'text': 'Continue on your way',
+                'action': 'navigate',
+                'nextNode': node.continue_node,
+                'effects': []
+            })
+        
+        node_data['options'] = shop_options
+        
+        if self.on_node_change:
+            self.on_node_change(node_data)
+            
+    def _handle_random_event_node(self, node: RandomEventNode):
+        """Handles random event node processing."""
+        node_data = self._process_node_for_preview(node)
+        node_data['node_type'] = 'RandomEventNode'
+        
+        if node.auto_trigger:
+            # Automatically trigger the random event
+            self._trigger_random_event(node)
+        else:
+            # Show trigger option
+            node_data['options'] = [{
+                'index': 0,
+                'text': '🎲 Trigger Random Event',
+                'action': 'random_event',
+                'nextNode': '',
+                'effects': []
+            }]
+            
+            if self.on_node_change:
+                self.on_node_change(node_data)
+                
+    def _handle_timer_node(self, node: TimerNode):
+        """Handles timer node processing."""
+        node_data = self._process_node_for_preview(node)
+        node_data.update({
+            'node_type': 'TimerNode',
+            'timer_data': {
+                'wait_time': node.wait_time,
+                'time_unit': node.time_unit,
+                'total_seconds': node.get_seconds(),
+                'next_node': node.next_node,
+                'show_countdown': node.show_countdown,
+                'allow_skip': node.allow_skip
+            }
+        })
+        
+        # Prepare timer options
+        timer_options = []
+        if node.allow_skip:
+            timer_options.append({
+                'index': 0,
+                'text': '⏭️ Skip Wait',
+                'action': 'skip_timer',
+                'nextNode': node.next_node,
+                'effects': []
+            })
+        
+        node_data['options'] = timer_options
+        
+        if self.on_node_change:
+            self.on_node_change(node_data)
+            
+        # Start the timer
+        if self.on_timer_start:
+            self.on_timer_start(node.get_seconds(), node.next_node, node.show_countdown)
+            
+    def _handle_inventory_node(self, node: InventoryNode):
+        """Handles inventory node processing."""
+        node_data = self._process_node_for_preview(node)
+        node_data.update({
+            'node_type': 'InventoryNode',
+            'inventory_data': {
+                'crafting_recipes': copy.deepcopy(node.crafting_recipes),
+                'item_actions': copy.deepcopy(node.item_actions),
+                'continue_node': node.continue_node,
+                'auto_open': node.auto_open
+            }
+        })
+        
+        # Prepare inventory options
+        inventory_options = []
+        
+        if not node.auto_open:
+            inventory_options.append({
+                'index': 0,
+                'text': '🎒 Open Inventory',
+                'action': 'open_inventory',
+                'nextNode': '',
+                'effects': []
+            })
+        
+        if node.continue_node:
+            inventory_options.append({
+                'index': len(inventory_options),
+                'text': 'Continue',
+                'action': 'navigate', 
+                'nextNode': node.continue_node,
+                'effects': []
+            })
+        
+        node_data['options'] = inventory_options
+        
+        if self.on_node_change:
+            self.on_node_change(node_data)
+            
+        # Auto-open inventory if specified
+        if node.auto_open and self.on_inventory_open:
+            self.on_inventory_open(node_data['inventory_data'])
+    
     def _process_node_for_preview(self, node) -> Dict[str, Any]:
         """Processes a node for preview display."""
         # Apply variable substitution to text
@@ -93,7 +256,8 @@ class PreviewGameEngine:
                     'index': i,
                     'text': processed_option_text,
                     'nextNode': option.get('nextNode', ''),
-                    'effects': option.get('effects', [])
+                    'effects': option.get('effects', []),
+                    'action': 'navigate'
                 })
         
         return {
@@ -111,6 +275,216 @@ class PreviewGameEngine:
             'combat_data': self._get_combat_data(node) if isinstance(node, CombatNode) else None
         }
         
+    def choose_option(self, option_index: int):
+        """Player chooses a dialogue option."""
+        node = self.app.nodes.get(self.current_node_id)
+        if not node:
+            return
+            
+        # Handle special node types
+        if isinstance(node, ShopNode):
+            self._handle_shop_option(node, option_index)
+        elif isinstance(node, RandomEventNode):
+            self._trigger_random_event(node)
+        elif isinstance(node, TimerNode):
+            self._handle_timer_option(node, option_index)
+        elif isinstance(node, InventoryNode):
+            self._handle_inventory_option(node, option_index)
+        else:
+            # Handle regular dialogue options
+            if option_index >= len(getattr(node, 'options', [])):
+                return
+                
+            option = node.options[option_index]
+            
+            # Apply effects
+            self._apply_effects(option.get('effects', []))
+            
+            # Navigate to next node
+            next_node = option.get('nextNode', '')
+            if next_node:
+                self.current_node_id = next_node
+                self.render_current_node()
+                
+    def _handle_shop_option(self, node: ShopNode, option_index: int):
+        """Handles shop option selection."""
+        if option_index == 0:  # Browse shop
+            if self.on_shop_open:
+                shop_data = {
+                    'items_for_sale': copy.deepcopy(node.items_for_sale),
+                    'items_to_buy': copy.deepcopy(node.items_to_buy),
+                    'currency_variable': node.currency_variable,
+                    'continue_node': node.continue_node
+                }
+                self.on_shop_open(shop_data)
+        elif option_index == 1 and node.continue_node:  # Continue
+            self.current_node_id = node.continue_node
+            self.render_current_node()
+            
+    def _handle_timer_option(self, node: TimerNode, option_index: int):
+        """Handles timer option selection."""
+        if option_index == 0 and node.allow_skip:  # Skip timer
+            if node.next_node:
+                self.current_node_id = node.next_node
+                self.render_current_node()
+                
+    def _handle_inventory_option(self, node: InventoryNode, option_index: int):
+        """Handles inventory option selection."""
+        if option_index == 0:  # Open inventory
+            if self.on_inventory_open:
+                inventory_data = {
+                    'crafting_recipes': copy.deepcopy(node.crafting_recipes),
+                    'item_actions': copy.deepcopy(node.item_actions),
+                    'continue_node': node.continue_node
+                }
+                self.on_inventory_open(inventory_data)
+        elif node.continue_node:  # Continue
+            self.current_node_id = node.continue_node
+            self.render_current_node()
+            
+    def _trigger_random_event(self, node: RandomEventNode):
+        """Triggers a random event."""
+        if not node.random_outcomes:
+            return
+            
+        # Calculate weighted random selection
+        total_weight = sum(outcome.get('weight', 1) for outcome in node.random_outcomes)
+        random_value = random.random() * total_weight
+        
+        current_weight = 0
+        selected_outcome = None
+        
+        for outcome in node.random_outcomes:
+            current_weight += outcome.get('weight', 1)
+            if random_value <= current_weight:
+                selected_outcome = outcome
+                break
+                
+        if selected_outcome:
+            if self.on_message:
+                self.on_message(f"Random Event: {selected_outcome.get('description', 'Something happened!')}", "info")
+                
+            # Navigate to outcome node after delay
+            next_node = selected_outcome.get('next_node')
+            if next_node:
+                self.pending_navigation = next_node
+                # Use a shorter delay for preview
+                if self.on_node_change:
+                    # Show outcome briefly
+                    outcome_data = {
+                        'id': f"{node.id}_outcome",
+                        'npc': 'Random Event',
+                        'text': selected_outcome.get('description', 'Something unexpected happened!'),
+                        'options': [],
+                        'node_type': 'RandomOutcome'
+                    }
+                    self.on_node_change(outcome_data)
+                    
+    def complete_pending_navigation(self):
+        """Completes a pending navigation (used for random events and timers)."""
+        if self.pending_navigation:
+            self.current_node_id = self.pending_navigation
+            self.pending_navigation = None
+            self.render_current_node()
+            
+    def timer_expired(self, next_node: str):
+        """Called when a timer expires."""
+        if next_node:
+            self.current_node_id = next_node
+            self.render_current_node()
+            
+    def buy_item(self, item_name: str, price: int, currency_var: str):
+        """Handles buying an item from a shop."""
+        current_currency = self.variables.get(currency_var, 0)
+        
+        if current_currency >= price:
+            # Deduct currency
+            self.variables[currency_var] = current_currency - price
+            
+            # Add item to inventory
+            self.player_inventory.append({
+                'name': item_name,
+                'description': f'Purchased from shop for {price} {currency_var}'
+            })
+            
+            if self.on_message:
+                self.on_message(f"Bought {item_name} for {price} {currency_var}!", "success")
+                
+            return True
+        else:
+            if self.on_message:
+                self.on_message(f"Not enough {currency_var}! Need {price}, have {current_currency}", "warning")
+            return False
+            
+    def sell_item(self, item_name: str, price: int, currency_var: str):
+        """Handles selling an item to a shop."""
+        # Find item in inventory
+        item_index = next((i for i, item in enumerate(self.player_inventory) 
+                          if item.get('name') == item_name), -1)
+        
+        if item_index >= 0:
+            # Remove item from inventory
+            del self.player_inventory[item_index]
+            
+            # Add currency
+            self.variables[currency_var] = self.variables.get(currency_var, 0) + price
+            
+            if self.on_message:
+                self.on_message(f"Sold {item_name} for {price} {currency_var}!", "success")
+                
+            return True
+        else:
+            if self.on_message:
+                self.on_message(f"You don't have {item_name} to sell!", "warning")
+            return False
+            
+    def craft_item(self, recipe_name: str, ingredients: List[str], result: str):
+        """Handles crafting an item."""
+        # Check if all ingredients are available
+        inventory_items = [item.get('name') for item in self.player_inventory]
+        
+        missing_ingredients = []
+        for ingredient in ingredients:
+            if ingredient not in inventory_items:
+                missing_ingredients.append(ingredient)
+                
+        if missing_ingredients:
+            if self.on_message:
+                self.on_message(f"Missing ingredients: {', '.join(missing_ingredients)}", "warning")
+            return False
+            
+        # Remove ingredients from inventory
+        for ingredient in ingredients:
+            item_index = next((i for i, item in enumerate(self.player_inventory) 
+                              if item.get('name') == ingredient), -1)
+            if item_index >= 0:
+                del self.player_inventory[item_index]
+                
+        # Add result to inventory
+        self.player_inventory.append({
+            'name': result,
+            'description': f'Crafted using {recipe_name}'
+        })
+        
+        if self.on_message:
+            self.on_message(f"Successfully crafted {result}!", "success")
+            
+        return True
+        
+    def close_shop(self, continue_node: str = None):
+        """Handles closing the shop."""
+        if continue_node:
+            self.current_node_id = continue_node
+            self.render_current_node()
+            
+    def close_inventory(self, continue_node: str = None):
+        """Handles closing the inventory."""
+        if continue_node:
+            self.current_node_id = continue_node
+            self.render_current_node()
+    
+    # ... (rest of the methods remain the same as in the original preview_engine.py)
+    
     def _get_dice_data(self, node: DiceRollNode) -> Dict[str, Any]:
         """Gets dice roll specific data."""
         return {
@@ -129,23 +503,6 @@ class PreviewGameEngine:
             'failNode': node.failNode
         }
         
-    def choose_option(self, option_index: int):
-        """Player chooses a dialogue option."""
-        node = self.app.nodes.get(self.current_node_id)
-        if not node or option_index >= len(getattr(node, 'options', [])):
-            return
-            
-        option = node.options[option_index]
-        
-        # Apply effects
-        self._apply_effects(option.get('effects', []))
-        
-        # Navigate to next node
-        next_node = option.get('nextNode', '')
-        if next_node:
-            self.current_node_id = next_node
-            self.render_current_node()
-            
     def perform_dice_roll(self):
         """Performs a dice roll for DiceRollNode."""
         node = self.app.nodes.get(self.current_node_id)

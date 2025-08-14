@@ -58,8 +58,14 @@ class PreviewControlWidget(ctk.CTkFrame):
             self.preview_window.destroy()
             
         # Create new preview window
-        from ..windows.preview_window import PreviewWindow
-        self.preview_window = PreviewWindow(self.app)
+        try:
+            # Try to use enhanced preview window first
+            from ..windows.preview_window import EnhancedPreviewWindow
+            self.preview_window = EnhancedPreviewWindow(self.app)
+        except ImportError:
+            # Fallback to regular preview window
+            from ..windows.preview_window import PreviewWindow
+            self.preview_window = PreviewWindow(self.app)
         
     def _quick_test(self):
         """Performs a quick test from the current selected node."""
@@ -73,9 +79,16 @@ class PreviewControlWidget(ctk.CTkFrame):
             self.preview_window.destroy()
             
         # Create preview window starting from selected node
-        from ..windows.preview_window import PreviewWindow
-        self.preview_window = PreviewWindow(self.app)
-        self.preview_window.preview_engine.start_game(self.app.active_node_id)
+        try:
+            # Try to use enhanced preview window first
+            from ..windows.preview_window import EnhancedPreviewWindow
+            self.preview_window = EnhancedPreviewWindow(self.app)
+            self.preview_window.preview_engine.start_game(self.app.active_node_id)
+        except ImportError:
+            # Fallback to regular preview window
+            from ..windows.preview_window import PreviewWindow
+            self.preview_window = PreviewWindow(self.app)
+            self.preview_window.preview_engine.start_game(self.app.active_node_id)
         
     def _validate_project(self):
         """Validates the current project."""

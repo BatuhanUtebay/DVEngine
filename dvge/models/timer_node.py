@@ -30,6 +30,7 @@ class TimerNode(BaseNode):
         data["game_data"]["next_node"] = self.next_node
         data["game_data"]["show_countdown"] = self.show_countdown
         data["game_data"]["allow_skip"] = self.allow_skip
+        data["game_data"]["total_seconds"] = self.get_seconds()  # Add for HTML export
         # Remove options as they are handled by timer logic
         data["game_data"].pop("options", None)
         return data

@@ -1,15 +1,15 @@
-# dvge/ui/panels/advanced_node_properties.py
+# dvge/ui/panels/fixed_advanced_node_properties.py
 
-"""Advanced node properties for specialized node types."""
+"""Fixed advanced node properties for specialized node types."""
 
 import customtkinter as ctk
 from tkinter import messagebox
 from ...constants import *
-from ...models import ShopNode, RandomEventNode, TimerNode, InventoryNode
+from ...models import ShopNode, RandomEventNode, TimerNode, InventoryNode, DiceRollNode, CombatNode
 
 
-class AdvancedNodePropertiesTab:
-    """Handles advanced node type properties in a separate tab."""
+class FixedAdvancedNodePropertiesTab:
+    """Handles advanced node type properties with full functionality."""
     
     def __init__(self, parent, app):
         self.parent = parent
@@ -106,30 +106,82 @@ class AdvancedNodePropertiesTab:
             'color': current_node.color,
             'backgroundImage': current_node.backgroundImage,
             'audio': current_node.audio,
-            'music': current_node.music
+            'music': getattr(current_node, 'music', ''),
+            'auto_advance': getattr(current_node, 'auto_advance', False),
+            'auto_advance_delay': getattr(current_node, 'auto_advance_delay', 0)
         }
         
         # Create new node based on type
         if new_type == "Shop":
             new_node = ShopNode(**common_props)
+            # Set default shop properties
+            new_node.items_for_sale = [
+                {'name': 'Health Potion', 'price': 10, 'description': 'Restores health'}
+            ]
+            new_node.items_to_buy = [
+                {'name': 'Old Sword', 'price': 5, 'description': 'A rusty weapon'}
+            ]
+            new_node.currency_variable = 'gold'
+            new_node.continue_node = ''
+            
         elif new_type == "RandomEvent":
             new_node = RandomEventNode(**common_props)
+            # Set default random event properties
+            new_node.random_outcomes = [
+                {'weight': 1, 'description': 'Good outcome', 'next_node': ''},
+                {'weight': 1, 'description': 'Bad outcome', 'next_node': ''}
+            ]
+            new_node.auto_trigger = True
+            
         elif new_type == "Timer":
             new_node = TimerNode(**common_props)
+            # Set default timer properties
+            new_node.wait_time = 5
+            new_node.time_unit = 'seconds'
+            new_node.next_node = ''
+            new_node.show_countdown = True
+            new_node.allow_skip = False
+            
         elif new_type == "Inventory":
             new_node = InventoryNode(**common_props)
+            # Set default inventory properties
+            new_node.crafting_recipes = [
+                {
+                    'name': 'Basic Potion',
+                    'ingredients': ['Herb', 'Water'],
+                    'result': 'Health Potion'
+                }
+            ]
+            new_node.item_actions = [
+                {'name': 'Use', 'target_items': ['Health Potion']}
+            ]
+            new_node.continue_node = ''
+            new_node.auto_open = True
+            
         else:
             # Import other node types
             from ...models import DialogueNode, DiceRollNode, CombatNode
             if new_type == "DiceRoll":
                 new_node = DiceRollNode(**common_props)
+                # Set default dice properties
+                new_node.num_dice = 1
+                new_node.num_sides = 6
+                new_node.success_threshold = 4
+                new_node.success_node = ''
+                new_node.failure_node = ''
             elif new_type == "Combat":
                 new_node = CombatNode(**common_props)
+                # Set default combat properties
+                new_node.enemies = ['goblin']
+                new_node.successNode = ''
+                new_node.failNode = ''
             else:  # Default to Dialogue
                 new_node = DialogueNode(**common_props)
                 # Preserve options for dialogue nodes
                 if hasattr(current_node, 'options'):
                     new_node.options = current_node.options
+                else:
+                    new_node.options = []
         
         # Replace in app
         self.app.nodes[current_node.id] = new_node
@@ -150,6 +202,10 @@ class AdvancedNodePropertiesTab:
             self._create_timer_properties(node)
         elif node_type == "Inventory":
             self._create_inventory_properties(node)
+        elif node_type == "DiceRoll":
+            self._create_dice_roll_properties(node)
+        elif node_type == "Combat":
+            self._create_combat_properties(node)
         else:
             self._create_standard_properties_info()
 
@@ -268,10 +324,80 @@ class AdvancedNodePropertiesTab:
         # Crafting recipes
         recipes_frame = self._create_property_frame("Crafting Recipes")
         self._create_recipes_list(recipes_frame, node.crafting_recipes, node)
+
+    def _create_dice_roll_properties(self, node):
+        """Creates dice roll-specific property widgets."""
+        # Dice configuration
+        dice_frame = self._create_property_frame("Dice Configuration")
         
-        # Item actions
-        actions_frame = self._create_property_frame("Item Actions")
-        self._create_actions_list(actions_frame, node.item_actions, node)
+        # Number of dice
+        dice_subframe = ctk.CTkFrame(dice_frame, fg_color="transparent")
+        dice_subframe.pack(fill="x", pady=5)
+        dice_subframe.grid_columnconfigure((0,1,2), weight=1)
+        
+        ctk.CTkLabel(dice_subframe, text="Dice:").grid(row=0, column=0, sticky="w")
+        num_dice_entry = ctk.CTkEntry(dice_subframe, width=60)
+        num_dice_entry.insert(0, str(node.num_dice))
+        num_dice_entry.grid(row=0, column=1, padx=5)
+        num_dice_entry.bind("<KeyRelease>", lambda e: self._update_dice_property(node, 'num_dice', num_dice_entry.get()))
+        
+        ctk.CTkLabel(dice_subframe, text="Sides:").grid(row=1, column=0, sticky="w")
+        num_sides_entry = ctk.CTkEntry(dice_subframe, width=60)
+        num_sides_entry.insert(0, str(node.num_sides))
+        num_sides_entry.grid(row=1, column=1, padx=5)
+        num_sides_entry.bind("<KeyRelease>", lambda e: self._update_dice_property(node, 'num_sides', num_sides_entry.get()))
+        
+        ctk.CTkLabel(dice_subframe, text="Threshold:").grid(row=2, column=0, sticky="w")
+        threshold_entry = ctk.CTkEntry(dice_subframe, width=60)
+        threshold_entry.insert(0, str(node.success_threshold))
+        threshold_entry.grid(row=2, column=1, padx=5)
+        threshold_entry.bind("<KeyRelease>", lambda e: self._update_dice_property(node, 'success_threshold', threshold_entry.get()))
+        
+        # Success/Failure nodes
+        nodes_frame = self._create_property_frame("Result Nodes")
+        node_ids = ["", "[End Game]"] + sorted(list(self.app.nodes.keys()))
+        
+        success_combo = ctk.CTkComboBox(nodes_frame, values=node_ids, font=FONT_PROPERTIES_ENTRY)
+        success_combo.set(node.success_node)
+        success_combo.configure(command=lambda choice: self._update_dice_property(node, 'success_node', choice))
+        success_combo.pack(fill="x", pady=2)
+        
+        ctk.CTkLabel(nodes_frame, text="Success Node").pack(anchor="w")
+        
+        failure_combo = ctk.CTkComboBox(nodes_frame, values=node_ids, font=FONT_PROPERTIES_ENTRY)
+        failure_combo.set(node.failure_node)
+        failure_combo.configure(command=lambda choice: self._update_dice_property(node, 'failure_node', choice))
+        failure_combo.pack(fill="x", pady=2)
+        
+        ctk.CTkLabel(nodes_frame, text="Failure Node").pack(anchor="w")
+
+    def _create_combat_properties(self, node):
+        """Creates combat-specific property widgets."""
+        # Enemies
+        enemies_frame = self._create_property_frame("Enemies")
+        enemies_text = ', '.join(node.enemies) if node.enemies else ''
+        enemies_entry = ctk.CTkEntry(enemies_frame, font=FONT_PROPERTIES_ENTRY)
+        enemies_entry.insert(0, enemies_text)
+        enemies_entry.pack(fill="x", pady=5)
+        enemies_entry.bind("<KeyRelease>", lambda e: self._update_combat_enemies(node, enemies_entry.get()))
+        
+        # Result nodes
+        nodes_frame = self._create_property_frame("Result Nodes")
+        node_ids = ["", "[End Game]"] + sorted(list(self.app.nodes.keys()))
+        
+        success_combo = ctk.CTkComboBox(nodes_frame, values=node_ids, font=FONT_PROPERTIES_ENTRY)
+        success_combo.set(node.successNode)
+        success_combo.configure(command=lambda choice: self._update_combat_property(node, 'successNode', choice))
+        success_combo.pack(fill="x", pady=2)
+        
+        ctk.CTkLabel(nodes_frame, text="Victory Node").pack(anchor="w")
+        
+        failure_combo = ctk.CTkComboBox(nodes_frame, values=node_ids, font=FONT_PROPERTIES_ENTRY)
+        failure_combo.set(node.failNode)
+        failure_combo.configure(command=lambda choice: self._update_combat_property(node, 'failNode', choice))
+        failure_combo.pack(fill="x", pady=2)
+        
+        ctk.CTkLabel(nodes_frame, text="Defeat Node").pack(anchor="w")
 
     def _create_standard_properties_info(self):
         """Shows info for standard node types."""
@@ -318,12 +444,18 @@ class AdvancedNodePropertiesTab:
             price_entry.grid(row=0, column=1, padx=5, pady=5)
             price_entry.bind("<KeyRelease>", lambda e, idx=i, w=price_entry: self._update_shop_item(node, item_type, idx, 'price', w.get()))
             
+            # Description
+            desc_entry = ctk.CTkEntry(item_frame, placeholder_text="Description")
+            desc_entry.insert(0, item.get('description', ''))
+            desc_entry.grid(row=1, column=0, columnspan=2, padx=5, pady=(0,5), sticky="ew")
+            desc_entry.bind("<KeyRelease>", lambda e, idx=i, w=desc_entry: self._update_shop_item(node, item_type, idx, 'description', w.get()))
+            
             # Remove button
             ctk.CTkButton(
                 item_frame, text="✕", width=30, height=30,
                 fg_color="transparent", hover_color=COLOR_ERROR,
                 command=lambda idx=i: self._remove_shop_item(node, item_type, idx)
-            ).grid(row=0, column=2, padx=5, pady=5)
+            ).grid(row=0, column=2, rowspan=2, padx=5, pady=5)
         
         # Add button
         ctk.CTkButton(
@@ -344,18 +476,18 @@ class AdvancedNodePropertiesTab:
             weight_entry.grid(row=0, column=0, padx=5, pady=5)
             weight_entry.bind("<KeyRelease>", lambda e, idx=i, w=weight_entry: self._update_outcome(node, idx, 'weight', w.get()))
             
+            # Description
+            desc_entry = ctk.CTkEntry(outcome_frame, placeholder_text="Description")
+            desc_entry.insert(0, outcome.get('description', ''))
+            desc_entry.grid(row=0, column=1, padx=5, pady=5, sticky="ew")
+            desc_entry.bind("<KeyRelease>", lambda e, idx=i, w=desc_entry: self._update_outcome(node, idx, 'description', w.get()))
+            
             # Next node
             node_ids = ["", "[End Game]"] + sorted(list(self.app.nodes.keys()))
             node_combo = ctk.CTkComboBox(outcome_frame, values=node_ids, width=150)
             node_combo.set(outcome.get('next_node', ''))
             node_combo.configure(command=lambda choice, idx=i: self._update_outcome(node, idx, 'next_node', choice))
-            node_combo.grid(row=0, column=1, padx=5, pady=5, sticky="ew")
-            
-            # Description
-            desc_entry = ctk.CTkEntry(outcome_frame, placeholder_text="Description")
-            desc_entry.insert(0, outcome.get('description', ''))
-            desc_entry.grid(row=1, column=0, columnspan=2, padx=5, pady=(0,5), sticky="ew")
-            desc_entry.bind("<KeyRelease>", lambda e, idx=i, w=desc_entry: self._update_outcome(node, idx, 'description', w.get()))
+            node_combo.grid(row=1, column=0, columnspan=2, padx=5, pady=(0,5), sticky="ew")
             
             # Remove button
             ctk.CTkButton(
@@ -409,39 +541,6 @@ class AdvancedNodePropertiesTab:
             command=lambda: self._add_recipe(node)
         ).pack(pady=5, padx=10)
 
-    def _create_actions_list(self, parent, actions, node):
-        """Creates a list of item actions."""
-        for i, action in enumerate(actions):
-            action_frame = ctk.CTkFrame(parent, fg_color=COLOR_SECONDARY_FRAME)
-            action_frame.pack(fill="x", pady=2, padx=10)
-            action_frame.grid_columnconfigure(1, weight=1)
-            
-            # Action name
-            name_entry = ctk.CTkEntry(action_frame, placeholder_text="Action name (Use, Examine, etc.)")
-            name_entry.insert(0, action.get('name', ''))
-            name_entry.grid(row=0, column=0, padx=5, pady=5, sticky="ew")
-            name_entry.bind("<KeyRelease>", lambda e, idx=i, w=name_entry: self._update_action(node, idx, 'name', w.get()))
-            
-            # Target items
-            items_entry = ctk.CTkEntry(action_frame, placeholder_text="Target items (comma separated)")
-            items = ', '.join(action.get('target_items', []))
-            items_entry.insert(0, items)
-            items_entry.grid(row=0, column=1, padx=5, pady=5, sticky="ew")
-            items_entry.bind("<KeyRelease>", lambda e, idx=i, w=items_entry: self._update_action_items(node, idx, w.get()))
-            
-            # Remove button
-            ctk.CTkButton(
-                action_frame, text="✕", width=30, height=30,
-                fg_color="transparent", hover_color=COLOR_ERROR,
-                command=lambda idx=i: self._remove_action(node, idx)
-            ).grid(row=0, column=2, padx=5, pady=5)
-        
-        # Add button
-        ctk.CTkButton(
-            parent, text="+ Add Action", 
-            command=lambda: self._add_action(node)
-        ).pack(pady=5, padx=10)
-
     # Update methods for shop nodes
     def _update_shop_property(self, node, prop, value):
         """Updates a shop node property."""
@@ -461,11 +560,12 @@ class AdvancedNodePropertiesTab:
                     items[index][prop] = 0
             else:
                 items[index][prop] = value
+        self.app.canvas_manager.redraw_node(node.id)
 
     def _add_shop_item(self, node, item_type):
         """Adds a new shop item."""
         self.app._save_state_for_undo("Add Shop Item")
-        new_item = {'name': 'New Item', 'price': 10}
+        new_item = {'name': 'New Item', 'price': 10, 'description': 'A new item'}
         items = node.items_for_sale if item_type == "sale" else node.items_to_buy
         items.append(new_item)
         self.update_panel()
@@ -555,29 +655,29 @@ class AdvancedNodePropertiesTab:
             del node.crafting_recipes[index]
         self.update_panel()
 
-    def _update_action(self, node, index, prop, value):
-        """Updates an action property."""
-        self.app._save_state_for_undo("Update Action")
-        if index < len(node.item_actions):
-            node.item_actions[index][prop] = value
+    # Update methods for dice roll nodes
+    def _update_dice_property(self, node, prop, value):
+        """Updates a dice roll property."""
+        self.app._save_state_for_undo("Update Dice Property")
+        if prop in ['num_dice', 'num_sides', 'success_threshold']:
+            try:
+                setattr(node, prop, int(value))
+            except ValueError:
+                pass
+        else:
+            setattr(node, prop, value)
+        self.app.canvas_manager.redraw_node(node.id)
 
-    def _update_action_items(self, node, index, value):
-        """Updates action target items."""
-        self.app._save_state_for_undo("Update Action Items")
-        if index < len(node.item_actions):
-            items = [item.strip() for item in value.split(',') if item.strip()]
-            node.item_actions[index]['target_items'] = items
+    # Update methods for combat nodes
+    def _update_combat_property(self, node, prop, value):
+        """Updates a combat property."""
+        self.app._save_state_for_undo("Update Combat Property")
+        setattr(node, prop, value)
+        self.app.canvas_manager.redraw_node(node.id)
 
-    def _add_action(self, node):
-        """Adds a new action."""
-        self.app._save_state_for_undo("Add Action")
-        new_action = {'name': 'Use', 'target_items': []}
-        node.item_actions.append(new_action)
-        self.update_panel()
-
-    def _remove_action(self, node, index):
-        """Removes an action."""
-        self.app._save_state_for_undo("Remove Action")
-        if index < len(node.item_actions):
-            del node.item_actions[index]
-        self.update_panel()
+    def _update_combat_enemies(self, node, value):
+        """Updates combat enemies list."""
+        self.app._save_state_for_undo("Update Combat Enemies")
+        enemies = [enemy.strip() for enemy in value.split(',') if enemy.strip()]
+        node.enemies = enemies
+        self.app.canvas_manager.redraw_node(node.id)

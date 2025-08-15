@@ -17,7 +17,9 @@ class AdvancedFeaturesTab(ctk.CTkFrame):
         self.app = app
         self.current_node = None
         
-        self._setup_layout()
+        # Use pack geometry manager
+        self.pack(fill="both", expand=True)
+        
         self._create_widgets()
         
     def _setup_layout(self):
@@ -29,7 +31,7 @@ class AdvancedFeaturesTab(ctk.CTkFrame):
         """Creates the feature selection and panels."""
         # Feature selector
         selector_frame = ctk.CTkFrame(self, fg_color="transparent")
-        selector_frame.grid(row=0, column=0, sticky="ew", padx=10, pady=10)
+        selector_frame.pack(fill="x", padx=10, pady=10)
         selector_frame.grid_columnconfigure(1, weight=1)
         
         ctk.CTkLabel(
@@ -54,9 +56,7 @@ class AdvancedFeaturesTab(ctk.CTkFrame):
         
         # Content area
         self.content_container = ctk.CTkFrame(self, fg_color="transparent")
-        self.content_container.grid(row=1, column=0, sticky="nsew", padx=10, pady=(0,10))
-        self.content_container.grid_columnconfigure(0, weight=1)
-        self.content_container.grid_rowconfigure(0, weight=1)
+        self.content_container.pack(fill="both", expand=True, padx=10, pady=(0,10))
         
         # Initialize panels (hidden initially)
         self.panels = {
@@ -70,7 +70,7 @@ class AdvancedFeaturesTab(ctk.CTkFrame):
         
         # Hide all panels initially
         for panel in self.panels.values():
-            panel.grid_remove()
+            panel.pack_forget()
             
         # Show default panel
         self.feature_selector.set("Node Settings")
@@ -79,7 +79,6 @@ class AdvancedFeaturesTab(ctk.CTkFrame):
     def _create_node_settings_panel(self):
         """Creates the default node settings panel."""
         panel = ctk.CTkFrame(self.content_container, fg_color="transparent")
-        panel.grid(row=0, column=0, sticky="nsew")
         
         # This would contain the existing advanced node properties
         # (Shop items, Timer settings, etc.)
@@ -102,9 +101,9 @@ class AdvancedFeaturesTab(ctk.CTkFrame):
         """Shows the selected panel and hides others."""
         for name, panel in self.panels.items():
             if name == panel_name:
-                panel.grid(row=0, column=0, sticky="nsew")
+                panel.pack(fill="both", expand=True)
             else:
-                panel.grid_remove()
+                panel.pack_forget()
                 
     def update_panel(self, node=None):
         """Updates all panels with current node data."""

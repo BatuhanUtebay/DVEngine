@@ -17,6 +17,7 @@ class CombatNode(BaseNode):
         self.enemies = enemies if enemies else []  # List of enemy IDs
         self.successNode = successNode  # Node to go to on victory
         self.failNode = failNode  # Node to go to on defeat
+        self.options = []  # Empty options list for UI compatibility
     
     def to_dict(self):
         """Serializes the combat node's data."""

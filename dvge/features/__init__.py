@@ -1,14 +1,17 @@
 
 from .skill_checks import SkillCheckSystem
-from .loot_system import LootSystem
+from .loot_system import LootTable, Rarity
 from .reputation import ReputationSystem
-from .puzzle_mechanics import PuzzleSystem
-from .minigames import MinigameSystem
+from .puzzle_mechanics import Puzzle, PuzzleType
+from .minigames import MinigameType, CardGame
 
 __all__ = [
     'SkillCheckSystem',
-    'LootSystem',
+    'LootTable',
+    'Rarity',
     'ReputationSystem',
-    'PuzzleSystem',
-    'MinigameSystem'
+    'Puzzle',
+    'PuzzleType',
+    'MinigameType',
+    'CardGame'
 ]

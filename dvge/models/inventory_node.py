@@ -1,13 +1,13 @@
 # dvge/models/inventory_node.py
 
-"""Inventory node implementation for item management and crafting."""
+"""Inventory node implementation for item management interfaces."""
 
 from .base_node import BaseNode
 from ..constants import *
 
 
 class InventoryNode(BaseNode):
-    """A special type of node for inventory management and item crafting."""
+    """A special type of node for handling inventory management and item interactions."""
     
     NODE_TYPE = "Inventory"
     
@@ -19,6 +19,7 @@ class InventoryNode(BaseNode):
         self.item_actions = item_actions if item_actions else []  # Use, examine, combine, etc.
         self.continue_node = continue_node  # Where to go when closing inventory
         self.auto_open = auto_open  # Automatically open inventory interface
+        self.options = []  # Empty options list for UI compatibility
     
     def to_dict(self):
         """Serializes the inventory node's data."""
@@ -33,11 +34,11 @@ class InventoryNode(BaseNode):
         return data
     
     def get_height(self):
-        """Inventory nodes have variable height based on recipes and actions."""
+        """Inventory nodes have variable height based on actions."""
         base_height = NODE_HEADER_HEIGHT + NODE_BASE_BODY_HEIGHT + NODE_FOOTER_HEIGHT
-        recipe_count = len(self.crafting_recipes)
         action_count = len(self.item_actions)
-        return base_height + ((recipe_count + action_count) * 25) + 60
+        recipe_count = len(self.crafting_recipes)
+        return base_height + (action_count * 25) + (recipe_count * 20) + 40
     
     @classmethod
     def from_dict(cls, data):

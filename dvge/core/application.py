@@ -31,6 +31,9 @@ class DVGApp(ctk.CTk):
         self.variable_system.set_variables_ref(self.variables)
         self.variable_system.set_flags_ref(self.story_flags)
         
+        # Initialize feature systems
+        self._initialize_feature_systems()
+        
         # Import handlers here to avoid circular imports
         from .project_handler import ProjectHandler
         from .html_exporter import HTMLExporter  
@@ -60,6 +63,13 @@ class DVGApp(ctk.CTk):
         self.variables = {"gold": 50}
         self.enemies = {"goblin": Enemy("goblin", "Goblin", 20, 5, 2)}
         self.timers = {"bomb_timer": GameTimer("bomb_timer", 30)}
+        
+        # Feature system data
+        self.reputation_data = {}  # {faction_id: value}
+        self.loot_tables = {}  # {table_id: table_data}
+        self.active_puzzles = {}  # {puzzle_id: puzzle_state}
+        self.minigame_results = {}  # {minigame_id: results}
+        self.skill_modifiers = {}  # {skill_type: modifier}
         
         self.project_settings = {
             "font": "Merriweather", 
@@ -182,6 +192,24 @@ class DVGApp(ctk.CTk):
                 for option in getattr(node, 'options', []):
                     if option.get('nextNode') == node_id:
                         option['nextNode'] = ""
+
+    def _initialize_feature_systems(self):
+        """Initialize the advanced feature systems."""
+        try:
+            from ..features.skill_checks import SkillCheckSystem
+            from ..features.reputation import ReputationSystem
+            from ..features.loot_system import LootTable
+            
+            self.skill_check_system = SkillCheckSystem()
+            self.reputation_system = ReputationSystem()
+            self.loot_tables = {}  # Will store loot tables by ID
+            
+        except ImportError as e:
+            print(f"Warning: Some feature systems not available: {e}")
+            # Create minimal fallback systems
+            self.skill_check_system = None
+            self.reputation_system = None
+            self.loot_tables = {}
 
     def _save_state_for_undo(self, action_name=""):
         """Wrapper for state manager save_state method."""

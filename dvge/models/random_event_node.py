@@ -1,13 +1,13 @@
 # dvge/models/random_event_node.py
 
-"""Random event node implementation for weighted random outcomes."""
+"""Random event node implementation for chance-based encounters."""
 
 from .base_node import BaseNode
 from ..constants import *
 
 
 class RandomEventNode(BaseNode):
-    """A special type of node that randomly selects from multiple outcomes."""
+    """A special type of node for handling random events with multiple possible outcomes."""
     
     NODE_TYPE = "RandomEvent"
     
@@ -16,6 +16,7 @@ class RandomEventNode(BaseNode):
         super().__init__(x, y, node_id, npc="Fate", text=text, **kwargs)
         self.random_outcomes = random_outcomes if random_outcomes else []
         self.auto_trigger = auto_trigger  # If True, triggers immediately; if False, shows button
+        self.options = []  # Empty options list for UI compatibility
     
     def to_dict(self):
         """Serializes the random event node's data."""

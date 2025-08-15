@@ -20,6 +20,7 @@ class DiceRollNode(BaseNode):
         self.success_threshold = success_threshold
         self.success_node = success_node
         self.failure_node = failure_node
+        self.options = []  # Empty options list for UI compatibility
     
     def to_dict(self):
         """Serializes the dice roll node's data."""

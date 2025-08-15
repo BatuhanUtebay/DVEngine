@@ -19,6 +19,7 @@ class ShopNode(BaseNode):
         self.items_to_buy = items_to_buy if items_to_buy else []  # Items shop will buy from player
         self.currency_variable = currency_variable  # Variable used as currency
         self.continue_node = continue_node  # Node to go to when leaving shop
+        self.options = []  # Empty options list for UI compatibility
     
     def to_dict(self):
         """Serializes the shop node's data."""

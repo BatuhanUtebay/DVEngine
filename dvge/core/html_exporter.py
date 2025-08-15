@@ -52,6 +52,15 @@ class HTMLExporter:
             timers_data = json.dumps({
                 tid: t.to_dict() for tid, t in getattr(self.app, 'timers', {}).items()
             }, indent=4)
+            
+            # Feature systems data
+            feature_data = json.dumps({
+                'reputation': getattr(self.app, 'reputation_data', {}),
+                'loot_tables': getattr(self.app, 'loot_tables', {}),
+                'skill_modifiers': getattr(self.app, 'skill_modifiers', {}),
+                'active_puzzles': getattr(self.app, 'active_puzzles', {}),
+                'minigame_results': getattr(self.app, 'minigame_results', {})
+            }, indent=4)
 
             # Update the _generate_html call:
             html_content = self._generate_html(
@@ -61,7 +70,8 @@ class HTMLExporter:
                 quests_data,
                 variables_data,
                 enemies_data,
-                timers_data
+                timers_data,
+                feature_data
             )
 
             # Save file
@@ -172,7 +182,7 @@ class HTMLExporter:
     
         return dialogue_data
     
-    def _generate_html(self, dialogue_data, player_data, flags_data, quests_data, variables_data, enemies_data=None, timers_data=None):
+    def _generate_html(self, dialogue_data, player_data, flags_data, quests_data, variables_data, enemies_data=None, timers_data=None, feature_data=None):
         """Generate the complete HTML file content."""
         font_name = self.app.project_settings.get("font", "Merriweather")
         title_font_name = self.app.project_settings.get("title_font", "Special Elite")
@@ -277,21 +287,21 @@ class HTMLExporter:
         
         .shop-interface.active {{ display: block; }}
 
-        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-             background: rgba(0,0,0,0.7); z-index: 999; display: none; }
-        .modal-overlay.active { display: block; }
+        .modal-overlay {{ position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+             background: rgba(0,0,0,0.7); z-index: 999; display: none; }}
+        .modal-overlay.active {{ display: block; }}
 
-        .shop-item-info { flex: 1; }
-        .shop-item-name { font-weight: bold; color: var(--text-light); }
-        .shop-item-description { color: var(--text-muted); font-size: 0.9em; margin-top: 0.3em; }
+        .shop-item-info {{ flex: 1; }}
+        .shop-item-name {{ font-weight: bold; color: var(--text-light); }}
+        .shop-item-description {{ color: var(--text-muted); font-size: 0.9em; margin-top: 0.3em; }}
 
-        .inventory-tabs { display: flex; margin-bottom: 1em; gap: 0.5em; }
-        .inventory-tab { padding: 0.5em 1em; background: var(--button-bg); 
-                border: none; color: var(--text-light); cursor: pointer; border-radius: 6px; }
-        .inventory-tab.active { background: var(--accent-color); color: var(--text-dark); }
+        .inventory-tabs {{ display: flex; margin-bottom: 1em; gap: 0.5em; }}
+        .inventory-tab {{ padding: 0.5em 1em; background: var(--button-bg); 
+                border: none; color: var(--text-light); cursor: pointer; border-radius: 6px; }}
+        .inventory-tab.active {{ background: var(--accent-color); color: var(--text-dark); }}
 
-        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
-        .timer-display { animation: pulse 2s infinite; }
+        @keyframes pulse {{ 0%, 100% {{ opacity: 1; }} 50% {{ opacity: 0.7; }} }}
+        .timer-display {{ animation: pulse 2s infinite; }}
         
         .shop-header {{ display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5em; }}
         .shop-title {{ font-family: var(--title-font); font-size: 1.8em; color: var(--accent-color); }}
@@ -488,6 +498,9 @@ class HTMLExporter:
         let player = {player_data};
         let currentNode = "intro";
         let gameState = {{ currentChapter:"", flags:{flags_data}, quests:{quests_data}, variables:{variables_data} }};
+        let enemiesData = {enemies_data};
+        let timersData = {timers_data};
+        let featureData = {feature_data};
         let autoAdvanceTimer = null;
         let currentShopData = null;
         let currentInventoryData = null;
@@ -1605,21 +1618,150 @@ class HTMLExporter:
                 hudContainer.classList.toggle('open');
             }});
         }});
+
+        // ========== FEATURE SYSTEMS IMPLEMENTATIONS ==========
+        
+        // Skill Check System
+        class SkillCheckSystem {{
+            constructor() {{
+                this.activeModifiers = {{}};
+                this.advantageSources = [];
+                this.disadvantageSources = [];
+            }}
+            
+            performSkillCheck(skillValue, difficulty, skillType = "general") {{
+                let roll = Math.floor(Math.random() * 20) + 1;
+                
+                // Handle advantage/disadvantage
+                if (this.advantageSources.length > 0 && this.disadvantageSources.length === 0) {{
+                    const secondRoll = Math.floor(Math.random() * 20) + 1;
+                    roll = Math.max(roll, secondRoll);
+                }} else if (this.disadvantageSources.length > 0 && this.advantageSources.length === 0) {{
+                    const secondRoll = Math.floor(Math.random() * 20) + 1;
+                    roll = Math.min(roll, secondRoll);
+                }}
+                
+                // Apply modifiers
+                let totalModifier = skillValue;
+                for (const [modType, modValue] of Object.entries(this.activeModifiers)) {{
+                    if (modType === skillType || modType === "all") {{
+                        totalModifier += modValue;
+                    }}
+                }}
+                
+                const finalValue = roll + totalModifier;
+                const success = roll === 20 || finalValue >= difficulty;
+                const criticalSuccess = roll === 20;
+                const criticalFailure = roll === 1;
+                
+                return {{
+                    success,
+                    roll,
+                    finalValue,
+                    criticalSuccess,
+                    criticalFailure,
+                    margin: finalValue - difficulty
+                }};
+            }}
+        }}
+        
+        // Reputation System
+        class ReputationSystem {{
+            constructor() {{
+                this.reputations = featureData.reputation || {{}};
+            }}
+            
+            modifyReputation(factionId, amount) {{
+                if (!this.reputations[factionId]) {{
+                    this.reputations[factionId] = 0;
+                }}
+                this.reputations[factionId] = Math.max(-100, Math.min(100, 
+                    this.reputations[factionId] + amount));
+            }}
+            
+            getReputationLevel(factionId) {{
+                const value = this.reputations[factionId] || 0;
+                if (value <= -51) return "Hostile";
+                if (value <= -11) return "Unfriendly";
+                if (value <= 10) return "Neutral";
+                if (value <= 50) return "Friendly";
+                return "Allied";
+            }}
+        }}
+        
+        // Loot System
+        class LootSystem {{
+            constructor() {{
+                this.lootTables = featureData.loot_tables || {{}};
+            }}
+            
+            rollLoot(tableId, luckModifier = 1.0) {{
+                const table = this.lootTables[tableId];
+                if (!table) return {{ items: [], gold: 0 }};
+                
+                const drops = {{ items: [], gold: 0 }};
+                
+                // Roll for items
+                if (table.items && Math.random() < 0.7) {{
+                    const item = this.selectWeightedItem(table.items, luckModifier);
+                    if (item) drops.items.push(item);
+                }}
+                
+                // Roll for gold
+                if (table.goldRange) {{
+                    const [min, max] = table.goldRange;
+                    drops.gold = Math.floor((Math.random() * (max - min + 1) + min) * luckModifier);
+                }}
+                
+                return drops;
+            }}
+            
+            selectWeightedItem(items, luckModifier) {{
+                const totalWeight = items.reduce((sum, item) => sum + (item.weight || 1) * 
+                    (item.rarity === 'rare' || item.rarity === 'epic' || item.rarity === 'legendary' ? luckModifier : 1), 0);
+                
+                let rand = Math.random() * totalWeight;
+                for (const item of items) {{
+                    const weight = (item.weight || 1) * 
+                        (item.rarity === 'rare' || item.rarity === 'epic' || item.rarity === 'legendary' ? luckModifier : 1);
+                    if (rand <= weight) return item;
+                    rand -= weight;
+                }}
+                return null;
+            }}
+        }}
+        
+        // Initialize feature systems
+        const skillCheckSystem = new SkillCheckSystem();
+        const reputationSystem = new ReputationSystem();
+        const lootSystem = new LootSystem();
+        
     </script>
 </body>
 </html>'''
 
-        return html_template.format(
-            dialogue_data=dialogue_data, 
-            player_data=player_data,
-            flags_data=flags_data,
-            quests_data=quests_data,
-            variables_data=variables_data,
-            font_link=font_link,
-            font_css=font_css,
-            title_font_css=title_font_css,
-            background_css=background_css
-        )
+        # Replace placeholders manually to avoid brace conflicts
+        html_result = html_template.replace('{dialogue_data}', dialogue_data)
+        html_result = html_result.replace('{player_data}', player_data)
+        html_result = html_result.replace('{flags_data}', flags_data)
+        html_result = html_result.replace('{quests_data}', quests_data)
+        html_result = html_result.replace('{variables_data}', variables_data)
+        html_result = html_result.replace('{enemies_data}', enemies_data or '{}')
+        html_result = html_result.replace('{timers_data}', timers_data or '{}')
+        html_result = html_result.replace('{feature_data}', feature_data or '{}')
+        html_result = html_result.replace('{font_link}', font_link)
+        html_result = html_result.replace('{font_css}', font_css)
+        html_result = html_result.replace('{title_font_css}', title_font_css)
+        html_result = html_result.replace('{background_css}', background_css)
+        
+        # Convert double braces back to single braces for CSS/JS (but be careful about order)
+        # First handle spacing issues, then convert double braces
+        html_result = html_result.replace('{ {', '{{')  # Fix spaced double braces
+        html_result = html_result.replace('} }', '}}')  # Fix spaced double braces
+        html_result = html_result.replace('{{', '{')
+        html_result = html_result.replace('}}', '}')
+        
+        return html_result
     
     def _generate_background_css(self, background_setting):
         """Generate CSS for the background setting."""

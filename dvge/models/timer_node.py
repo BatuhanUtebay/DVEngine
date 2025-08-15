@@ -1,13 +1,13 @@
 # dvge/models/timer_node.py
 
-"""Timer node implementation for time-based delays."""
+"""Timer node implementation for time-based events and delays."""
 
 from .base_node import BaseNode
 from ..constants import *
 
 
 class TimerNode(BaseNode):
-    """A special type of node that waits for a specified time before continuing."""
+    """A special type of node for handling time-based delays and events."""
     
     NODE_TYPE = "Timer"
     
@@ -20,6 +20,7 @@ class TimerNode(BaseNode):
         self.next_node = next_node  # Where to go after timer expires
         self.show_countdown = show_countdown  # Show countdown timer
         self.allow_skip = allow_skip  # Allow player to skip waiting
+        self.options = []  # Empty options list for UI compatibility
     
     def to_dict(self):
         """Serializes the timer node's data."""
@@ -30,20 +31,13 @@ class TimerNode(BaseNode):
         data["game_data"]["next_node"] = self.next_node
         data["game_data"]["show_countdown"] = self.show_countdown
         data["game_data"]["allow_skip"] = self.allow_skip
-        data["game_data"]["total_seconds"] = self.get_seconds()  # Add for HTML export
-        # Remove options as they are handled by timer logic
+        # Remove options as they are not used in timer nodes
         data["game_data"].pop("options", None)
         return data
     
-    def get_seconds(self):
-        """Converts wait_time to seconds based on time_unit."""
-        multipliers = {
-            "seconds": 1,
-            "minutes": 60,
-            "hours": 3600,
-            "days": 86400
-        }
-        return self.wait_time * multipliers.get(self.time_unit, 1)
+    def get_height(self):
+        """Timer nodes have a standard height."""
+        return NODE_HEADER_HEIGHT + NODE_BASE_BODY_HEIGHT + NODE_FOOTER_HEIGHT + 30
     
     @classmethod
     def from_dict(cls, data):

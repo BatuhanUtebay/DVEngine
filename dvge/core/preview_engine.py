@@ -14,7 +14,18 @@ class EnhancedPreviewGameEngine:
     
     def __init__(self, app):
         self.app = app
-        self.reset_game_state()
+        
+        # Initialize ALL required attributes FIRST
+        self.active_timers = {}
+        self.current_node_id = "intro"
+        self.node_history = []
+        self.is_game_over = False
+        self.pending_navigation = None
+        self.player_stats = {}
+        self.player_inventory = {}
+        self.story_flags = {}
+        self.variables = {}
+        self.quests = {}
         
         # Callbacks for UI updates
         self.on_node_change: Optional[Callable] = None
@@ -24,11 +35,15 @@ class EnhancedPreviewGameEngine:
         self.on_inventory_open: Optional[Callable] = None
         self.on_timer_start: Optional[Callable] = None
         
-        # Timer tracking
-        self.active_timers = {}
+        # Now safely reset game state
+        self.reset_game_state()
         
     def reset_game_state(self):
         """Resets the game to initial state."""
+        # Ensure active_timers exists (defensive programming)
+        if not hasattr(self, 'active_timers'):
+            self.active_timers = {}
+            
         # Copy initial states from app
         self.player_stats = copy.deepcopy(self.app.player_stats)
         self.player_inventory = copy.deepcopy(self.app.player_inventory)
@@ -48,6 +63,9 @@ class EnhancedPreviewGameEngine:
         # Initialize variable system for text substitution
         from .variable_system import VariableSystem
         self.var_system = VariableSystem()
+        
+        # Initialize feature systems
+        self._initialize_feature_systems()
         self.var_system.set_variables_ref(self.variables)
         self.var_system.set_flags_ref(self.story_flags)
         
@@ -706,9 +724,27 @@ class EnhancedPreviewGameEngine:
                 
             self.var_system.apply_variable_effect(subject, operator, value)
             
+    def _initialize_feature_systems(self):
+        """Initialize feature systems for the preview engine."""
+        try:
+            from ..features.skill_checks import SkillCheckSystem
+            from ..features.reputation import ReputationSystem
+            
+            self.skill_check_system = SkillCheckSystem()
+            self.reputation_system = ReputationSystem()
+            
+            # Copy reputation data from app if available
+            if hasattr(self.app, 'reputation_system'):
+                self.reputation_system.reputations = self.app.reputation_system.reputations.copy()
+                
+        except ImportError as e:
+            print(f"Warning: Feature systems not available in preview: {e}")
+            self.skill_check_system = None
+            self.reputation_system = None
+
     def get_debug_state(self) -> Dict[str, Any]:
         """Returns current game state for debugging."""
-        return {
+        debug_state = {
             'current_node': self.current_node_id,
             'history': self.node_history.copy(),
             'player_stats': self.player_stats.copy(),
@@ -717,3 +753,9 @@ class EnhancedPreviewGameEngine:
             'inventory': [item.copy() for item in self.player_inventory],
             'quests': self.quests.copy()
         }
+        
+        # Add feature system data if available
+        if hasattr(self, 'reputation_system') and self.reputation_system:
+            debug_state['reputation'] = self.reputation_system.reputations.copy()
+            
+        return debug_state

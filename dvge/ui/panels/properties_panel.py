@@ -12,7 +12,6 @@ from .flags_panel import FlagsPanel
 from .quests_panel import QuestsPanel
 from .project_panel import ProjectPanel
 from .advanced_node_properties import AdvancedNodePropertiesTab
-from .feature_integration import AdvancedFeaturesTab
 
 
 class PropertiesPanel(ctk.CTkFrame):
@@ -48,14 +47,13 @@ class PropertiesPanel(ctk.CTkFrame):
         self.tab_view.grid(row=1, column=0, sticky="nsew", padx=10, pady=(0,10))
 
     def _initialize_tabs(self):
-        tab_names = ["Node", "Advanced", "Choices", "Features", "Player", "Variables", "Flags", "Quests", "Project"]
+        tab_names = ["Node", "Advanced", "Choices", "Player", "Variables", "Flags", "Quests", "Project"]
         for tab_name in tab_names:
             self.tab_view.add(tab_name)
     
         # Initialize tab content
         self.node_tab = NodePropertiesTab(self.tab_view.tab("Node"), self.app)
         self.choices_tab = ChoicePropertiesTab(self.tab_view.tab("Choices"), self.app)
-        self.features_tab = AdvancedFeaturesTab(self.tab_view.tab("Features"), self.app)
         self.player_tab = PlayerPanel(self.tab_view.tab("Player"), self.app)
         self.variables_tab = VariablesPanel(self.tab_view.tab("Variables"), self.app)
         self.flags_tab = FlagsPanel(self.tab_view.tab("Flags"), self.app)
@@ -66,8 +64,6 @@ class PropertiesPanel(ctk.CTkFrame):
     def update_all_panels(self):
         """Updates all tabs with current data."""
         self.update_properties_panel()
-        if hasattr(self, 'features_tab'):
-            self.features_tab.update_panel()
         self.player_tab.update_panel()
         self.variables_tab.update_panel()
         self.flags_tab.update_panel()

@@ -32,6 +32,18 @@ class BaseNode:
         self.music = music
         self.auto_advance = auto_advance
         self.auto_advance_delay = auto_advance_delay
+        
+        # Portrait system data
+        self.character_id = ""  # ID of character for portrait lookup
+        self.expression = ""    # Specific expression to show
+        self.portrait_position = "left"  # left, right, center
+        self.portrait_effects = []  # List of portrait effect changes
+        
+        # Music and emotional context data
+        self.mood = "neutral"  # neutral, happy, sad, tense, mysterious, romantic, action
+        self.intensity = "medium"  # low, medium, high
+        self.scene_type = "dialogue"  # dialogue, combat, exploration, cutscene, shop
+        self.tags = []  # Custom tags for additional context
     
     def to_dict(self):
         """Serializes the node's data into a dictionary format."""
@@ -46,7 +58,15 @@ class BaseNode:
                 "audio": self.audio,
                 "music": self.music,
                 "auto_advance": self.auto_advance,
-                "auto_advance_delay": self.auto_advance_delay
+                "auto_advance_delay": self.auto_advance_delay,
+                "character_id": getattr(self, 'character_id', ''),
+                "expression": getattr(self, 'expression', ''),
+                "portrait_position": getattr(self, 'portrait_position', 'left'),
+                "portrait_effects": getattr(self, 'portrait_effects', []),
+                "mood": getattr(self, 'mood', 'neutral'),
+                "intensity": getattr(self, 'intensity', 'medium'),
+                "scene_type": getattr(self, 'scene_type', 'dialogue'),
+                "tags": getattr(self, 'tags', [])
             },
             "editor_data": {
                 "x": self.x,
@@ -71,6 +91,44 @@ class BaseNode:
                    (option_index * OPTION_LINE_HEIGHT) + (OPTION_LINE_HEIGHT / 2))
         return self.x + NODE_WIDTH, self.y + y_offset
     
+    def update_from_dict(self, data):
+        """Update node properties from dictionary data."""
+        # Handle both old format (game_data/editor_data) and new format (flat)
+        if 'game_data' in data and 'editor_data' in data:
+            # Old format
+            game_data = data['game_data']
+            editor_data = data['editor_data']
+            
+            self.x = editor_data.get('x', self.x)
+            self.y = editor_data.get('y', self.y)
+            self.id = editor_data.get('id', self.id)
+            self.color = editor_data.get('color', self.color)
+            
+            self.npc = game_data.get('npc', self.npc)
+            self.text = game_data.get('text', self.text)
+            self.backgroundTheme = game_data.get('backgroundTheme', self.backgroundTheme)
+            self.chapter = game_data.get('chapter', self.chapter)
+            self.backgroundImage = game_data.get('backgroundImage', self.backgroundImage)
+            self.audio = game_data.get('audio', self.audio)
+            self.music = game_data.get('music', self.music)
+            self.auto_advance = game_data.get('auto_advance', self.auto_advance)
+            self.auto_advance_delay = game_data.get('auto_advance_delay', self.auto_advance_delay)
+        else:
+            # New flat format
+            self.x = data.get('x', self.x)
+            self.y = data.get('y', self.y)
+            self.id = data.get('id', self.id)
+            self.color = data.get('color', self.color)
+            self.npc = data.get('npc', self.npc)
+            self.text = data.get('text', self.text)
+            self.backgroundTheme = data.get('backgroundTheme', self.backgroundTheme)
+            self.chapter = data.get('chapter', self.chapter)
+            self.backgroundImage = data.get('backgroundImage', self.backgroundImage)
+            self.audio = data.get('audio', self.audio)
+            self.music = data.get('music', self.music)
+            self.auto_advance = data.get('auto_advance', self.auto_advance)
+            self.auto_advance_delay = data.get('auto_advance_delay', self.auto_advance_delay)
+    
     @classmethod
     def from_dict(cls, data):
         """Creates a node instance from a dictionary."""
@@ -92,3 +150,67 @@ class BaseNode:
             auto_advance=game_data.get('auto_advance', False),
             auto_advance_delay=game_data.get('auto_advance_delay', 0)
         )
+    
+    def analyze_emotional_context(self):
+        """Automatically analyzes the text content to determine emotional context."""
+        text_lower = self.text.lower()
+        
+        # Mood detection based on keywords
+        mood_keywords = {
+            'happy': ['happy', 'joy', 'smile', 'laugh', 'excited', 'wonderful', 'great', 'amazing', 'celebrate'],
+            'sad': ['sad', 'cry', 'weep', 'mourn', 'sorrow', 'grief', 'tragic', 'devastating', 'heartbroken'],
+            'tense': ['danger', 'threat', 'warning', 'careful', 'watch out', 'enemy', 'trap', 'urgent', 'hurry'],
+            'mysterious': ['strange', 'weird', 'mysterious', 'unknown', 'secret', 'hidden', 'whisper', 'shadow'],
+            'romantic': ['love', 'romance', 'heart', 'kiss', 'romantic', 'darling', 'beloved', 'affection'],
+            'action': ['fight', 'battle', 'attack', 'run', 'quick', 'fast', 'charge', 'strike', 'combat']
+        }
+        
+        mood_scores = {}
+        for mood, keywords in mood_keywords.items():
+            score = sum(1 for keyword in keywords if keyword in text_lower)
+            if score > 0:
+                mood_scores[mood] = score
+        
+        if mood_scores:
+            self.mood = max(mood_scores, key=mood_scores.get)
+        
+        # Intensity detection based on punctuation and capitalization
+        exclamation_count = text_lower.count('!')
+        question_count = text_lower.count('?')
+        caps_ratio = sum(1 for c in self.text if c.isupper()) / len(self.text) if self.text else 0
+        
+        if exclamation_count >= 2 or caps_ratio > 0.3:
+            self.intensity = "high"
+        elif exclamation_count == 0 and question_count == 0 and caps_ratio < 0.05:
+            self.intensity = "low"
+        else:
+            self.intensity = "medium"
+        
+        # Scene type detection based on NPC and content
+        if self.npc.lower() in ['narrator', 'system']:
+            if any(word in text_lower for word in ['enters', 'leaves', 'walks', 'moves']):
+                self.scene_type = "exploration"
+            else:
+                self.scene_type = "cutscene"
+        elif any(word in text_lower for word in ['buy', 'sell', 'shop', 'merchant', 'gold', 'price']):
+            self.scene_type = "shop"
+        elif any(word in text_lower for word in ['fight', 'battle', 'attack', 'combat', 'enemy']):
+            self.scene_type = "combat"
+        else:
+            self.scene_type = "dialogue"
+        
+        # Generate contextual tags
+        self.tags = []
+        if exclamation_count > 0:
+            self.tags.append("emotional")
+        if question_count > 0:
+            self.tags.append("questioning")
+        if any(word in text_lower for word in ['remember', 'past', 'before', 'long ago']):
+            self.tags.append("memory")
+        if any(word in text_lower for word in ['will', 'future', 'tomorrow', 'soon', 'plan']):
+            self.tags.append("future")
+    
+    def set_text(self, new_text):
+        """Sets new text and automatically analyzes emotional context."""
+        self.text = new_text
+        self.analyze_emotional_context()

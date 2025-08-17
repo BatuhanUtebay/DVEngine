@@ -1,0 +1,206 @@
+{
+    "id": "basic_story",
+    "name": "Basic Story",
+    "description": "A simple linear story template with basic dialogue flow. Perfect for beginners learning the basics of interactive storytelling.",
+    "category": "Tutorial",
+    "difficulty": "Beginner",
+    "tags": ["tutorial", "simple", "linear", "beginner"],
+    "author": "DVGE Team",
+    "version": "1.0",
+    "help_text": "This template demonstrates basic dialogue flow with simple choices. Each node connects to the next, showing how to create a linear narrative with some branching options.",
+    "tutorial_steps": [
+        "Look at the 'intro' node - this is where every story starts",
+        "Notice how choices in the intro lead to different nodes", 
+        "Try adding your own dialogue to the existing nodes",
+        "Create new nodes by right-clicking on the canvas",
+        "Use the preview feature to test your story"
+    ],
+    "project_data": {
+        "version": "1.0.0",
+        "nodes": {
+            "intro": {
+                "node_type": "DialogueNode",
+                "game_data": {
+                    "npc": "Narrator",
+                    "text": "Welcome to your first interactive story! This is the beginning of an adventure. What would you like to do?",
+                    "options": [
+                        {
+                            "text": "Start the adventure",
+                            "nextNode": "adventure_start",
+                            "conditions": [],
+                            "effects": []
+                        },
+                        {
+                            "text": "Learn about the world first",
+                            "nextNode": "world_info",
+                            "conditions": [],
+                            "effects": []
+                        }
+                    ]
+                },
+                "editor_data": {
+                    "id": "intro",
+                    "x": 100,
+                    "y": 100
+                }
+            },
+            "adventure_start": {
+                "node_type": "DialogueNode", 
+                "game_data": {
+                    "npc": "Guide",
+                    "text": "Excellent! You step forward into the unknown. A friendly guide approaches you with a warm smile.",
+                    "options": [
+                        {
+                            "text": "Greet the guide",
+                            "nextNode": "friendly_path",
+                            "conditions": [],
+                            "effects": [
+                                {
+                                    "type": "stat",
+                                    "subject": "charisma",
+                                    "operator": "+=",
+                                    "value": 1
+                                }
+                            ]
+                        },
+                        {
+                            "text": "Keep walking past them",
+                            "nextNode": "lone_path",
+                            "conditions": [],
+                            "effects": []
+                        }
+                    ]
+                },
+                "editor_data": {
+                    "id": "adventure_start",
+                    "x": 300,
+                    "y": 50
+                }
+            },
+            "world_info": {
+                "node_type": "DialogueNode",
+                "game_data": {
+                    "npc": "Narrator",
+                    "text": "This world is full of choices and consequences. Every decision you make will shape your story. Knowledge is power here.",
+                    "options": [
+                        {
+                            "text": "Now I'm ready to begin",
+                            "nextNode": "adventure_start",
+                            "conditions": [],
+                            "effects": [
+                                {
+                                    "type": "stat",
+                                    "subject": "wisdom",
+                                    "operator": "+=", 
+                                    "value": 1
+                                }
+                            ]
+                        }
+                    ]
+                },
+                "editor_data": {
+                    "id": "world_info",
+                    "x": 300,
+                    "y": 150
+                }
+            },
+            "friendly_path": {
+                "node_type": "DialogueNode",
+                "game_data": {
+                    "npc": "Guide",
+                    "text": "Hello, traveler! I can see kindness in your eyes. Let me give you this gift to help on your journey.",
+                    "options": [
+                        {
+                            "text": "Thank them graciously",
+                            "nextNode": "ending_kind",
+                            "conditions": [],
+                            "effects": [
+                                {
+                                    "type": "item",
+                                    "subject": "Magic Compass",
+                                    "operator": "add",
+                                    "value": 1
+                                }
+                            ]
+                        }
+                    ]
+                },
+                "editor_data": {
+                    "id": "friendly_path",
+                    "x": 500,
+                    "y": 0
+                }
+            },
+            "lone_path": {
+                "node_type": "DialogueNode",
+                "game_data": {
+                    "npc": "Narrator",
+                    "text": "You continue alone, trusting in your own abilities. The path ahead is uncertain, but you feel strong and independent.",
+                    "options": [
+                        {
+                            "text": "Press forward with confidence",
+                            "nextNode": "ending_independent",
+                            "conditions": [],
+                            "effects": [
+                                {
+                                    "type": "stat",
+                                    "subject": "strength",
+                                    "operator": "+=",
+                                    "value": 2
+                                }
+                            ]
+                        }
+                    ]
+                },
+                "editor_data": {
+                    "id": "lone_path",
+                    "x": 500,
+                    "y": 100
+                }
+            },
+            "ending_kind": {
+                "node_type": "DialogueNode",
+                "game_data": {
+                    "npc": "Narrator",
+                    "text": "Your kindness has been rewarded. With the magic compass in hand, you always know which direction leads to hope and friendship. Your story continues...",
+                    "options": []
+                },
+                "editor_data": {
+                    "id": "ending_kind",
+                    "x": 700,
+                    "y": 0
+                }
+            },
+            "ending_independent": {
+                "node_type": "DialogueNode",
+                "game_data": {
+                    "npc": "Narrator", 
+                    "text": "Your independence has made you stronger. You face the future with confidence, knowing you can handle whatever comes your way. Your story continues...",
+                    "options": []
+                },
+                "editor_data": {
+                    "id": "ending_independent",
+                    "x": 700,
+                    "y": 100
+                }
+            }
+        },
+        "player_stats": {
+            "strength": 10,
+            "charisma": 10,
+            "wisdom": 10
+        },
+        "player_inventory": [],
+        "story_flags": {},
+        "quests": {},
+        "variables": {},
+        "enemies": {},
+        "timers": {},
+        "node_id_counter": 7,
+        "project_settings": {
+            "font": "Merriweather",
+            "title_font": "Special Elite",
+            "background": ""
+        }
+    }
+}

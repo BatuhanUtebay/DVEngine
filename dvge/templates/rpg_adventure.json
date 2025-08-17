@@ -1,0 +1,719 @@
+{
+    "id": "rpg_adventure",
+    "name": "RPG Adventure",
+    "description": "A classic RPG-style adventure with combat, inventory, shops, and character progression. Features stats, equipment, and tactical decision-making.",
+    "category": "RPG",
+    "difficulty": "Intermediate",
+    "tags": [
+        "rpg",
+        "combat",
+        "stats",
+        "inventory",
+        "adventure"
+    ],
+    "author": "DVGE Team",
+    "version": "1.0",
+    "help_text": "This template shows how to create an RPG with combat mechanics, inventory management, and character stats. Study the combat nodes and shop systems to understand advanced features.",
+    "tutorial_steps": [
+        "Check your starting stats and inventory in the player panel",
+        "Try the combat system in the 'goblin_encounter' node",
+        "Visit the shop to buy and sell items",
+        "Notice how stats affect combat outcomes",
+        "Experiment with different character builds"
+    ],
+    "project_data": {
+        "version": "1.0.0",
+        "nodes": {
+            "intro": {
+                "node_type": "DialogueNode",
+                "game_data": {
+                    "npc": "Village Elder",
+                    "text": "Welcome, brave adventurer! Our village needs a hero. Goblins have been raiding our supplies. Will you help us?",
+                    "options": [
+                        {
+                            "text": "I'll help defend the village",
+                            "nextNode": "accept_quest",
+                            "conditions": [],
+                            "effects": [
+                                {
+                                    "type": "quest",
+                                    "subject": "goblin_threat",
+                                    "operator": "=",
+                                    "value": "active"
+                                }
+                            ]
+                        },
+                        {
+                            "text": "I need to prepare first",
+                            "nextNode": "visit_shop",
+                            "conditions": [],
+                            "effects": []
+                        },
+                        {
+                            "text": "Check my current equipment",
+                            "nextNode": "inventory_check",
+                            "conditions": [],
+                            "effects": []
+                        },
+                        {
+                            "text": "I need time to prepare properly",
+                            "nextNode": "time_pressure",
+                            "conditions": [],
+                            "effects": []
+                        }
+                    ]
+                },
+                "editor_data": {
+                    "id": "intro",
+                    "x": 100,
+                    "y": 100
+                }
+            },
+            "accept_quest": {
+                "node_type": "DialogueNode",
+                "game_data": {
+                    "npc": "Village Elder",
+                    "text": "Thank you! The goblins usually attack from the forest path. Here, take this healing potion - you'll need it.",
+                    "options": [
+                        {
+                            "text": "Head to the forest path",
+                            "nextNode": "forest_path",
+                            "conditions": [],
+                            "effects": [
+                                {
+                                    "type": "item",
+                                    "subject": "Health Potion",
+                                    "operator": "add",
+                                    "value": 1
+                                }
+                            ]
+                        }
+                    ]
+                },
+                "editor_data": {
+                    "id": "accept_quest",
+                    "x": 300,
+                    "y": 50
+                }
+            },
+            "visit_shop": {
+                "node_type": "ShopNode",
+                "game_data": {
+                    "npc": "Merchant",
+                    "text": "Welcome to my shop! I have weapons, armor, and supplies for any adventurer.",
+                    "currency_variable": "gold",
+                    "items_for_sale": [
+                        {
+                            "name": "Iron Sword",
+                            "price": 50,
+                            "description": "A sturdy blade that increases attack power"
+                        },
+                        {
+                            "name": "Leather Armor",
+                            "price": 40,
+                            "description": "Basic protection that increases defense"
+                        },
+                        {
+                            "name": "Health Potion",
+                            "price": 15,
+                            "description": "Restores health when used"
+                        }
+                    ],
+                    "items_to_buy": [
+                        {
+                            "name": "Old Equipment",
+                            "price": 5,
+                            "description": "I'll buy any old gear you don't need"
+                        }
+                    ],
+                    "continue_node": "shop_exit"
+                },
+                "editor_data": {
+                    "id": "visit_shop",
+                    "x": 300,
+                    "y": 150
+                }
+            },
+            "shop_exit": {
+                "node_type": "DialogueNode",
+                "game_data": {
+                    "npc": "Merchant",
+                    "text": "Good luck on your adventure! Come back anytime.",
+                    "options": [
+                        {
+                            "text": "Go help the village now",
+                            "nextNode": "forest_path",
+                            "conditions": [],
+                            "effects": [
+                                {
+                                    "type": "quest",
+                                    "subject": "goblin_threat",
+                                    "operator": "=",
+                                    "value": "active"
+                                }
+                            ]
+                        }
+                    ]
+                },
+                "editor_data": {
+                    "id": "shop_exit",
+                    "x": 500,
+                    "y": 150
+                }
+            },
+            "forest_path": {
+                "node_type": "DialogueNode",
+                "game_data": {
+                    "npc": "Narrator",
+                    "text": "You arrive at the forest path. In the distance, you see a goblin raider carrying a sack of stolen goods. It hasn't noticed you yet.",
+                    "options": [
+                        {
+                            "text": "Charge into battle!",
+                            "nextNode": "goblin_encounter",
+                            "conditions": [],
+                            "effects": []
+                        },
+                        {
+                            "text": "Try to sneak past",
+                            "nextNode": "sneak_attempt",
+                            "conditions": [],
+                            "effects": []
+                        },
+                        {
+                            "text": "Use a Health Potion first",
+                            "nextNode": "use_potion",
+                            "conditions": [
+                                {
+                                    "type": "item",
+                                    "subject": "Health Potion",
+                                    "operator": "has",
+                                    "value": true
+                                }
+                            ],
+                            "effects": [
+                                {
+                                    "type": "item",
+                                    "subject": "Health Potion",
+                                    "operator": "remove",
+                                    "value": 1
+                                },
+                                {
+                                    "type": "stat",
+                                    "subject": "health",
+                                    "operator": "+=",
+                                    "value": 30
+                                }
+                            ]
+                        },
+                        {
+                            "text": "Explore the forest more carefully",
+                            "nextNode": "forest_event",
+                            "conditions": [],
+                            "effects": []
+                        }
+                    ]
+                },
+                "editor_data": {
+                    "id": "forest_path",
+                    "x": 500,
+                    "y": 50
+                }
+            },
+            "use_potion": {
+                "node_type": "DialogueNode",
+                "game_data": {
+                    "npc": "Narrator",
+                    "text": "You drink the health potion and feel refreshed. Your health has been restored!",
+                    "options": [
+                        {
+                            "text": "Now charge into battle!",
+                            "nextNode": "goblin_encounter",
+                            "conditions": [],
+                            "effects": []
+                        }
+                    ]
+                },
+                "editor_data": {
+                    "id": "use_potion",
+                    "x": 700,
+                    "y": 0
+                }
+            },
+            "sneak_attempt": {
+                "node_type": "DiceRollNode",
+                "game_data": {
+                    "npc": "Narrator",
+                    "text": "You attempt to sneak past the goblin. Roll for stealth!",
+                    "num_dice": 1,
+                    "num_sides": 20,
+                    "success_threshold": 12,
+                    "success_node": "sneak_success",
+                    "failure_node": "sneak_fail"
+                },
+                "editor_data": {
+                    "id": "sneak_attempt",
+                    "x": 700,
+                    "y": 50
+                }
+            },
+            "sneak_success": {
+                "node_type": "DialogueNode",
+                "game_data": {
+                    "npc": "Narrator",
+                    "text": "You successfully sneak past the goblin and recover the stolen goods without a fight! The village is saved.",
+                    "options": [
+                        {
+                            "text": "Return to the village as a hero",
+                            "nextNode": "victory_peaceful",
+                            "conditions": [],
+                            "effects": [
+                                {
+                                    "type": "quest",
+                                    "subject": "goblin_threat",
+                                    "operator": "=",
+                                    "value": "completed"
+                                },
+                                {
+                                    "type": "variable",
+                                    "subject": "gold",
+                                    "operator": "+=",
+                                    "value": 100
+                                }
+                            ]
+                        }
+                    ]
+                },
+                "editor_data": {
+                    "id": "sneak_success",
+                    "x": 900,
+                    "y": 0
+                }
+            },
+            "sneak_fail": {
+                "node_type": "DialogueNode",
+                "game_data": {
+                    "npc": "Goblin Raider",
+                    "text": "Aha! I caught you sneaking around! Now you'll pay!",
+                    "options": [
+                        {
+                            "text": "Fight!",
+                            "nextNode": "goblin_encounter",
+                            "conditions": [],
+                            "effects": []
+                        }
+                    ]
+                },
+                "editor_data": {
+                    "id": "sneak_fail",
+                    "x": 900,
+                    "y": 50
+                }
+            },
+            "goblin_encounter": {
+                "node_type": "CombatNode",
+                "game_data": {
+                    "npc": "Goblin Raider",
+                    "text": "The goblin snarls and raises its crude weapon. Battle begins!",
+                    "enemy_name": "Goblin Raider",
+                    "enemy_health": 25,
+                    "enemy_attack": 8,
+                    "successNode": "combat_victory",
+                    "failNode": "combat_defeat"
+                },
+                "editor_data": {
+                    "id": "goblin_encounter",
+                    "x": 700,
+                    "y": 100
+                }
+            },
+            "combat_victory": {
+                "node_type": "DialogueNode",
+                "game_data": {
+                    "npc": "Narrator",
+                    "text": "Victory! You defeat the goblin and recover the stolen goods. The village is safe once again!",
+                    "options": [
+                        {
+                            "text": "Return to the village",
+                            "nextNode": "victory_combat",
+                            "conditions": [],
+                            "effects": [
+                                {
+                                    "type": "quest",
+                                    "subject": "goblin_threat",
+                                    "operator": "=",
+                                    "value": "completed"
+                                },
+                                {
+                                    "type": "variable",
+                                    "subject": "gold",
+                                    "operator": "+=",
+                                    "value": 75
+                                },
+                                {
+                                    "type": "stat",
+                                    "subject": "experience",
+                                    "operator": "+=",
+                                    "value": 50
+                                }
+                            ]
+                        }
+                    ]
+                },
+                "editor_data": {
+                    "id": "combat_victory",
+                    "x": 900,
+                    "y": 100
+                }
+            },
+            "combat_defeat": {
+                "node_type": "DialogueNode",
+                "game_data": {
+                    "npc": "Narrator",
+                    "text": "The goblin proves too strong. You retreat to fight another day. Perhaps you need better equipment or more preparation?",
+                    "options": [
+                        {
+                            "text": "Return to the village to regroup",
+                            "nextNode": "defeat_return",
+                            "conditions": [],
+                            "effects": []
+                        }
+                    ]
+                },
+                "editor_data": {
+                    "id": "combat_defeat",
+                    "x": 900,
+                    "y": 150
+                }
+            },
+            "victory_peaceful": {
+                "node_type": "DialogueNode",
+                "game_data": {
+                    "npc": "Village Elder",
+                    "text": "Amazing! You solved our problem without violence. You are truly wise. Here is your reward!",
+                    "options": []
+                },
+                "editor_data": {
+                    "id": "victory_peaceful",
+                    "x": 1100,
+                    "y": 0
+                }
+            },
+            "victory_combat": {
+                "node_type": "DialogueNode",
+                "game_data": {
+                    "npc": "Village Elder",
+                    "text": "You fought bravely and saved our village! You are a true warrior. Here is your reward!",
+                    "options": []
+                },
+                "editor_data": {
+                    "id": "victory_combat",
+                    "x": 1100,
+                    "y": 100
+                }
+            },
+            "defeat_return": {
+                "node_type": "DialogueNode",
+                "game_data": {
+                    "npc": "Village Elder",
+                    "text": "Don't give up, hero. Visit the shop, train more, and try again when you're ready.",
+                    "options": [
+                        {
+                            "text": "Visit the shop again",
+                            "nextNode": "visit_shop",
+                            "conditions": [],
+                            "effects": []
+                        }
+                    ]
+                },
+                "editor_data": {
+                    "id": "defeat_return",
+                    "x": 1100,
+                    "y": 150
+                }
+            },
+            "forest_event": {
+                "node_type": "RandomEventNode",
+                "game_data": {
+                    "npc": "Narrator",
+                    "text": "As you travel through the forest, something unexpected happens...",
+                    "events": [
+                        {
+                            "text": "You find a hidden treasure chest with 25 gold!",
+                            "probability": 30,
+                            "effects": [
+                                {
+                                    "type": "variable",
+                                    "subject": "gold",
+                                    "operator": "+=",
+                                    "value": 25
+                                }
+                            ],
+                            "next_node": "treasure_found"
+                        },
+                        {
+                            "text": "A friendly traveler offers to share some food and wisdom.",
+                            "probability": 25,
+                            "effects": [
+                                {
+                                    "type": "stat",
+                                    "subject": "health",
+                                    "operator": "+=",
+                                    "value": 10
+                                },
+                                {
+                                    "type": "stat",
+                                    "subject": "experience",
+                                    "operator": "+=",
+                                    "value": 15
+                                }
+                            ],
+                            "next_node": "traveler_encounter"
+                        },
+                        {
+                            "text": "You spot some useful herbs growing nearby.",
+                            "probability": 20,
+                            "effects": [
+                                {
+                                    "type": "item",
+                                    "subject": "Healing Herbs",
+                                    "operator": "add",
+                                    "value": 2
+                                }
+                            ],
+                            "next_node": "herbs_found"
+                        },
+                        {
+                            "text": "The path is clear and peaceful. You continue without incident.",
+                            "probability": 25,
+                            "effects": [],
+                            "next_node": "peaceful_travel"
+                        }
+                    ]
+                },
+                "editor_data": {
+                    "id": "forest_event",
+                    "x": 500,
+                    "y": 250
+                }
+            },
+            "treasure_found": {
+                "node_type": "DialogueNode",
+                "game_data": {
+                    "npc": "Narrator",
+                    "text": "Lucky you! The chest contained exactly what you needed. Your purse feels heavier now.",
+                    "options": [
+                        {
+                            "text": "Continue your journey",
+                            "nextNode": "forest_path",
+                            "conditions": [],
+                            "effects": []
+                        }
+                    ]
+                },
+                "editor_data": {
+                    "id": "treasure_found",
+                    "x": 700,
+                    "y": 200
+                }
+            },
+            "traveler_encounter": {
+                "node_type": "DialogueNode",
+                "game_data": {
+                    "npc": "Friendly Traveler",
+                    "text": "Greetings, fellow adventurer! Share my fire and let me tell you tales of distant lands. Here, have some bread and learn from my experience.",
+                    "options": [
+                        {
+                            "text": "Thank the traveler and continue",
+                            "nextNode": "forest_path",
+                            "conditions": [],
+                            "effects": []
+                        }
+                    ]
+                },
+                "editor_data": {
+                    "id": "traveler_encounter",
+                    "x": 700,
+                    "y": 250
+                }
+            },
+            "herbs_found": {
+                "node_type": "DialogueNode",
+                "game_data": {
+                    "npc": "Narrator",
+                    "text": "You carefully gather the herbs. These might prove useful for healing or crafting potions later.",
+                    "options": [
+                        {
+                            "text": "Continue exploring",
+                            "nextNode": "forest_path",
+                            "conditions": [],
+                            "effects": []
+                        }
+                    ]
+                },
+                "editor_data": {
+                    "id": "herbs_found",
+                    "x": 700,
+                    "y": 300
+                }
+            },
+            "peaceful_travel": {
+                "node_type": "DialogueNode",
+                "game_data": {
+                    "npc": "Narrator",
+                    "text": "The forest is calm and quiet. Sometimes the best adventures are the peaceful ones.",
+                    "options": [
+                        {
+                            "text": "Enjoy the peaceful moment",
+                            "nextNode": "forest_path",
+                            "conditions": [],
+                            "effects": []
+                        }
+                    ]
+                },
+                "editor_data": {
+                    "id": "peaceful_travel",
+                    "x": 700,
+                    "y": 350
+                }
+            },
+            "inventory_check": {
+                "node_type": "InventoryNode",
+                "game_data": {
+                    "npc": "Narrator",
+                    "text": "You take a moment to organize your belongings and check your equipment.",
+                    "allow_item_use": true,
+                    "allow_item_drop": true,
+                    "continue_node": "inventory_done"
+                },
+                "editor_data": {
+                    "id": "inventory_check",
+                    "x": 300,
+                    "y": 250
+                }
+            },
+            "inventory_done": {
+                "node_type": "DialogueNode",
+                "game_data": {
+                    "npc": "Narrator",
+                    "text": "Your gear is organized and ready. You feel more prepared for the challenges ahead.",
+                    "options": [
+                        {
+                            "text": "Head to the forest path",
+                            "nextNode": "forest_path",
+                            "conditions": [],
+                            "effects": []
+                        },
+                        {
+                            "text": "Visit the shop first",
+                            "nextNode": "visit_shop",
+                            "conditions": [],
+                            "effects": []
+                        }
+                    ]
+                },
+                "editor_data": {
+                    "id": "inventory_done",
+                    "x": 500,
+                    "y": 300
+                }
+            },
+            "time_pressure": {
+                "node_type": "TimerNode",
+                "game_data": {
+                    "npc": "Village Elder",
+                    "text": "Hurry! The goblin raiding party will return soon. You have limited time to prepare!",
+                    "duration": 60,
+                    "display_timer": true,
+                    "warning_at": 10,
+                    "success_node": "quick_preparation",
+                    "timeout_node": "too_late"
+                },
+                "editor_data": {
+                    "id": "time_pressure",
+                    "x": 100,
+                    "y": 250
+                }
+            },
+            "quick_preparation": {
+                "node_type": "DialogueNode",
+                "game_data": {
+                    "npc": "Village Elder",
+                    "text": "Well done! You prepared quickly and efficiently. You're ready for battle!",
+                    "options": [
+                        {
+                            "text": "Face the goblin raiders",
+                            "nextNode": "goblin_encounter",
+                            "conditions": [],
+                            "effects": [
+                                {
+                                    "type": "stat",
+                                    "subject": "attack",
+                                    "operator": "+=",
+                                    "value": 5
+                                }
+                            ]
+                        }
+                    ]
+                },
+                "editor_data": {
+                    "id": "quick_preparation",
+                    "x": 300,
+                    "y": 350
+                }
+            },
+            "too_late": {
+                "node_type": "DialogueNode",
+                "game_data": {
+                    "npc": "Village Elder",
+                    "text": "The goblins returned while you were still preparing! Now you must face them unprepared.",
+                    "options": [
+                        {
+                            "text": "Fight anyway!",
+                            "nextNode": "goblin_encounter",
+                            "conditions": [],
+                            "effects": [
+                                {
+                                    "type": "stat",
+                                    "subject": "health",
+                                    "operator": "-=",
+                                    "value": 10
+                                }
+                            ]
+                        }
+                    ]
+                },
+                "editor_data": {
+                    "id": "too_late",
+                    "x": 100,
+                    "y": 350
+                }
+            }
+        },
+        "player_stats": {
+            "health": 100,
+            "attack": 15,
+            "defense": 10,
+            "experience": 0
+        },
+        "player_inventory": [],
+        "story_flags": {},
+        "quests": {
+            "goblin_threat": {
+                "name": "Goblin Threat",
+                "description": "Help the village defend against goblin raiders",
+                "state": "inactive"
+            }
+        },
+        "variables": {
+            "gold": 50
+        },
+        "enemies": {},
+        "timers": {},
+        "node_id_counter": 16,
+        "project_settings": {
+            "font": "Merriweather",
+            "title_font": "Special Elite",
+            "background": ""
+        }
+    }
+}

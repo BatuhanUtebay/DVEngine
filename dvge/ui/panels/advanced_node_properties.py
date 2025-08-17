@@ -5,7 +5,7 @@
 import customtkinter as ctk
 from tkinter import messagebox
 from ...constants import *
-from ...models import ShopNode, RandomEventNode, TimerNode, InventoryNode, DiceRollNode, CombatNode
+from ...models import ShopNode, RandomEventNode, TimerNode, InventoryNode, DiceRollNode, CombatNode, AdvancedCombatNode
 
 
 class AdvancedNodePropertiesTab:
@@ -38,7 +38,7 @@ class AdvancedNodePropertiesTab:
         
         self.type_combo = ctk.CTkComboBox(
             type_frame, 
-            values=["Dialogue", "Shop", "RandomEvent", "Timer", "Inventory", "DiceRoll", "Combat"],
+            values=["Dialogue", "Shop", "RandomEvent", "Timer", "Inventory", "DiceRoll", "Combat", "AdvancedCombat"],
             command=self._on_type_change,
             font=FONT_PROPERTIES_ENTRY
         )
@@ -175,6 +175,17 @@ class AdvancedNodePropertiesTab:
                 new_node.enemies = ['goblin']
                 new_node.successNode = ''
                 new_node.failNode = ''
+            elif new_type == "AdvancedCombat":
+                new_node = AdvancedCombatNode(**common_props)
+                # Set default advanced combat properties
+                new_node.enemies = [new_node.add_enemy({
+                    "name": "Goblin Warrior",
+                    "level": 1,
+                    "health": 80,
+                    "max_health": 80
+                })]
+                new_node.victory_node = ''
+                new_node.defeat_node = ''
             else:  # Default to Dialogue
                 new_node = DialogueNode(**common_props)
                 # Preserve options for dialogue nodes
@@ -206,6 +217,8 @@ class AdvancedNodePropertiesTab:
             self._create_dice_roll_properties(node)
         elif node_type == "CombatNode":
             self._create_combat_properties(node)
+        elif node_type == "AdvancedCombatNode":
+            self._create_advanced_combat_properties(node)
         else:
             self._create_standard_properties_info()
 
@@ -398,6 +411,243 @@ class AdvancedNodePropertiesTab:
         failure_combo.pack(fill="x", pady=2, padx=10)
         
         ctk.CTkLabel(nodes_frame, text="Defeat Node").pack(anchor="w", padx=10)
+
+    def _create_advanced_combat_properties(self, node):
+        """Creates advanced combat-specific property widgets."""
+        # Advanced Editor Button
+        editor_frame = self._create_property_frame("Advanced Combat Editor")
+        
+        editor_button = ctk.CTkButton(
+            editor_frame,
+            text="🛡️ Open Advanced Combat Editor",
+            command=lambda: self._open_advanced_combat_editor(node),
+            height=40,
+            font=ctk.CTkFont(size=14, weight="bold")
+        )
+        editor_button.pack(fill="x", pady=10, padx=15)
+        
+        editor_info = ctk.CTkLabel(
+            editor_frame,
+            text="Use the advanced editor for detailed combat configuration including\nenemies, allies, environmental hazards, rewards, and special rules.",
+            font=ctk.CTkFont(size=11),
+            text_color=COLOR_TEXT_MUTED
+        )
+        editor_info.pack(pady=(0, 10), padx=15)
+        
+        # Combat type and environment
+        config_frame = self._create_property_frame("Basic Combat Configuration")
+        
+        # Combat type
+        type_subframe = ctk.CTkFrame(config_frame, fg_color="transparent")
+        type_subframe.pack(fill="x", pady=5, padx=10)
+        type_subframe.grid_columnconfigure(1, weight=1)
+        
+        ctk.CTkLabel(type_subframe, text="Type:").grid(row=0, column=0, sticky="w", padx=(0,10))
+        type_combo = ctk.CTkComboBox(
+            type_subframe, 
+            values=["advanced", "boss", "arena", "survival"],
+            font=FONT_PROPERTIES_ENTRY
+        )
+        type_combo.set(node.combat_type)
+        type_combo.configure(command=lambda choice: self._update_advanced_combat_property(node, 'combat_type', choice))
+        type_combo.grid(row=0, column=1, sticky="ew")
+        
+        # Environment
+        ctk.CTkLabel(type_subframe, text="Environment:").grid(row=1, column=0, sticky="w", padx=(0,10), pady=(5,0))
+        env_combo = ctk.CTkComboBox(
+            type_subframe,
+            values=["default", "forest", "dungeon", "desert", "ice", "lava", "underwater"],
+            font=FONT_PROPERTIES_ENTRY
+        )
+        env_combo.set(node.environment)
+        env_combo.configure(command=lambda choice: self._update_advanced_combat_property(node, 'environment', choice))
+        env_combo.grid(row=1, column=1, sticky="ew", pady=(5,0))
+        
+        # Weather
+        ctk.CTkLabel(type_subframe, text="Weather:").grid(row=2, column=0, sticky="w", padx=(0,10), pady=(5,0))
+        weather_combo = ctk.CTkComboBox(
+            type_subframe,
+            values=["clear", "rain", "storm", "snow", "fog", "sunny"],
+            font=FONT_PROPERTIES_ENTRY
+        )
+        weather_combo.set(node.weather)
+        weather_combo.configure(command=lambda choice: self._update_advanced_combat_property(node, 'weather', choice))
+        weather_combo.grid(row=2, column=1, sticky="ew", pady=(5,0))
+        
+        # Victory/Defeat Conditions
+        conditions_frame = self._create_property_frame("Victory/Defeat Conditions")
+        
+        # Turn limit
+        turn_subframe = ctk.CTkFrame(conditions_frame, fg_color="transparent")
+        turn_subframe.pack(fill="x", pady=5, padx=10)
+        turn_subframe.grid_columnconfigure(1, weight=1)
+        
+        ctk.CTkLabel(turn_subframe, text="Turn Limit (0=none):").grid(row=0, column=0, sticky="w", padx=(0,10))
+        turn_entry = ctk.CTkEntry(turn_subframe, font=FONT_PROPERTIES_ENTRY, width=100)
+        turn_entry.insert(0, str(node.turn_limit))
+        turn_entry.grid(row=0, column=1, sticky="ew")
+        turn_entry.bind("<KeyRelease>", lambda e: self._update_advanced_combat_numeric(node, 'turn_limit', turn_entry.get()))
+        
+        # Combat settings
+        settings_frame = self._create_property_frame("Combat Settings")
+        
+        # Allow escape
+        escape_var = ctk.BooleanVar(value=node.allow_escape)
+        ctk.CTkCheckBox(
+            settings_frame, text="Allow escape", 
+            variable=escape_var,
+            command=lambda: self._update_advanced_combat_property(node, 'allow_escape', escape_var.get())
+        ).pack(anchor="w", pady=2, padx=10)
+        
+        # Formation matters
+        formation_var = ctk.BooleanVar(value=node.formation_matters)
+        ctk.CTkCheckBox(
+            settings_frame, text="Formation matters (front/back row)", 
+            variable=formation_var,
+            command=lambda: self._update_advanced_combat_property(node, 'formation_matters', formation_var.get())
+        ).pack(anchor="w", pady=2, padx=10)
+        
+        # Initiative system
+        init_subframe = ctk.CTkFrame(settings_frame, fg_color="transparent")
+        init_subframe.pack(fill="x", pady=5, padx=10)
+        init_subframe.grid_columnconfigure(1, weight=1)
+        
+        ctk.CTkLabel(init_subframe, text="Initiative System:").grid(row=0, column=0, sticky="w", padx=(0,10))
+        init_combo = ctk.CTkComboBox(
+            init_subframe,
+            values=["agility", "random", "fixed"],
+            font=FONT_PROPERTIES_ENTRY
+        )
+        init_combo.set(node.initiative_system)
+        init_combo.configure(command=lambda choice: self._update_advanced_combat_property(node, 'initiative_system', choice))
+        init_combo.grid(row=0, column=1, sticky="ew")
+        
+        # Rewards
+        rewards_frame = self._create_property_frame("Rewards")
+        
+        # Experience
+        exp_subframe = ctk.CTkFrame(rewards_frame, fg_color="transparent")
+        exp_subframe.pack(fill="x", pady=5, padx=10)
+        exp_subframe.grid_columnconfigure((0,2), weight=1)
+        
+        ctk.CTkLabel(exp_subframe, text="Experience:").grid(row=0, column=0, sticky="w")
+        exp_entry = ctk.CTkEntry(exp_subframe, font=FONT_PROPERTIES_ENTRY, width=100)
+        exp_entry.insert(0, str(node.experience_reward))
+        exp_entry.grid(row=0, column=1, padx=5)
+        exp_entry.bind("<KeyRelease>", lambda e: self._update_advanced_combat_numeric(node, 'experience_reward', exp_entry.get()))
+        
+        ctk.CTkLabel(exp_subframe, text="Gold:").grid(row=0, column=2, sticky="w", padx=(10,0))
+        gold_entry = ctk.CTkEntry(exp_subframe, font=FONT_PROPERTIES_ENTRY, width=100)
+        gold_entry.insert(0, str(node.gold_reward))
+        gold_entry.grid(row=0, column=3, padx=5)
+        gold_entry.bind("<KeyRelease>", lambda e: self._update_advanced_combat_numeric(node, 'gold_reward', gold_entry.get()))
+        
+        # Enemies list
+        enemies_frame = self._create_property_frame("Enemies")
+        self._create_advanced_enemies_list(enemies_frame, node.enemies, node)
+        
+        # Result nodes
+        nodes_frame = self._create_property_frame("Result Nodes")
+        node_ids = ["", "[End Game]"] + sorted([nid for nid in self.app.nodes.keys() if nid != node.id])
+        
+        victory_combo = ctk.CTkComboBox(nodes_frame, values=node_ids, font=FONT_PROPERTIES_ENTRY)
+        victory_combo.set(node.victory_node)
+        victory_combo.configure(command=lambda choice: self._update_advanced_combat_property(node, 'victory_node', choice))
+        victory_combo.pack(fill="x", pady=2, padx=10)
+        
+        ctk.CTkLabel(nodes_frame, text="Victory Node").pack(anchor="w", padx=10)
+        
+        defeat_combo = ctk.CTkComboBox(nodes_frame, values=node_ids, font=FONT_PROPERTIES_ENTRY)
+        defeat_combo.set(node.defeat_node)
+        defeat_combo.configure(command=lambda choice: self._update_advanced_combat_property(node, 'defeat_node', choice))
+        defeat_combo.pack(fill="x", pady=2, padx=10)
+        
+        ctk.CTkLabel(nodes_frame, text="Defeat Node").pack(anchor="w", padx=10)
+        
+        if node.allow_escape:
+            escape_combo = ctk.CTkComboBox(nodes_frame, values=node_ids, font=FONT_PROPERTIES_ENTRY)
+            escape_combo.set(node.escape_node)
+            escape_combo.configure(command=lambda choice: self._update_advanced_combat_property(node, 'escape_node', choice))
+            escape_combo.pack(fill="x", pady=2, padx=10)
+            
+            ctk.CTkLabel(nodes_frame, text="Escape Node").pack(anchor="w", padx=10)
+
+    def _create_advanced_enemies_list(self, parent, enemies, node):
+        """Creates a list of advanced combat enemies with detailed stats."""
+        for i, enemy in enumerate(enemies):
+            enemy_frame = ctk.CTkFrame(parent, fg_color=COLOR_SECONDARY_FRAME)
+            enemy_frame.pack(fill="x", pady=2, padx=10)
+            enemy_frame.grid_columnconfigure(1, weight=1)
+            
+            # Enemy name and level
+            name_frame = ctk.CTkFrame(enemy_frame, fg_color="transparent")
+            name_frame.grid(row=0, column=0, columnspan=3, sticky="ew", padx=5, pady=5)
+            name_frame.grid_columnconfigure(0, weight=1)
+            
+            name_entry = ctk.CTkEntry(name_frame, placeholder_text="Enemy name")
+            name_entry.insert(0, enemy.get('name', ''))
+            name_entry.grid(row=0, column=0, sticky="ew", padx=(0,5))
+            name_entry.bind("<KeyRelease>", lambda e, idx=i, w=name_entry: self._update_advanced_enemy(node, idx, 'name', w.get()))
+            
+            level_entry = ctk.CTkEntry(name_frame, placeholder_text="Lvl", width=60)
+            level_entry.insert(0, str(enemy.get('level', 1)))
+            level_entry.grid(row=0, column=1, padx=5)
+            level_entry.bind("<KeyRelease>", lambda e, idx=i, w=level_entry: self._update_advanced_enemy_numeric(node, idx, 'level', w.get()))
+            
+            # HP and Mana
+            hp_frame = ctk.CTkFrame(enemy_frame, fg_color="transparent")
+            hp_frame.grid(row=1, column=0, columnspan=2, sticky="ew", padx=5, pady=(0,5))
+            hp_frame.grid_columnconfigure((0,2), weight=1)
+            
+            ctk.CTkLabel(hp_frame, text="HP:").grid(row=0, column=0, sticky="w")
+            hp_entry = ctk.CTkEntry(hp_frame, width=80)
+            hp_entry.insert(0, str(enemy.get('max_health', 100)))
+            hp_entry.grid(row=0, column=1, padx=5)
+            hp_entry.bind("<KeyRelease>", lambda e, idx=i, w=hp_entry: self._update_advanced_enemy_numeric(node, idx, 'max_health', w.get()))
+            
+            ctk.CTkLabel(hp_frame, text="MP:").grid(row=0, column=2, sticky="w")
+            mp_entry = ctk.CTkEntry(hp_frame, width=80)
+            mp_entry.insert(0, str(enemy.get('max_mana', 50)))
+            mp_entry.grid(row=0, column=3, padx=5)
+            mp_entry.bind("<KeyRelease>", lambda e, idx=i, w=mp_entry: self._update_advanced_enemy_numeric(node, idx, 'max_mana', w.get()))
+            
+            # AI Type and Position
+            ai_frame = ctk.CTkFrame(enemy_frame, fg_color="transparent")
+            ai_frame.grid(row=2, column=0, columnspan=2, sticky="ew", padx=5, pady=(0,5))
+            ai_frame.grid_columnconfigure((0,2), weight=1)
+            
+            ctk.CTkLabel(ai_frame, text="AI:").grid(row=0, column=0, sticky="w")
+            ai_combo = ctk.CTkComboBox(
+                ai_frame, 
+                values=["aggressive", "defensive", "support", "tactical", "berserker"],
+                width=120
+            )
+            ai_combo.set(enemy.get('ai_type', 'aggressive'))
+            ai_combo.configure(command=lambda choice, idx=i: self._update_advanced_enemy(node, idx, 'ai_type', choice))
+            ai_combo.grid(row=0, column=1, padx=5)
+            
+            ctk.CTkLabel(ai_frame, text="Position:").grid(row=0, column=2, sticky="w")
+            pos_combo = ctk.CTkComboBox(
+                ai_frame,
+                values=["front", "back"],
+                width=80
+            )
+            pos_combo.set(enemy.get('position', 'front'))
+            pos_combo.configure(command=lambda choice, idx=i: self._update_advanced_enemy(node, idx, 'position', choice))
+            pos_combo.grid(row=0, column=3, padx=5)
+            
+            # Remove button
+            ctk.CTkButton(
+                enemy_frame, text="✕", width=30, height=30,
+                fg_color="transparent", hover_color=COLOR_ERROR,
+                command=lambda idx=i: self._remove_advanced_enemy(node, idx)
+            ).grid(row=0, column=2, rowspan=3, padx=5, pady=5)
+        
+        # Add button
+        ctk.CTkButton(
+            parent, text="+ Add Enemy", 
+            command=lambda: self._add_advanced_enemy(node)
+        ).pack(pady=5, padx=10)
 
     def _create_standard_properties_info(self):
         """Shows info for standard node types."""
@@ -681,3 +931,69 @@ class AdvancedNodePropertiesTab:
         enemies = [enemy.strip() for enemy in value.split(',') if enemy.strip()]
         node.enemies = enemies
         self.app.canvas_manager.redraw_node(node.id)
+
+    # Update methods for advanced combat nodes
+    def _update_advanced_combat_property(self, node, prop, value):
+        """Updates an advanced combat property."""
+        self.app._save_state_for_undo("Update Advanced Combat Property")
+        setattr(node, prop, value)
+        self.app.canvas_manager.redraw_node(node.id)
+        # Refresh panel if escape settings changed
+        if prop == 'allow_escape':
+            self.update_panel()
+
+    def _update_advanced_combat_numeric(self, node, prop, value):
+        """Updates a numeric advanced combat property."""
+        self.app._save_state_for_undo("Update Advanced Combat Property")
+        try:
+            numeric_value = int(value) if prop in ['turn_limit'] else float(value)
+            setattr(node, prop, numeric_value)
+        except ValueError:
+            pass
+        self.app.canvas_manager.redraw_node(node.id)
+
+    def _update_advanced_enemy(self, node, index, prop, value):
+        """Updates an advanced combat enemy property."""
+        self.app._save_state_for_undo("Update Advanced Enemy")
+        if index < len(node.enemies):
+            node.enemies[index][prop] = value
+        self.app.canvas_manager.redraw_node(node.id)
+
+    def _update_advanced_enemy_numeric(self, node, index, prop, value):
+        """Updates a numeric advanced combat enemy property."""
+        self.app._save_state_for_undo("Update Advanced Enemy")
+        if index < len(node.enemies):
+            try:
+                numeric_value = int(value)
+                node.enemies[index][prop] = numeric_value
+                # Also update health to match max_health
+                if prop == 'max_health':
+                    node.enemies[index]['health'] = numeric_value
+                elif prop == 'max_mana':
+                    node.enemies[index]['mana'] = numeric_value
+            except ValueError:
+                pass
+        self.app.canvas_manager.redraw_node(node.id)
+
+    def _add_advanced_enemy(self, node):
+        """Adds a new advanced combat enemy."""
+        self.app._save_state_for_undo("Add Advanced Enemy")
+        new_enemy = node.add_enemy({
+            "name": "New Enemy",
+            "level": 1,
+            "health": 100,
+            "max_health": 100
+        })
+        self.update_panel()
+
+    def _remove_advanced_enemy(self, node, index):
+        """Removes an advanced combat enemy."""
+        self.app._save_state_for_undo("Remove Advanced Enemy")
+        if index < len(node.enemies):
+            del node.enemies[index]
+        self.update_panel()
+    
+    def _open_advanced_combat_editor(self, node):
+        """Opens the advanced combat editor window for the given node."""
+        from ...ui.windows import AdvancedCombatEditor
+        editor = AdvancedCombatEditor(self.app, node)

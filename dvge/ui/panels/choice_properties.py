@@ -17,21 +17,24 @@ class ChoicePropertiesTab:
 
     def _setup_layout(self):
         """Sets up the tab layout."""
-        self.parent.grid_rowconfigure(0, weight=1)
+        self.parent.grid_rowconfigure(1, weight=1)  # Options frame gets the space
         self.parent.grid_columnconfigure(0, weight=1)
 
     def _create_widgets(self):
         """Creates all widgets for the choices tab."""
+        # Timed Choice Configuration Section
+        self._create_timed_choice_section()
+        
         # Scrollable frame for options
         self.options_frame = ctk.CTkScrollableFrame(self.parent, fg_color="transparent")
-        self.options_frame.grid(row=0, column=0, sticky="nsew", padx=5, pady=5)
+        self.options_frame.grid(row=1, column=0, sticky="nsew", padx=5, pady=5)
         self.options_frame.grid_columnconfigure(0, weight=1)
 
         # Add choice button
         self.add_choice_button = ctk.CTkButton(
             self.parent, text="+ Add Choice", command=self._add_choice_from_panel
         )
-        self.add_choice_button.grid(row=1, column=0, sticky="ew", padx=10, pady=(5, 10))
+        self.add_choice_button.grid(row=2, column=0, sticky="ew", padx=10, pady=(5, 10))
 
     def update_panel(self):
         """Updates the panel with current node data."""
@@ -43,6 +46,9 @@ class ChoicePropertiesTab:
         
         if is_node_active:
             node = self.app.nodes[self.app.active_node_id]
+            
+            # Update timed choice controls
+            self._update_timed_choice_controls(node)
             
             # Check if this node type supports standard choices
             supports_choices = hasattr(node, 'options')
@@ -686,3 +692,111 @@ class ChoicePropertiesTab:
             del node.options[index]
             self.app.canvas_manager.redraw_node(self.app.active_node_id)
             self.update_panel()
+    
+    def _create_timed_choice_section(self):
+        """Creates the timed choice configuration section."""
+        # Timed Choice Frame
+        self.timed_frame = ctk.CTkFrame(self.parent)
+        self.timed_frame.grid(row=0, column=0, sticky="ew", padx=10, pady=(10, 5))
+        self.timed_frame.grid_columnconfigure(1, weight=1)
+        
+        # Title
+        title_label = ctk.CTkLabel(self.timed_frame, text="⏱️ Timed Choices (Telltale Style)", 
+                                  font=ctk.CTkFont(weight="bold"))
+        title_label.grid(row=0, column=0, columnspan=3, sticky="w", padx=10, pady=(10, 5))
+        
+        # Enable Timed Choices checkbox
+        self.enable_timed_var = ctk.BooleanVar()
+        self.enable_timed_check = ctk.CTkCheckBox(
+            self.timed_frame, text="Enable Timed Choices", 
+            variable=self.enable_timed_var, command=self._on_timed_choice_toggled
+        )
+        self.enable_timed_check.grid(row=1, column=0, columnspan=3, sticky="w", padx=10, pady=5)
+        
+        # Timer Duration
+        ctk.CTkLabel(self.timed_frame, text="Timer Duration:").grid(row=2, column=0, sticky="w", padx=10, pady=2)
+        self.timer_duration_var = ctk.DoubleVar(value=10.0)
+        self.timer_duration_entry = ctk.CTkEntry(self.timed_frame, textvariable=self.timer_duration_var, width=80)
+        self.timer_duration_entry.grid(row=2, column=1, sticky="w", padx=5, pady=2)
+        self.timer_duration_entry.bind("<KeyRelease>", self._on_timer_settings_changed)
+        ctk.CTkLabel(self.timed_frame, text="seconds").grid(row=2, column=2, sticky="w", padx=5, pady=2)
+        
+        # Default Choice Index
+        ctk.CTkLabel(self.timed_frame, text="Default Choice:").grid(row=3, column=0, sticky="w", padx=10, pady=2)
+        self.default_choice_var = ctk.IntVar(value=0)
+        self.default_choice_entry = ctk.CTkEntry(self.timed_frame, textvariable=self.default_choice_var, width=80)
+        self.default_choice_entry.grid(row=3, column=1, sticky="w", padx=5, pady=2)
+        self.default_choice_entry.bind("<KeyRelease>", self._on_timer_settings_changed)
+        ctk.CTkLabel(self.timed_frame, text="(choice index)").grid(row=3, column=2, sticky="w", padx=5, pady=2)
+        
+        # Allow Silence Option
+        self.allow_silence_var = ctk.BooleanVar(value=True)
+        self.allow_silence_check = ctk.CTkCheckBox(
+            self.timed_frame, text="Allow '...' silence option", 
+            variable=self.allow_silence_var, command=self._on_timer_settings_changed
+        )
+        self.allow_silence_check.grid(row=4, column=0, columnspan=3, sticky="w", padx=10, pady=5)
+        
+        # Show Timer Visual
+        self.show_timer_var = ctk.BooleanVar(value=True)
+        self.show_timer_check = ctk.CTkCheckBox(
+            self.timed_frame, text="Show countdown timer", 
+            variable=self.show_timer_var, command=self._on_timer_settings_changed
+        )
+        self.show_timer_check.grid(row=5, column=0, columnspan=3, sticky="w", padx=10, pady=(2, 10))
+        
+        # Initially disable all controls
+        self._set_timed_controls_state("disabled")
+    
+    def _set_timed_controls_state(self, state):
+        """Enables or disables timed choice controls."""
+        self.timer_duration_entry.configure(state=state)
+        self.default_choice_entry.configure(state=state)
+        self.allow_silence_check.configure(state=state)
+        self.show_timer_check.configure(state=state)
+    
+    def _on_timed_choice_toggled(self):
+        """Handles enabling/disabling timed choices."""
+        if not self.app.active_node_id:
+            return
+            
+        node = self.app.nodes[self.app.active_node_id]
+        if hasattr(node, 'enable_timed_choices'):
+            self.app._save_state_for_undo("Toggle Timed Choices")
+            node.enable_timed_choices = self.enable_timed_var.get()
+            
+            # Enable/disable controls
+            state = "normal" if node.enable_timed_choices else "disabled"
+            self._set_timed_controls_state(state)
+    
+    def _on_timer_settings_changed(self, event=None):
+        """Handles changes to timer settings."""
+        if not self.app.active_node_id:
+            return
+            
+        node = self.app.nodes[self.app.active_node_id]
+        if hasattr(node, 'enable_timed_choices'):
+            node.choice_timer_duration = self.timer_duration_var.get()
+            node.default_choice_index = self.default_choice_var.get()
+            node.allow_silence = self.allow_silence_var.get()
+            node.show_timer = self.show_timer_var.get()
+    
+    def _update_timed_choice_controls(self, node):
+        """Updates timed choice controls with node data."""
+        if hasattr(node, 'enable_timed_choices'):
+            # Update values without triggering events
+            self.enable_timed_var.set(node.enable_timed_choices)
+            self.timer_duration_var.set(node.choice_timer_duration)
+            self.default_choice_var.set(node.default_choice_index)
+            self.allow_silence_var.set(node.allow_silence)
+            self.show_timer_var.set(node.show_timer)
+            
+            # Enable/disable controls based on timed choice state
+            state = "normal" if node.enable_timed_choices else "disabled"
+            self._set_timed_controls_state(state)
+            
+            # Show/hide the timed frame for dialogue nodes only
+            if hasattr(node, 'NODE_TYPE') and node.NODE_TYPE == "Dialogue":
+                self.timed_frame.grid(row=0, column=0, sticky="ew", padx=10, pady=(10, 5))
+            else:
+                self.timed_frame.grid_remove()

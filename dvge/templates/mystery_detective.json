@@ -1,0 +1,951 @@
+{
+    "id": "mystery_detective",
+    "name": "Mystery Detective",
+    "description": "A detective mystery with clues, investigation mechanics, and multiple suspects. Players must gather evidence and solve the case through careful questioning.",
+    "category": "Mystery",
+    "difficulty": "Advanced",
+    "tags": [
+        "mystery",
+        "detective",
+        "investigation",
+        "clues",
+        "suspects"
+    ],
+    "author": "DVGE Team",
+    "version": "1.0",
+    "help_text": "This template demonstrates mystery storytelling with evidence tracking, suspect interrogation, and logical deduction. Notice how story flags track discovered clues and evidence.",
+    "tutorial_steps": [
+        "Start by examining the crime scene thoroughly",
+        "Interview each suspect and pay attention to contradictions",
+        "Use story flags to track discovered clues and evidence",
+        "Notice how some dialogue options only appear with certain evidence",
+        "The final accusation requires sufficient evidence to succeed"
+    ],
+    "project_data": {
+        "version": "1.0.0",
+        "nodes": {
+            "intro": {
+                "node_type": "DialogueNode",
+                "game_data": {
+                    "npc": "Police Chief",
+                    "text": "Detective, we have a situation. The museum's prized ruby has been stolen overnight. Three suspects were in the building: the curator, the security guard, and a cleaning staff member. Where do you want to start?",
+                    "options": [
+                        {
+                            "text": "Examine the crime scene first",
+                            "nextNode": "crime_scene",
+                            "conditions": [],
+                            "effects": []
+                        },
+                        {
+                            "text": "Interview the curator",
+                            "nextNode": "curator_interview",
+                            "conditions": [],
+                            "effects": []
+                        },
+                        {
+                            "text": "Question the security guard",
+                            "nextNode": "guard_interview",
+                            "conditions": [],
+                            "effects": []
+                        },
+                        {
+                            "text": "Talk to the cleaning staff",
+                            "nextNode": "cleaner_interview",
+                            "conditions": [],
+                            "effects": []
+                        }
+                    ]
+                },
+                "editor_data": {
+                    "id": "intro",
+                    "x": 100,
+                    "y": 100
+                }
+            },
+            "crime_scene": {
+                "node_type": "DialogueNode",
+                "game_data": {
+                    "npc": "Narrator",
+                    "text": "You examine the display case. The glass was cut cleanly with a professional tool. There are no signs of forced entry. You notice muddy footprints leading to the back exit.",
+                    "options": [
+                        {
+                            "text": "Examine the footprints more closely",
+                            "nextNode": "examine_footprints",
+                            "conditions": [],
+                            "effects": []
+                        },
+                        {
+                            "text": "Check the security cameras",
+                            "nextNode": "camera_check",
+                            "conditions": [],
+                            "effects": []
+                        },
+                        {
+                            "text": "Search for additional clues",
+                            "nextNode": "search_crime_scene",
+                            "conditions": [],
+                            "effects": []
+                        },
+                        {
+                            "text": "Return to interview suspects",
+                            "nextNode": "investigation_hub",
+                            "conditions": [],
+                            "effects": []
+                        }
+                    ]
+                },
+                "editor_data": {
+                    "id": "crime_scene",
+                    "x": 300,
+                    "y": 50
+                }
+            },
+            "footprint_clue": {
+                "node_type": "DialogueNode",
+                "game_data": {
+                    "npc": "Narrator",
+                    "text": "The footprints are size 10 work boots with a distinctive worn sole pattern. This is important evidence!",
+                    "options": [
+                        {
+                            "text": "Continue investigating",
+                            "nextNode": "investigation_hub",
+                            "conditions": [],
+                            "effects": [
+                                {
+                                    "type": "variable",
+                                    "subject": "evidence_count",
+                                    "operator": "+=",
+                                    "value": 1
+                                }
+                            ]
+                        }
+                    ]
+                },
+                "editor_data": {
+                    "id": "footprint_clue",
+                    "x": 500,
+                    "y": 0
+                }
+            },
+            "camera_check": {
+                "node_type": "DialogueNode",
+                "game_data": {
+                    "npc": "Tech Officer",
+                    "text": "Detective, the cameras were disabled between 2 AM and 4 AM. Someone with security access did this professionally.",
+                    "options": [
+                        {
+                            "text": "This narrows it down significantly",
+                            "nextNode": "investigation_hub",
+                            "conditions": [],
+                            "effects": [
+                                {
+                                    "type": "flag",
+                                    "subject": "camera_disabled",
+                                    "operator": "=",
+                                    "value": true
+                                },
+                                {
+                                    "type": "variable",
+                                    "subject": "evidence_count",
+                                    "operator": "+=",
+                                    "value": 1
+                                }
+                            ]
+                        }
+                    ]
+                },
+                "editor_data": {
+                    "id": "camera_check",
+                    "x": 500,
+                    "y": 50
+                }
+            },
+            "investigation_hub": {
+                "node_type": "DialogueNode",
+                "game_data": {
+                    "npc": "Narrator",
+                    "text": "You can continue your investigation. Who would you like to question next?",
+                    "options": [
+                        {
+                            "text": "Interview the curator",
+                            "nextNode": "curator_interview",
+                            "conditions": [
+                                {
+                                    "type": "flag",
+                                    "subject": "curator_questioned",
+                                    "operator": "!=",
+                                    "value": true
+                                }
+                            ],
+                            "effects": []
+                        },
+                        {
+                            "text": "Question the security guard",
+                            "nextNode": "guard_interview",
+                            "conditions": [
+                                {
+                                    "type": "flag",
+                                    "subject": "guard_questioned",
+                                    "operator": "!=",
+                                    "value": true
+                                }
+                            ],
+                            "effects": []
+                        },
+                        {
+                            "text": "Talk to the cleaning staff",
+                            "nextNode": "cleaner_interview",
+                            "conditions": [
+                                {
+                                    "type": "flag",
+                                    "subject": "cleaner_questioned",
+                                    "operator": "!=",
+                                    "value": true
+                                }
+                            ],
+                            "effects": []
+                        },
+                        {
+                            "text": "Conduct detailed forensic analysis",
+                            "nextNode": "forensic_analysis",
+                            "conditions": [
+                                {
+                                    "type": "flag",
+                                    "subject": "found_footprints",
+                                    "operator": "==",
+                                    "value": true
+                                }
+                            ],
+                            "effects": []
+                        },
+                        {
+                            "text": "Make an accusation",
+                            "nextNode": "make_accusation",
+                            "conditions": [
+                                {
+                                    "type": "variable",
+                                    "subject": "evidence_count",
+                                    "operator": ">=",
+                                    "value": 2
+                                }
+                            ],
+                            "effects": []
+                        },
+                        {
+                            "text": "Re-examine the crime scene",
+                            "nextNode": "crime_scene",
+                            "conditions": [],
+                            "effects": []
+                        }
+                    ]
+                },
+                "editor_data": {
+                    "id": "investigation_hub",
+                    "x": 300,
+                    "y": 150
+                }
+            },
+            "curator_interview": {
+                "node_type": "DialogueNode",
+                "game_data": {
+                    "npc": "Museum Curator",
+                    "text": "I've been with this museum for 20 years! I would never steal from it. I was here late last night finishing the quarterly inventory.",
+                    "options": [
+                        {
+                            "text": "Can anyone verify your whereabouts?",
+                            "nextNode": "curator_alibi",
+                            "conditions": [],
+                            "effects": []
+                        },
+                        {
+                            "text": "Do you know who has security access?",
+                            "nextNode": "curator_security_info",
+                            "conditions": [
+                                {
+                                    "type": "flag",
+                                    "subject": "camera_disabled",
+                                    "operator": "==",
+                                    "value": true
+                                }
+                            ],
+                            "effects": []
+                        },
+                        {
+                            "text": "Continue investigating others",
+                            "nextNode": "investigation_hub",
+                            "conditions": [],
+                            "effects": [
+                                {
+                                    "type": "flag",
+                                    "subject": "curator_questioned",
+                                    "operator": "=",
+                                    "value": true
+                                }
+                            ]
+                        }
+                    ]
+                },
+                "editor_data": {
+                    "id": "curator_interview",
+                    "x": 500,
+                    "y": 100
+                }
+            },
+            "curator_alibi": {
+                "node_type": "DialogueNode",
+                "game_data": {
+                    "npc": "Museum Curator",
+                    "text": "Well... I was working alone. But you can check the inventory sheets - they're all completed and dated.",
+                    "options": [
+                        {
+                            "text": "I'll verify that",
+                            "nextNode": "investigation_hub",
+                            "conditions": [],
+                            "effects": [
+                                {
+                                    "type": "flag",
+                                    "subject": "curator_questioned",
+                                    "operator": "=",
+                                    "value": true
+                                },
+                                {
+                                    "type": "flag",
+                                    "subject": "curator_weak_alibi",
+                                    "operator": "=",
+                                    "value": true
+                                }
+                            ]
+                        }
+                    ]
+                },
+                "editor_data": {
+                    "id": "curator_alibi",
+                    "x": 700,
+                    "y": 80
+                }
+            },
+            "curator_security_info": {
+                "node_type": "DialogueNode",
+                "game_data": {
+                    "npc": "Museum Curator",
+                    "text": "Only three people have full security access: myself, the head of security, and... well, the cleaning supervisor has been here so long, she was given access for emergency situations.",
+                    "options": [
+                        {
+                            "text": "Interesting information",
+                            "nextNode": "investigation_hub",
+                            "conditions": [],
+                            "effects": [
+                                {
+                                    "type": "flag",
+                                    "subject": "curator_questioned",
+                                    "operator": "=",
+                                    "value": true
+                                },
+                                {
+                                    "type": "flag",
+                                    "subject": "security_access_info",
+                                    "operator": "=",
+                                    "value": true
+                                },
+                                {
+                                    "type": "variable",
+                                    "subject": "evidence_count",
+                                    "operator": "+=",
+                                    "value": 1
+                                }
+                            ]
+                        }
+                    ]
+                },
+                "editor_data": {
+                    "id": "curator_security_info",
+                    "x": 700,
+                    "y": 120
+                }
+            },
+            "guard_interview": {
+                "node_type": "DialogueNode",
+                "game_data": {
+                    "npc": "Security Guard",
+                    "text": "I was doing my rounds all night. Nothing seemed unusual until I found the empty display case this morning. I check that case every hour during my patrol.",
+                    "options": [
+                        {
+                            "text": "What time did you last see the ruby?",
+                            "nextNode": "guard_timeline",
+                            "conditions": [],
+                            "effects": []
+                        },
+                        {
+                            "text": "Do you know about the camera malfunction?",
+                            "nextNode": "guard_camera_question",
+                            "conditions": [
+                                {
+                                    "type": "flag",
+                                    "subject": "camera_disabled",
+                                    "operator": "==",
+                                    "value": true
+                                }
+                            ],
+                            "effects": []
+                        },
+                        {
+                            "text": "Continue investigating",
+                            "nextNode": "investigation_hub",
+                            "conditions": [],
+                            "effects": [
+                                {
+                                    "type": "flag",
+                                    "subject": "guard_questioned",
+                                    "operator": "=",
+                                    "value": true
+                                }
+                            ]
+                        }
+                    ]
+                },
+                "editor_data": {
+                    "id": "guard_interview",
+                    "x": 500,
+                    "y": 200
+                }
+            },
+            "guard_timeline": {
+                "node_type": "DialogueNode",
+                "game_data": {
+                    "npc": "Security Guard",
+                    "text": "I checked the case at 1:30 AM - ruby was there. Next check at 2:30 AM... wait, that's when I had to deal with a minor issue in the basement. I might have been 15 minutes late for that round.",
+                    "options": [
+                        {
+                            "text": "That's a crucial detail",
+                            "nextNode": "investigation_hub",
+                            "conditions": [],
+                            "effects": [
+                                {
+                                    "type": "flag",
+                                    "subject": "guard_questioned",
+                                    "operator": "=",
+                                    "value": true
+                                },
+                                {
+                                    "type": "flag",
+                                    "subject": "guard_late_round",
+                                    "operator": "=",
+                                    "value": true
+                                },
+                                {
+                                    "type": "variable",
+                                    "subject": "evidence_count",
+                                    "operator": "+=",
+                                    "value": 1
+                                }
+                            ]
+                        }
+                    ]
+                },
+                "editor_data": {
+                    "id": "guard_timeline",
+                    "x": 700,
+                    "y": 180
+                }
+            },
+            "guard_camera_question": {
+                "node_type": "DialogueNode",
+                "game_data": {
+                    "npc": "Security Guard",
+                    "text": "Camera malfunction? That's news to me! I should have been notified immediately. Someone with admin access must have disabled them deliberately.",
+                    "options": [
+                        {
+                            "text": "You seem genuinely surprised",
+                            "nextNode": "investigation_hub",
+                            "conditions": [],
+                            "effects": [
+                                {
+                                    "type": "flag",
+                                    "subject": "guard_questioned",
+                                    "operator": "=",
+                                    "value": true
+                                },
+                                {
+                                    "type": "flag",
+                                    "subject": "guard_surprised_cameras",
+                                    "operator": "=",
+                                    "value": true
+                                }
+                            ]
+                        }
+                    ]
+                },
+                "editor_data": {
+                    "id": "guard_camera_question",
+                    "x": 700,
+                    "y": 220
+                }
+            },
+            "cleaner_interview": {
+                "node_type": "DialogueNode",
+                "game_data": {
+                    "npc": "Cleaning Supervisor",
+                    "text": "I've been cleaning this museum for 15 years. I was here until about 3 AM last night - had to finish the restoration wing. These old bones don't move as fast as they used to.",
+                    "options": [
+                        {
+                            "text": "Did you notice anything unusual?",
+                            "nextNode": "cleaner_observations",
+                            "conditions": [],
+                            "effects": []
+                        },
+                        {
+                            "text": "What shoes do you wear for work?",
+                            "nextNode": "cleaner_shoes",
+                            "conditions": [
+                                {
+                                    "type": "flag",
+                                    "subject": "found_footprints",
+                                    "operator": "==",
+                                    "value": true
+                                }
+                            ],
+                            "effects": []
+                        },
+                        {
+                            "text": "Continue investigating",
+                            "nextNode": "investigation_hub",
+                            "conditions": [],
+                            "effects": [
+                                {
+                                    "type": "flag",
+                                    "subject": "cleaner_questioned",
+                                    "operator": "=",
+                                    "value": true
+                                }
+                            ]
+                        }
+                    ]
+                },
+                "editor_data": {
+                    "id": "cleaner_interview",
+                    "x": 500,
+                    "y": 300
+                }
+            },
+            "cleaner_observations": {
+                "node_type": "DialogueNode",
+                "game_data": {
+                    "npc": "Cleaning Supervisor",
+                    "text": "Well, I did see the curator working very late. He seemed nervous about something. And I heard some strange noises from the gem exhibit around 2:30, but I thought it was just the building settling.",
+                    "options": [
+                        {
+                            "text": "That's valuable information",
+                            "nextNode": "investigation_hub",
+                            "conditions": [],
+                            "effects": [
+                                {
+                                    "type": "flag",
+                                    "subject": "cleaner_questioned",
+                                    "operator": "=",
+                                    "value": true
+                                },
+                                {
+                                    "type": "flag",
+                                    "subject": "cleaner_heard_noise",
+                                    "operator": "=",
+                                    "value": true
+                                },
+                                {
+                                    "type": "variable",
+                                    "subject": "evidence_count",
+                                    "operator": "+=",
+                                    "value": 1
+                                }
+                            ]
+                        }
+                    ]
+                },
+                "editor_data": {
+                    "id": "cleaner_observations",
+                    "x": 700,
+                    "y": 280
+                }
+            },
+            "cleaner_shoes": {
+                "node_type": "DialogueNode",
+                "game_data": {
+                    "npc": "Cleaning Supervisor",
+                    "text": "These old sneakers, size 7. My feet hurt too much for heavy boots. Why do you ask?",
+                    "options": [
+                        {
+                            "text": "Just checking all details",
+                            "nextNode": "investigation_hub",
+                            "conditions": [],
+                            "effects": [
+                                {
+                                    "type": "flag",
+                                    "subject": "cleaner_questioned",
+                                    "operator": "=",
+                                    "value": true
+                                },
+                                {
+                                    "type": "flag",
+                                    "subject": "cleaner_wrong_shoes",
+                                    "operator": "=",
+                                    "value": true
+                                }
+                            ]
+                        }
+                    ]
+                },
+                "editor_data": {
+                    "id": "cleaner_shoes",
+                    "x": 700,
+                    "y": 320
+                }
+            },
+            "make_accusation": {
+                "node_type": "DialogueNode",
+                "game_data": {
+                    "npc": "Police Chief",
+                    "text": "You think you've solved the case? Who do you believe is the thief?",
+                    "options": [
+                        {
+                            "text": "I accuse the curator!",
+                            "nextNode": "accuse_curator",
+                            "conditions": [],
+                            "effects": []
+                        },
+                        {
+                            "text": "I accuse the security guard!",
+                            "nextNode": "accuse_guard",
+                            "conditions": [],
+                            "effects": []
+                        },
+                        {
+                            "text": "I accuse the cleaning supervisor!",
+                            "nextNode": "accuse_cleaner",
+                            "conditions": [],
+                            "effects": []
+                        },
+                        {
+                            "text": "I need more evidence",
+                            "nextNode": "investigation_hub",
+                            "conditions": [],
+                            "effects": []
+                        }
+                    ]
+                },
+                "editor_data": {
+                    "id": "make_accusation",
+                    "x": 500,
+                    "y": 400
+                }
+            },
+            "accuse_curator": {
+                "node_type": "DialogueNode",
+                "game_data": {
+                    "npc": "Police Chief",
+                    "text": "Correct! The curator had access, opportunity, and was acting nervous. The footprints were from work boots he wore to avoid leaving traces. He disabled the cameras and used his knowledge of the guard's schedule. Case closed!",
+                    "options": []
+                },
+                "editor_data": {
+                    "id": "accuse_curator",
+                    "x": 700,
+                    "y": 380
+                }
+            },
+            "accuse_guard": {
+                "node_type": "DialogueNode",
+                "game_data": {
+                    "npc": "Police Chief",
+                    "text": "I'm not convinced. The guard seemed genuinely surprised about the cameras and his timeline checks out. The evidence doesn't support this accusation.",
+                    "options": [
+                        {
+                            "text": "Let me investigate further",
+                            "nextNode": "investigation_hub",
+                            "conditions": [],
+                            "effects": []
+                        }
+                    ]
+                },
+                "editor_data": {
+                    "id": "accuse_guard",
+                    "x": 700,
+                    "y": 420
+                }
+            },
+            "accuse_cleaner": {
+                "node_type": "DialogueNode",
+                "game_data": {
+                    "npc": "Police Chief",
+                    "text": "The evidence doesn't support this. The footprints were size 10 work boots, but she wears size 7 sneakers. Try again, detective.",
+                    "options": [
+                        {
+                            "text": "Back to the investigation",
+                            "nextNode": "investigation_hub",
+                            "conditions": [],
+                            "effects": []
+                        }
+                    ]
+                },
+                "editor_data": {
+                    "id": "accuse_cleaner",
+                    "x": 700,
+                    "y": 460
+                }
+            },
+            "examine_footprints": {
+                "node_type": "DiceRollNode",
+                "game_data": {
+                    "npc": "Narrator",
+                    "text": "You examine the footprints more carefully. Roll for your observation skill to notice additional details.",
+                    "num_dice": 1,
+                    "num_sides": 20,
+                    "success_threshold": 12,
+                    "success_node": "footprint_analysis_success",
+                    "failure_node": "footprint_analysis_fail"
+                },
+                "editor_data": {
+                    "id": "examine_footprints",
+                    "x": 300,
+                    "y": 250
+                }
+            },
+            "footprint_analysis_success": {
+                "node_type": "DialogueNode",
+                "game_data": {
+                    "npc": "Narrator",
+                    "text": "Sharp eyes! You notice that the footprints show unusual wear patterns - these aren't the shoes of someone who walks much. They're practically new work boots, barely broken in. Very suspicious for a cleaning supervisor.",
+                    "options": [
+                        {
+                            "text": "This is important evidence",
+                            "nextNode": "investigation_hub",
+                            "conditions": [],
+                            "effects": [
+                                {
+                                    "type": "flag",
+                                    "subject": "detailed_footprint_analysis",
+                                    "operator": "=",
+                                    "value": true
+                                },
+                                {
+                                    "type": "variable",
+                                    "subject": "evidence_count",
+                                    "operator": "+=",
+                                    "value": 2
+                                }
+                            ]
+                        }
+                    ]
+                },
+                "editor_data": {
+                    "id": "footprint_analysis_success",
+                    "x": 500,
+                    "y": 250
+                }
+            },
+            "footprint_analysis_fail": {
+                "node_type": "DialogueNode",
+                "game_data": {
+                    "npc": "Narrator",
+                    "text": "The footprints are clear enough, but you can't make out any additional details that might help identify the wearer.",
+                    "options": [
+                        {
+                            "text": "Continue investigating",
+                            "nextNode": "investigation_hub",
+                            "conditions": [],
+                            "effects": []
+                        }
+                    ]
+                },
+                "editor_data": {
+                    "id": "footprint_analysis_fail",
+                    "x": 100,
+                    "y": 250
+                }
+            },
+            "search_crime_scene": {
+                "node_type": "DiceRollNode",
+                "game_data": {
+                    "npc": "Narrator",
+                    "text": "You conduct a thorough search of the crime scene. Roll for your investigation skill to find additional clues.",
+                    "num_dice": 1,
+                    "num_sides": 20,
+                    "success_threshold": 15,
+                    "success_node": "hidden_clue_found",
+                    "failure_node": "no_additional_clues"
+                },
+                "editor_data": {
+                    "id": "search_crime_scene",
+                    "x": 100,
+                    "y": 300
+                }
+            },
+            "hidden_clue_found": {
+                "node_type": "DialogueNode",
+                "game_data": {
+                    "npc": "Narrator",
+                    "text": "Excellent detective work! Hidden under the display case, you find a small fabric thread that doesn't match any of the museum uniforms. It's high-quality wool - the kind used in expensive suits.",
+                    "options": [
+                        {
+                            "text": "This could identify the perpetrator",
+                            "nextNode": "investigation_hub",
+                            "conditions": [],
+                            "effects": [
+                                {
+                                    "type": "flag",
+                                    "subject": "fabric_evidence",
+                                    "operator": "=",
+                                    "value": true
+                                },
+                                {
+                                    "type": "variable",
+                                    "subject": "evidence_count",
+                                    "operator": "+=",
+                                    "value": 3
+                                }
+                            ]
+                        }
+                    ]
+                },
+                "editor_data": {
+                    "id": "hidden_clue_found",
+                    "x": 300,
+                    "y": 300
+                }
+            },
+            "no_additional_clues": {
+                "node_type": "DialogueNode",
+                "game_data": {
+                    "npc": "Narrator",
+                    "text": "Despite your thorough search, you don't find any additional physical evidence. Sometimes the obvious clues are all you get.",
+                    "options": [
+                        {
+                            "text": "Focus on the existing evidence",
+                            "nextNode": "investigation_hub",
+                            "conditions": [],
+                            "effects": []
+                        }
+                    ]
+                },
+                "editor_data": {
+                    "id": "no_additional_clues",
+                    "x": 500,
+                    "y": 300
+                }
+            },
+            "forensic_analysis": {
+                "node_type": "DiceRollNode",
+                "game_data": {
+                    "npc": "Narrator",
+                    "text": "You decide to conduct a detailed forensic analysis of all the evidence you've gathered. Roll for your deduction skills to piece together the clues.",
+                    "num_dice": 1,
+                    "num_sides": 20,
+                    "success_threshold": 14,
+                    "success_node": "forensic_breakthrough",
+                    "failure_node": "forensic_confusion"
+                },
+                "editor_data": {
+                    "id": "forensic_analysis",
+                    "x": 100,
+                    "y": 400
+                }
+            },
+            "forensic_breakthrough": {
+                "node_type": "DialogueNode",
+                "game_data": {
+                    "npc": "Narrator",
+                    "text": "Brilliant deduction! Cross-referencing all evidence, you realize the timing of events, the security access, and the footprint evidence all point to one conclusion. The curator's nervous behavior, combined with his knowledge of the guard's schedule and his security access, makes the case clear.",
+                    "options": [
+                        {
+                            "text": "You now have definitive proof",
+                            "nextNode": "investigation_hub",
+                            "conditions": [],
+                            "effects": [
+                                {
+                                    "type": "variable",
+                                    "subject": "evidence_count",
+                                    "operator": "+=",
+                                    "value": 3
+                                },
+                                {
+                                    "type": "flag",
+                                    "subject": "forensic_breakthrough",
+                                    "operator": "=",
+                                    "value": true
+                                }
+                            ]
+                        }
+                    ]
+                },
+                "editor_data": {
+                    "id": "forensic_breakthrough",
+                    "x": 300,
+                    "y": 400
+                }
+            },
+            "forensic_confusion": {
+                "node_type": "DialogueNode",
+                "game_data": {
+                    "npc": "Narrator",
+                    "text": "The evidence is there, but you can't quite connect all the pieces yet. You need more information or a different approach to solving this case.",
+                    "options": [
+                        {
+                            "text": "Continue gathering evidence",
+                            "nextNode": "investigation_hub",
+                            "conditions": [],
+                            "effects": []
+                        }
+                    ]
+                },
+                "editor_data": {
+                    "id": "forensic_confusion",
+                    "x": 500,
+                    "y": 400
+                }
+            }
+        },
+        "player_stats": {
+            "investigation_skill": 15,
+            "deduction": 12,
+            "observation": 10
+        },
+        "player_inventory": [
+            {
+                "name": "Detective Badge",
+                "description": "Your official credentials"
+            },
+            {
+                "name": "Notebook",
+                "description": "For recording clues and evidence"
+            }
+        ],
+        "story_flags": {
+            "found_footprints": false,
+            "camera_disabled": false,
+            "curator_questioned": false,
+            "guard_questioned": false,
+            "cleaner_questioned": false,
+            "curator_weak_alibi": false,
+            "security_access_info": false,
+            "guard_late_round": false,
+            "guard_surprised_cameras": false,
+            "cleaner_heard_noise": false,
+            "cleaner_wrong_shoes": false
+        },
+        "quests": {
+            "ruby_theft": {
+                "name": "The Ruby Theft Case",
+                "description": "Investigate the theft of the museum's prized ruby",
+                "state": "active"
+            }
+        },
+        "variables": {
+            "evidence_count": 0
+        },
+        "enemies": {},
+        "timers": {},
+        "node_id_counter": 20,
+        "project_settings": {
+            "font": "Merriweather",
+            "title_font": "Special Elite",
+            "background": ""
+        }
+    }
+}

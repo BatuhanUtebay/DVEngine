@@ -6,8 +6,10 @@ from tkinter import messagebox
 from ...constants import *
 from ...models import DialogueNode, DiceRollNode
 from .node_renderer import NodeRenderer
+from .enhanced_node_renderer import EnhancedNodeRenderer
 from .connection_renderer import ConnectionRenderer
 from .interaction_handler import InteractionHandler
+from .node_grouping import group_manager
 
 
 class CanvasManager:
@@ -20,8 +22,16 @@ class CanvasManager:
         
         # Initialize components
         self.node_renderer = NodeRenderer(self.canvas)
+        self.enhanced_node_renderer = EnhancedNodeRenderer(self.canvas)
         self.connection_renderer = ConnectionRenderer(self.canvas)
         self.interaction_handler = InteractionHandler(app, self.canvas)
+        
+        # Visual enhancements - now stable with enhanced rendering
+        self.use_enhanced_rendering = True
+        self.show_node_groups = True
+        
+        # Initialize group manager with canvas
+        group_manager.canvas = self.canvas
 
     def draw_grid(self):
         """Draws the background grid on the canvas."""
@@ -63,6 +73,11 @@ class CanvasManager:
         """Clears and redraws the entire canvas, including grid, nodes, and connections."""
         self.canvas.delete("all")
         self.draw_grid()
+        
+        # Draw group backgrounds first (behind nodes)
+        if self.show_node_groups:
+            self._draw_node_groups()
+        
         self.draw_placeholder_if_empty()
         
         for node in self.app.nodes.values():
@@ -90,15 +105,76 @@ class CanvasManager:
 
     def create_node_visual(self, node):
         """Creates all the visual components for a single node on the canvas."""
-        self.node_renderer.create_node_visual(node)
+        if self.use_enhanced_rendering:
+            self.enhanced_node_renderer.create_node_visual(node)
+        else:
+            self.node_renderer.create_node_visual(node)
 
     def update_selection_visuals(self):
         """Updates the highlight state of all nodes based on the current selection."""
-        self.node_renderer.update_selection_visuals(self.app.nodes, self.app.selected_node_ids)
+        if self.use_enhanced_rendering:
+            # Update selection state for enhanced renderer
+            for node_id, node in self.app.nodes.items():
+                is_selected = node_id in self.app.selected_node_ids
+                self.enhanced_node_renderer.update_node_state(node_id, is_selected=is_selected)
+        else:
+            self.node_renderer.update_selection_visuals(self.app.nodes, self.app.selected_node_ids)
 
     def draw_connections(self):
         """Draws all the connection arrows between nodes."""
         self.connection_renderer.draw_connections(self.app.nodes)
+    
+    def _draw_node_groups(self):
+        """Draw visual backgrounds for node groups."""
+        # Get node positions for group bounds calculation
+        node_positions = {}
+        for node_id, node in self.app.nodes.items():
+            node_positions[node_id] = (node.x, node.y)
+        
+        # Auto-create chapter groups if they don't exist
+        group_manager.auto_create_chapter_groups(self.app.nodes)
+        
+        # Draw group backgrounds
+        group_manager.draw_group_backgrounds(node_positions)
+    
+    def toggle_enhanced_rendering(self):
+        """Toggle between enhanced and basic node rendering."""
+        self.use_enhanced_rendering = not self.use_enhanced_rendering
+        self.redraw_all_nodes()
+    
+    def refresh_enhanced_styling(self):
+        """Force refresh all nodes to apply enhanced styling."""
+        if self.use_enhanced_rendering:
+            self.redraw_all_nodes()
+    
+    def toggle_node_groups(self):
+        """Toggle display of node group backgrounds."""
+        self.show_node_groups = not self.show_node_groups
+        self.redraw_all_nodes()
+    
+    def update_node_visual_state(self, node_id: str, **kwargs):
+        """Update the visual state of a node (hover, selection, etc.)."""
+        if self.use_enhanced_rendering:
+            self.enhanced_node_renderer.update_node_state(node_id, **kwargs)
+    
+    def highlight_nodes_by_condition(self, condition_func, highlight_color: str = "#FFD700"):
+        """Highlight nodes that match a condition."""
+        for node_id, node in self.app.nodes.items():
+            if condition_func(node):
+                self.update_node_visual_state(
+                    node_id, 
+                    is_highlighted=True, 
+                    highlight_color=highlight_color
+                )
+    
+    def clear_node_highlights(self):
+        """Clear all node highlights."""
+        for node_id in self.app.nodes.keys():
+            self.update_node_visual_state(
+                node_id, 
+                is_highlighted=False, 
+                highlight_color=""
+            )
 
     def add_node(self, x, y, node_type="dialogue"):
         """Creates a new node in the data model and on the canvas."""
@@ -116,14 +192,36 @@ class CanvasManager:
         self.app.node_id_counter += 1
     
     # Import all node types
-        from ...models import (DialogueNode, DiceRollNode, CombatNode, 
-                          ShopNode, RandomEventNode, TimerNode, InventoryNode)
+        from ...models import (DialogueNode, DiceRollNode, CombatNode, AdvancedCombatNode,
+                          ShopNode, RandomEventNode, TimerNode, InventoryNode,
+                          ScriptNode, ConditionalNode, FunctionNode, APINode)
     
     # Create appropriate node type
         if node_type == "dice_roll":
             new_node = DiceRollNode(x=x, y=y, node_id=node_id_str)
         elif node_type == "combat":
             new_node = CombatNode(x=x, y=y, node_id=node_id_str)
+        elif node_type == "advanced_combat":
+            new_node = AdvancedCombatNode(x=x, y=y, node_id=node_id_str)
+            # Add a default enemy to get started
+            new_node.add_enemy({
+                "name": "Goblin Warrior",
+                "level": 1,
+                "health": 80,
+                "max_health": 80,
+                "mana": 30,
+                "max_mana": 30,
+                "stats": {
+                    "strength": 12,
+                    "agility": 8,
+                    "intelligence": 6,
+                    "vitality": 10,
+                    "luck": 8
+                },
+                "skills": ["basic_attack", "power_strike"],
+                "ai_type": "aggressive",
+                "position": "front"
+            })
         elif node_type == "shop":
             new_node = ShopNode(x=x, y=y, node_id=node_id_str)
         elif node_type == "random_event":

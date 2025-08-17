@@ -32,6 +32,10 @@ def create_menu(app):
         label="Export Game", 
         command=app.export_game_handler
     )
+    file_menu.add_command(
+        label="HTML Export Styling...", 
+        command=lambda: _open_style_customizer(app)
+    )
     file_menu.add_separator()
     file_menu.add_command(
         label="Find Node", 
@@ -81,7 +85,32 @@ def create_menu(app):
         label="Quick Test Selected Node",
         command=lambda: _quick_test_node(app)
     )
+    view_menu.add_separator()
+    view_menu.add_command(
+        label="Visual Style Configuration",
+        command=lambda: _open_visual_style_dialog(app)
+    )
+    view_menu.add_command(
+        label="Toggle Enhanced Rendering",
+        command=lambda: _toggle_enhanced_rendering(app)
+    )
+    view_menu.add_command(
+        label="Toggle Node Groups",
+        command=lambda: _toggle_node_groups(app)
+    )
     menu_bar.add_cascade(label="View", menu=view_menu)
+
+    # Tools Menu
+    tools_menu = tk.Menu(menu_bar, tearoff=0)
+    tools_menu.add_command(
+        label="Character Portraits...",
+        command=lambda: _open_portrait_manager(app)
+    )
+    tools_menu.add_command(
+        label="Dynamic Music Manager...",
+        command=lambda: _open_music_manager(app)
+    )
+    menu_bar.add_cascade(label="Tools", menu=tools_menu)
 
     # Help Menu
     help_menu = tk.Menu(menu_bar, tearoff=0)
@@ -178,3 +207,83 @@ def _show_shortcuts_dialog(app):
         "Ctrl+Scroll - Zoom Canvas"
     )
     show_info("Keyboard Shortcuts", shortcuts_text)
+
+
+def _open_visual_style_dialog(app):
+    """Opens the visual style configuration dialog."""
+    try:
+        from .dialogs.visual_style_dialog import VisualStyleDialog
+        dialog = VisualStyleDialog(app)
+        result = dialog.show()
+        
+        if result == "apply":
+            # Redraw nodes with new themes
+            if hasattr(app, 'canvas_manager'):
+                app.canvas_manager.redraw_all_nodes()
+                
+    except Exception as e:
+        from ..core.utils import show_error
+        show_error("Visual Style Error", f"Failed to open visual style dialog: {e}")
+
+
+def _toggle_enhanced_rendering(app):
+    """Toggle enhanced node rendering."""
+    if hasattr(app, 'canvas_manager'):
+        app.canvas_manager.toggle_enhanced_rendering()
+        status = "enabled" if app.canvas_manager.use_enhanced_rendering else "disabled"
+        from ..core.utils import show_info
+        show_info("Enhanced Rendering", f"Enhanced rendering {status}")
+
+
+def _toggle_node_groups(app):
+    """Toggle node group background display."""
+    if hasattr(app, 'canvas_manager'):
+        app.canvas_manager.toggle_node_groups()
+        status = "shown" if app.canvas_manager.show_node_groups else "hidden"
+        from ..core.utils import show_info
+        show_info("Node Groups", f"Node group backgrounds {status}")
+
+
+def _open_style_customizer(app):
+    """Opens the HTML export style customizer."""
+    try:
+        from .windows.style_customizer import StyleCustomizer
+        customizer = StyleCustomizer(app, app)
+        customizer.focus()
+    except Exception as e:
+        from ..core.utils import show_error
+        show_error("Style Customizer Error", f"Failed to open style customizer: {e}")
+
+
+def _open_portrait_manager(app):
+    """Opens the character portrait manager."""
+    try:
+        from .windows.portrait_manager import PortraitManagerWindow
+        
+        # Initialize portrait manager if not exists
+        if not hasattr(app, 'portrait_manager'):
+            from ..models.character_portrait import PortraitManager
+            app.portrait_manager = PortraitManager()
+        
+        manager = PortraitManagerWindow(app)
+        manager.focus()
+    except Exception as e:
+        from ..core.utils import show_error
+        show_error("Portrait Manager Error", f"Failed to open portrait manager: {e}")
+
+
+def _open_music_manager(app):
+    """Opens the dynamic music manager."""
+    try:
+        from .windows.music_manager import MusicManagerWindow
+        
+        # Initialize music engine if not exists
+        if not hasattr(app, 'music_engine'):
+            from ..models.music_system import DynamicMusicEngine
+            app.music_engine = DynamicMusicEngine()
+        
+        manager = MusicManagerWindow(app)
+        manager.focus()
+    except Exception as e:
+        from ..core.utils import show_error
+        show_error("Music Manager Error", f"Failed to open music manager: {e}")

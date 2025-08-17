@@ -5,11 +5,13 @@
 from .base_node import BaseNode
 from .dialogue_node import DialogueNode
 from .combat_node import CombatNode
+from .advanced_combat_node import AdvancedCombatNode
 from .dice_roll_node import DiceRollNode
 from .shop_node import ShopNode
 from .random_event_node import RandomEventNode
 from .timer_node import TimerNode
 from .inventory_node import InventoryNode
+from .script_node import ScriptNode, ConditionalNode, FunctionNode, APINode
 from .quest import Quest
 from .game_timer import GameTimer
 from .enemy import Enemy
@@ -21,6 +23,8 @@ def create_node_from_dict(data):
     
     if node_type == "Combat":
         return CombatNode.from_dict(data)
+    elif node_type == "AdvancedCombat":
+        return AdvancedCombatNode.from_dict(data)
     elif node_type == "DiceRoll":
         return DiceRollNode.from_dict(data)
     elif node_type == "Shop":
@@ -31,18 +35,31 @@ def create_node_from_dict(data):
         return TimerNode.from_dict(data)
     elif node_type == "Inventory":
         return InventoryNode.from_dict(data)
+    elif node_type == "Script":
+        return ScriptNode.from_dict(data)
+    elif node_type == "Conditional":
+        return ConditionalNode.from_dict(data)
+    elif node_type == "Function":
+        return FunctionNode.from_dict(data)
+    elif node_type == "API":
+        return APINode.from_dict(data)
     else:
         return DialogueNode.from_dict(data)
 
 __all__ = [
     'BaseNode',
     'DialogueNode', 
-    'CombatNode', 
+    'CombatNode',
+    'AdvancedCombatNode',
     'DiceRollNode',
     'ShopNode',
     'RandomEventNode', 
     'TimerNode',
     'InventoryNode',
+    'ScriptNode',
+    'ConditionalNode',
+    'FunctionNode',
+    'APINode',
     'Quest', 
     'GameTimer',
     'Enemy',

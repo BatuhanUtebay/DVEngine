@@ -1,0 +1,1003 @@
+{
+    "id": "advanced_combat_rpg",
+    "name": "Advanced Combat RPG",
+    "description": "A sophisticated RPG showcasing the advanced turn-based combat system with strategic depth, skills, status effects, environmental factors, and AI behavior.",
+    "category": "RPG",
+    "difficulty": "Advanced",
+    "tags": [
+        "rpg",
+        "advanced_combat",
+        "turn_based",
+        "strategy",
+        "skills",
+        "status_effects",
+        "ai",
+        "tactical"
+    ],
+    "author": "DVGE Team",
+    "version": "1.0",
+    "help_text": "This template demonstrates the advanced combat system with multiple enemy types, skills, status effects, environmental hazards, and tactical AI. Perfect for creating deep RPG experiences.",
+    "tutorial_steps": [
+        "Start your journey and choose your initial path",
+        "Experience different combat scenarios with unique enemies",
+        "Learn to use skills, manage mana, and apply status effects",
+        "Fight bosses with advanced AI and environmental challenges",
+        "Progress through the adventure earning rewards and upgrading"
+    ],
+    "project_data": {
+        "version": "1.0.0",
+        "nodes": {
+            "intro": {
+                "node_type": "DialogueNode",
+                "game_data": {
+                    "npc": "Ancient Sage",
+                    "text": "Welcome, brave soul, to the Realm of Shadows. Ancient evils have awakened, and only a true warrior can restore balance. Your journey will test not just your strength, but your tactical wisdom.",
+                    "options": [
+                        {
+                            "text": "I'm ready for the challenge",
+                            "nextNode": "path_choice",
+                            "conditions": [],
+                            "effects": []
+                        },
+                        {
+                            "text": "Tell me about the combat system",
+                            "nextNode": "combat_tutorial",
+                            "conditions": [],
+                            "effects": []
+                        }
+                    ]
+                },
+                "editor_data": {
+                    "id": "intro",
+                    "x": 100,
+                    "y": 100
+                }
+            },
+            "combat_tutorial": {
+                "node_type": "DialogueNode",
+                "game_data": {
+                    "npc": "Ancient Sage",
+                    "text": "The advanced combat system uses turn-based strategy. You'll have skills with mana costs, status effects that last multiple turns, environmental factors, and enemies with different AI behaviors. Victory requires both strength and cunning.",
+                    "options": [
+                        {
+                            "text": "I understand, let's begin",
+                            "nextNode": "path_choice",
+                            "conditions": [],
+                            "effects": []
+                        }
+                    ]
+                },
+                "editor_data": {
+                    "id": "combat_tutorial",
+                    "x": 300,
+                    "y": 50
+                }
+            },
+            "path_choice": {
+                "node_type": "DialogueNode",
+                "game_data": {
+                    "npc": "Ancient Sage",
+                    "text": "Three paths lie before you. Each will test different aspects of combat mastery. Choose wisely.",
+                    "options": [
+                        {
+                            "text": "The Goblin Caves - Learn Basic Combat",
+                            "nextNode": "goblin_caves_intro",
+                            "conditions": [],
+                            "effects": []
+                        },
+                        {
+                            "text": "The Burning Desert - Environmental Combat",
+                            "nextNode": "desert_intro",
+                            "conditions": [],
+                            "effects": []
+                        },
+                        {
+                            "text": "The Shadow Tower - Boss Battle",
+                            "nextNode": "tower_intro",
+                            "conditions": [],
+                            "effects": []
+                        }
+                    ]
+                },
+                "editor_data": {
+                    "id": "path_choice",
+                    "x": 500,
+                    "y": 100
+                }
+            },
+            "goblin_caves_intro": {
+                "node_type": "DialogueNode",
+                "game_data": {
+                    "npc": "Narrator",
+                    "text": "You enter the dank goblin caves. The air is thick with the smell of decay. Ahead, you see a goblin scout patrolling the tunnels.",
+                    "options": [
+                        {
+                            "text": "Engage in combat",
+                            "nextNode": "goblin_scout_combat",
+                            "conditions": [],
+                            "effects": []
+                        },
+                        {
+                            "text": "Prepare yourself first",
+                            "nextNode": "combat_preparation",
+                            "conditions": [],
+                            "effects": []
+                        }
+                    ]
+                },
+                "editor_data": {
+                    "id": "goblin_caves_intro",
+                    "x": 300,
+                    "y": 200
+                }
+            },
+            "combat_preparation": {
+                "node_type": "DialogueNode",
+                "game_data": {
+                    "npc": "Narrator",
+                    "text": "You take a moment to center yourself and review your abilities. Remember: use basic attacks to conserve mana, special skills for maximum impact, and watch for status effects!",
+                    "options": [
+                        {
+                            "text": "Now I'm ready to fight",
+                            "nextNode": "goblin_scout_combat",
+                            "conditions": [],
+                            "effects": [
+                                {
+                                    "type": "stat",
+                                    "subject": "intelligence",
+                                    "operator": "+=",
+                                    "value": 2
+                                }
+                            ]
+                        }
+                    ]
+                },
+                "editor_data": {
+                    "id": "combat_preparation",
+                    "x": 500,
+                    "y": 250
+                }
+            },
+            "goblin_scout_combat": {
+                "node_type": "AdvancedCombat",
+                "game_data": {
+                    "npc": "Goblin Scout",
+                    "text": "The goblin scout spots you and raises its rusty blade. This is your first test of advanced combat!",
+                    "combat_type": "advanced",
+                    "environment": "dungeon",
+                    "weather": "clear",
+                    "terrain_effects": [],
+                    "victory_conditions": ["defeat_all_enemies"],
+                    "defeat_conditions": ["party_defeated"],
+                    "turn_limit": 0,
+                    "experience_reward": 75,
+                    "gold_reward": 25,
+                    "item_rewards": [
+                        {
+                            "name": "Goblin Dagger",
+                            "description": "A crude but effective weapon"
+                        }
+                    ],
+                    "skill_points_reward": 1,
+                    "enemies": [
+                        {
+                            "id": "goblin_scout_1",
+                            "name": "Goblin Scout",
+                            "level": 1,
+                            "health": 60,
+                            "max_health": 60,
+                            "mana": 20,
+                            "max_mana": 20,
+                            "stats": {
+                                "strength": 8,
+                                "agility": 12,
+                                "intelligence": 6,
+                                "vitality": 8,
+                                "luck": 10
+                            },
+                            "skills": ["basic_attack", "power_strike"],
+                            "equipment": {},
+                            "ai_type": "aggressive",
+                            "position": "front",
+                            "status_effects": [],
+                            "loot_table": "basic_enemy",
+                            "experience_value": 25,
+                            "special_abilities": [],
+                            "resistances": {},
+                            "weaknesses": {"fire": 0.2},
+                            "behavioral_triggers": {}
+                        }
+                    ],
+                    "allies": [],
+                    "environmental_hazards": [],
+                    "victory_node": "goblin_victory",
+                    "defeat_node": "combat_defeat",
+                    "escape_node": "caves_entrance",
+                    "allow_escape": true,
+                    "escape_difficulty": 8,
+                    "formation_matters": false,
+                    "initiative_system": "agility",
+                    "special_rules": [],
+                    "environmental_effects": [],
+                    "dialogue_triggers": {}
+                },
+                "editor_data": {
+                    "id": "goblin_scout_combat",
+                    "x": 700,
+                    "y": 200
+                }
+            },
+            "goblin_victory": {
+                "node_type": "DialogueNode",
+                "game_data": {
+                    "npc": "Narrator",
+                    "text": "Excellent! You've mastered the basics of advanced combat. The goblin falls, and you claim your rewards. You feel stronger and more experienced.",
+                    "options": [
+                        {
+                            "text": "Continue deeper into the caves",
+                            "nextNode": "deeper_caves",
+                            "conditions": [],
+                            "effects": []
+                        },
+                        {
+                            "text": "Return and try a different path",
+                            "nextNode": "path_choice",
+                            "conditions": [],
+                            "effects": []
+                        }
+                    ]
+                },
+                "editor_data": {
+                    "id": "goblin_victory",
+                    "x": 900,
+                    "y": 150
+                }
+            },
+            "deeper_caves": {
+                "node_type": "DialogueNode",
+                "game_data": {
+                    "npc": "Narrator",
+                    "text": "Deeper in the caves, you encounter two goblin warriors working together. This will test your ability to handle multiple enemies with different tactics.",
+                    "options": [
+                        {
+                            "text": "Fight the goblin duo",
+                            "nextNode": "goblin_duo_combat",
+                            "conditions": [],
+                            "effects": []
+                        }
+                    ]
+                },
+                "editor_data": {
+                    "id": "deeper_caves",
+                    "x": 1100,
+                    "y": 150
+                }
+            },
+            "goblin_duo_combat": {
+                "node_type": "AdvancedCombat",
+                "game_data": {
+                    "npc": "Goblin Warriors",
+                    "text": "Two goblin warriors stand before you - one defensive, one aggressive. You'll need to prioritize your targets wisely!",
+                    "combat_type": "advanced",
+                    "environment": "dungeon",
+                    "weather": "clear",
+                    "terrain_effects": [],
+                    "victory_conditions": ["defeat_all_enemies"],
+                    "defeat_conditions": ["party_defeated"],
+                    "turn_limit": 0,
+                    "experience_reward": 150,
+                    "gold_reward": 50,
+                    "item_rewards": [
+                        {
+                            "name": "Warrior's Helm",
+                            "description": "Increases defense and vitality"
+                        }
+                    ],
+                    "skill_points_reward": 2,
+                    "enemies": [
+                        {
+                            "id": "goblin_warrior_aggressive",
+                            "name": "Aggressive Goblin",
+                            "level": 2,
+                            "health": 80,
+                            "max_health": 80,
+                            "mana": 30,
+                            "max_mana": 30,
+                            "stats": {
+                                "strength": 14,
+                                "agility": 10,
+                                "intelligence": 6,
+                                "vitality": 12,
+                                "luck": 8
+                            },
+                            "skills": ["basic_attack", "power_strike", "shield_bash"],
+                            "equipment": {},
+                            "ai_type": "aggressive",
+                            "position": "front",
+                            "status_effects": [],
+                            "loot_table": "warrior_enemy",
+                            "experience_value": 40,
+                            "special_abilities": [],
+                            "resistances": {},
+                            "weaknesses": {"lightning": 0.15},
+                            "behavioral_triggers": {}
+                        },
+                        {
+                            "id": "goblin_warrior_defensive",
+                            "name": "Defensive Goblin",
+                            "level": 2,
+                            "health": 100,
+                            "max_health": 100,
+                            "mana": 40,
+                            "max_mana": 40,
+                            "stats": {
+                                "strength": 10,
+                                "agility": 8,
+                                "intelligence": 8,
+                                "vitality": 16,
+                                "luck": 10
+                            },
+                            "skills": ["basic_attack", "heal", "shield_bash"],
+                            "equipment": {},
+                            "ai_type": "defensive",
+                            "position": "back",
+                            "status_effects": [],
+                            "loot_table": "defensive_enemy",
+                            "experience_value": 35,
+                            "special_abilities": [],
+                            "resistances": {"physical": 0.1},
+                            "weaknesses": {"fire": 0.2},
+                            "behavioral_triggers": {}
+                        }
+                    ],
+                    "allies": [],
+                    "environmental_hazards": [],
+                    "victory_node": "duo_victory",
+                    "defeat_node": "combat_defeat",
+                    "escape_node": "goblin_caves_intro",
+                    "allow_escape": true,
+                    "escape_difficulty": 12,
+                    "formation_matters": true,
+                    "initiative_system": "agility",
+                    "special_rules": [],
+                    "environmental_effects": [],
+                    "dialogue_triggers": {}
+                },
+                "editor_data": {
+                    "id": "goblin_duo_combat",
+                    "x": 1300,
+                    "y": 150
+                }
+            },
+            "duo_victory": {
+                "node_type": "DialogueNode",
+                "game_data": {
+                    "npc": "Narrator",
+                    "text": "Outstanding tactical thinking! You defeated both warriors by adapting your strategy. The caves are now cleared, and the village is safe.",
+                    "options": [
+                        {
+                            "text": "Return and try the desert path",
+                            "nextNode": "path_choice",
+                            "conditions": [],
+                            "effects": []
+                        },
+                        {
+                            "text": "Head straight to the final challenge",
+                            "nextNode": "tower_intro",
+                            "conditions": [],
+                            "effects": []
+                        }
+                    ]
+                },
+                "editor_data": {
+                    "id": "duo_victory",
+                    "x": 1500,
+                    "y": 150
+                }
+            },
+            "desert_intro": {
+                "node_type": "DialogueNode",
+                "game_data": {
+                    "npc": "Narrator",
+                    "text": "You step into the scorching desert. The heat is overwhelming, and you can see a fire elemental guardian protecting an ancient oasis. This battle will test environmental combat.",
+                    "options": [
+                        {
+                            "text": "Challenge the fire elemental",
+                            "nextNode": "fire_elemental_combat",
+                            "conditions": [],
+                            "effects": []
+                        },
+                        {
+                            "text": "Study the environment first",
+                            "nextNode": "desert_study",
+                            "conditions": [],
+                            "effects": []
+                        }
+                    ]
+                },
+                "editor_data": {
+                    "id": "desert_intro",
+                    "x": 300,
+                    "y": 400
+                }
+            },
+            "desert_study": {
+                "node_type": "DialogueNode",
+                "game_data": {
+                    "npc": "Narrator",
+                    "text": "You notice the scorching heat affects both you and enemies. Fire attacks will be stronger here, but ice magic might be more effective against fire creatures. The environment matters!",
+                    "options": [
+                        {
+                            "text": "Now face the elemental",
+                            "nextNode": "fire_elemental_combat",
+                            "conditions": [],
+                            "effects": [
+                                {
+                                    "type": "stat",
+                                    "subject": "intelligence",
+                                    "operator": "+=",
+                                    "value": 3
+                                }
+                            ]
+                        }
+                    ]
+                },
+                "editor_data": {
+                    "id": "desert_study",
+                    "x": 500,
+                    "y": 450
+                }
+            },
+            "fire_elemental_combat": {
+                "node_type": "AdvancedCombat",
+                "game_data": {
+                    "npc": "Fire Elemental",
+                    "text": "The fire elemental roars, flames dancing around its form. The desert heat intensifies the battle - fire damage is increased, but ice attacks are more effective!",
+                    "combat_type": "advanced",
+                    "environment": "desert",
+                    "weather": "sunny",
+                    "terrain_effects": ["heat_amplification"],
+                    "victory_conditions": ["defeat_all_enemies"],
+                    "defeat_conditions": ["party_defeated"],
+                    "turn_limit": 0,
+                    "experience_reward": 200,
+                    "gold_reward": 75,
+                    "item_rewards": [
+                        {
+                            "name": "Flame Crystal",
+                            "description": "Grants fire resistance and flame attacks"
+                        }
+                    ],
+                    "skill_points_reward": 3,
+                    "enemies": [
+                        {
+                            "id": "fire_elemental_1",
+                            "name": "Desert Fire Elemental",
+                            "level": 4,
+                            "health": 120,
+                            "max_health": 120,
+                            "mana": 80,
+                            "max_mana": 80,
+                            "stats": {
+                                "strength": 12,
+                                "agility": 14,
+                                "intelligence": 18,
+                                "vitality": 14,
+                                "luck": 12
+                            },
+                            "skills": ["basic_attack", "fireball", "lightning_bolt"],
+                            "equipment": {},
+                            "ai_type": "tactical",
+                            "position": "front",
+                            "status_effects": [],
+                            "loot_table": "elemental_enemy",
+                            "experience_value": 80,
+                            "special_abilities": ["fire_aura"],
+                            "resistances": {"fire": 0.8, "physical": 0.2},
+                            "weaknesses": {"ice": 0.5},
+                            "behavioral_triggers": {
+                                "low_health": "desperate_attack"
+                            }
+                        }
+                    ],
+                    "allies": [],
+                    "environmental_hazards": [
+                        {
+                            "id": "desert_heat",
+                            "name": "Scorching Heat",
+                            "type": "damage",
+                            "effect": {
+                                "damage": 5,
+                                "element": "fire"
+                            },
+                            "trigger": "turn_end",
+                            "target": "all",
+                            "duration": -1,
+                            "description": "The desert heat damages all combatants each turn"
+                        }
+                    ],
+                    "victory_node": "elemental_victory",
+                    "defeat_node": "combat_defeat",
+                    "escape_node": "desert_entrance",
+                    "allow_escape": true,
+                    "escape_difficulty": 15,
+                    "formation_matters": false,
+                    "initiative_system": "agility",
+                    "special_rules": ["fire_amplified", "ice_effective"],
+                    "environmental_effects": ["heat_wave"],
+                    "dialogue_triggers": {
+                        "half_health": "The elemental's flames grow more desperate!"
+                    }
+                },
+                "editor_data": {
+                    "id": "fire_elemental_combat",
+                    "x": 700,
+                    "y": 400
+                }
+            },
+            "elemental_victory": {
+                "node_type": "DialogueNode",
+                "game_data": {
+                    "npc": "Narrator",
+                    "text": "The fire elemental dissipates into harmless sparks. You've mastered environmental combat and claimed the flame crystal. The oasis is now accessible to all travelers.",
+                    "options": [
+                        {
+                            "text": "Take on the final challenge",
+                            "nextNode": "tower_intro",
+                            "conditions": [],
+                            "effects": []
+                        },
+                        {
+                            "text": "Return to choose another path",
+                            "nextNode": "path_choice",
+                            "conditions": [],
+                            "effects": []
+                        }
+                    ]
+                },
+                "editor_data": {
+                    "id": "elemental_victory",
+                    "x": 900,
+                    "y": 400
+                }
+            },
+            "tower_intro": {
+                "node_type": "DialogueNode",
+                "game_data": {
+                    "npc": "Narrator",
+                    "text": "You stand before the ominous Shadow Tower. At its peak awaits the Shadow Lord, a master of dark magic with advanced AI and devastating abilities. This is the ultimate test.",
+                    "options": [
+                        {
+                            "text": "Ascend the tower",
+                            "nextNode": "tower_guardian",
+                            "conditions": [],
+                            "effects": []
+                        },
+                        {
+                            "text": "Meditate before the final battle",
+                            "nextNode": "final_preparation",
+                            "conditions": [],
+                            "effects": []
+                        }
+                    ]
+                },
+                "editor_data": {
+                    "id": "tower_intro",
+                    "x": 300,
+                    "y": 600
+                }
+            },
+            "final_preparation": {
+                "node_type": "DialogueNode",
+                "game_data": {
+                    "npc": "Narrator",
+                    "text": "You center your mind and body. The Shadow Lord will use every tactical advantage - status effects, environmental hazards, and superior AI. But you are ready.",
+                    "options": [
+                        {
+                            "text": "Enter the tower",
+                            "nextNode": "tower_guardian",
+                            "conditions": [],
+                            "effects": [
+                                {
+                                    "type": "stat",
+                                    "subject": "strength",
+                                    "operator": "+=",
+                                    "value": 5
+                                },
+                                {
+                                    "type": "stat",
+                                    "subject": "intelligence",
+                                    "operator": "+=",
+                                    "value": 5
+                                }
+                            ]
+                        }
+                    ]
+                },
+                "editor_data": {
+                    "id": "final_preparation",
+                    "x": 500,
+                    "y": 650
+                }
+            },
+            "tower_guardian": {
+                "node_type": "DialogueNode",
+                "game_data": {
+                    "npc": "Narrator",
+                    "text": "At the tower's base stands a corrupted guardian. You must defeat it to proceed to the Shadow Lord. This guardian has an ally that will heal it - target selection will be crucial!",
+                    "options": [
+                        {
+                            "text": "Fight the guardian and its ally",
+                            "nextNode": "guardian_combat",
+                            "conditions": [],
+                            "effects": []
+                        }
+                    ]
+                },
+                "editor_data": {
+                    "id": "tower_guardian",
+                    "x": 700,
+                    "y": 600
+                }
+            },
+            "guardian_combat": {
+                "node_type": "AdvancedCombat",
+                "game_data": {
+                    "npc": "Tower Guardian",
+                    "text": "The corrupted guardian and its healing ally prepare for battle. Dark energy swirls around them. You must think strategically about target priority!",
+                    "combat_type": "boss",
+                    "environment": "tower",
+                    "weather": "dark",
+                    "terrain_effects": ["shadow_magic"],
+                    "victory_conditions": ["defeat_all_enemies"],
+                    "defeat_conditions": ["party_defeated"],
+                    "turn_limit": 0,
+                    "experience_reward": 300,
+                    "gold_reward": 100,
+                    "item_rewards": [
+                        {
+                            "name": "Guardian's Key",
+                            "description": "Unlocks the path to the Shadow Lord"
+                        }
+                    ],
+                    "skill_points_reward": 4,
+                    "enemies": [
+                        {
+                            "id": "tower_guardian",
+                            "name": "Corrupted Guardian",
+                            "level": 6,
+                            "health": 180,
+                            "max_health": 180,
+                            "mana": 60,
+                            "max_mana": 60,
+                            "stats": {
+                                "strength": 20,
+                                "agility": 12,
+                                "intelligence": 14,
+                                "vitality": 18,
+                                "luck": 10
+                            },
+                            "skills": ["basic_attack", "power_strike", "shield_bash"],
+                            "equipment": {},
+                            "ai_type": "tactical",
+                            "position": "front",
+                            "status_effects": [],
+                            "loot_table": "guardian_enemy",
+                            "experience_value": 100,
+                            "special_abilities": ["armor_plating"],
+                            "resistances": {"physical": 0.3},
+                            "weaknesses": {"lightning": 0.2},
+                            "behavioral_triggers": {}
+                        },
+                        {
+                            "id": "shadow_healer",
+                            "name": "Shadow Healer",
+                            "level": 5,
+                            "health": 100,
+                            "max_health": 100,
+                            "mana": 120,
+                            "max_mana": 120,
+                            "stats": {
+                                "strength": 8,
+                                "agility": 14,
+                                "intelligence": 20,
+                                "vitality": 12,
+                                "luck": 16
+                            },
+                            "skills": ["basic_attack", "heal", "group_heal"],
+                            "equipment": {},
+                            "ai_type": "support",
+                            "position": "back",
+                            "status_effects": [],
+                            "loot_table": "healer_enemy",
+                            "experience_value": 80,
+                            "special_abilities": ["regeneration"],
+                            "resistances": {"ice": 0.2},
+                            "weaknesses": {"fire": 0.3},
+                            "behavioral_triggers": {}
+                        }
+                    ],
+                    "allies": [],
+                    "environmental_hazards": [
+                        {
+                            "id": "shadow_drain",
+                            "name": "Shadow Drain",
+                            "type": "debuff",
+                            "effect": {
+                                "mana_drain": 5,
+                                "element": "shadow"
+                            },
+                            "trigger": "turn_start",
+                            "target": "all",
+                            "duration": -1,
+                            "description": "Dark energy drains mana each turn"
+                        }
+                    ],
+                    "victory_node": "guardian_victory",
+                    "defeat_node": "combat_defeat",
+                    "escape_node": "tower_entrance",
+                    "allow_escape": true,
+                    "escape_difficulty": 18,
+                    "formation_matters": true,
+                    "initiative_system": "agility",
+                    "special_rules": ["shadow_magic_active"],
+                    "environmental_effects": ["dark_aura"],
+                    "dialogue_triggers": {}
+                },
+                "editor_data": {
+                    "id": "guardian_combat",
+                    "x": 900,
+                    "y": 600
+                }
+            },
+            "guardian_victory": {
+                "node_type": "DialogueNode",
+                "game_data": {
+                    "npc": "Narrator",
+                    "text": "The guardian falls, and the path to the tower's peak is open. You've proven your tactical mastery. Now face the Shadow Lord - the ultimate test of advanced combat!",
+                    "options": [
+                        {
+                            "text": "Ascend to face the Shadow Lord",
+                            "nextNode": "shadow_lord_combat",
+                            "conditions": [],
+                            "effects": []
+                        }
+                    ]
+                },
+                "editor_data": {
+                    "id": "guardian_victory",
+                    "x": 1100,
+                    "y": 600
+                }
+            },
+            "shadow_lord_combat": {
+                "node_type": "AdvancedCombat",
+                "game_data": {
+                    "npc": "Shadow Lord",
+                    "text": "At last, a worthy opponent! The Shadow Lord emerges from the darkness, wielding devastating magic and tactical brilliance. This is the ultimate combat challenge!",
+                    "combat_type": "boss",
+                    "environment": "tower",
+                    "weather": "storm",
+                    "terrain_effects": ["unstable_magic", "shadow_realm"],
+                    "victory_conditions": ["defeat_all_enemies"],
+                    "defeat_conditions": ["party_defeated"],
+                    "turn_limit": 15,
+                    "experience_reward": 500,
+                    "gold_reward": 200,
+                    "item_rewards": [
+                        {
+                            "name": "Crown of Shadows",
+                            "description": "Ultimate artifact of power and wisdom"
+                        }
+                    ],
+                    "skill_points_reward": 10,
+                    "enemies": [
+                        {
+                            "id": "shadow_lord",
+                            "name": "The Shadow Lord",
+                            "level": 10,
+                            "health": 300,
+                            "max_health": 300,
+                            "mana": 200,
+                            "max_mana": 200,
+                            "stats": {
+                                "strength": 18,
+                                "agility": 20,
+                                "intelligence": 25,
+                                "vitality": 22,
+                                "luck": 18
+                            },
+                            "skills": ["basic_attack", "fireball", "lightning_bolt", "ice_shard", "power_strike", "group_heal"],
+                            "equipment": {},
+                            "ai_type": "berserker",
+                            "position": "front",
+                            "status_effects": [],
+                            "loot_table": "legendary_boss",
+                            "experience_value": 250,
+                            "special_abilities": ["phase_shift", "shadow_clone", "ultimate_magic"],
+                            "resistances": {"physical": 0.3, "fire": 0.2, "ice": 0.2, "lightning": 0.2},
+                            "weaknesses": {},
+                            "behavioral_triggers": {
+                                "quarter_health": "desperate_fury",
+                                "half_health": "summon_shadows"
+                            }
+                        }
+                    ],
+                    "allies": [],
+                    "environmental_hazards": [
+                        {
+                            "id": "chaos_storm",
+                            "name": "Chaos Storm",
+                            "type": "damage",
+                            "effect": {
+                                "damage": 15,
+                                "element": "chaos"
+                            },
+                            "trigger": "turn_end",
+                            "target": "random",
+                            "duration": -1,
+                            "description": "Chaotic energy strikes random targets"
+                        },
+                        {
+                            "id": "magic_surge",
+                            "name": "Magic Surge",
+                            "type": "interactive",
+                            "effect": {
+                                "mana_boost": 20,
+                                "element": "arcane"
+                            },
+                            "trigger": "turn_start",
+                            "target": "all",
+                            "duration": -1,
+                            "description": "Wild magic increases mana regeneration"
+                        }
+                    ],
+                    "victory_node": "final_victory",
+                    "defeat_node": "epic_defeat",
+                    "escape_node": "",
+                    "allow_escape": false,
+                    "escape_difficulty": 25,
+                    "formation_matters": true,
+                    "initiative_system": "agility",
+                    "special_rules": ["legendary_boss", "environmental_chaos", "time_pressure"],
+                    "environmental_effects": ["shadow_realm_active", "magic_storm"],
+                    "dialogue_triggers": {
+                        "half_health": "You fight well, but can you handle my true power?",
+                        "quarter_health": "This ends now! Face my ultimate technique!"
+                    }
+                },
+                "editor_data": {
+                    "id": "shadow_lord_combat",
+                    "x": 1300,
+                    "y": 600
+                }
+            },
+            "final_victory": {
+                "node_type": "DialogueNode",
+                "game_data": {
+                    "npc": "Defeated Shadow Lord",
+                    "text": "Impossible... you have mastered every aspect of combat. Tactics, strategy, adaptation... you are truly worthy. The realm is restored, and balance returns to the world.",
+                    "options": [
+                        {
+                            "text": "Claim the Crown of Shadows",
+                            "nextNode": "true_ending",
+                            "conditions": [],
+                            "effects": []
+                        }
+                    ]
+                },
+                "editor_data": {
+                    "id": "final_victory",
+                    "x": 1500,
+                    "y": 550
+                }
+            },
+            "true_ending": {
+                "node_type": "DialogueNode",
+                "game_data": {
+                    "npc": "Ancient Sage",
+                    "text": "You have mastered the advanced combat system completely! From basic tactics to environmental awareness, from AI adaptation to ultimate boss battles. You are now a true master of strategic combat. The Crown of Shadows is yours, and your legend will inspire future warriors.",
+                    "options": []
+                },
+                "editor_data": {
+                    "id": "true_ending",
+                    "x": 1700,
+                    "y": 550
+                }
+            },
+            "epic_defeat": {
+                "node_type": "DialogueNode",
+                "game_data": {
+                    "npc": "Shadow Lord",
+                    "text": "You fought valiantly, but the Shadow Lord's power was too great. Yet your courage has not gone unnoticed. Learn from this defeat and return stronger!",
+                    "options": [
+                        {
+                            "text": "Return to train more",
+                            "nextNode": "path_choice",
+                            "conditions": [],
+                            "effects": [
+                                {
+                                    "type": "stat",
+                                    "subject": "experience",
+                                    "operator": "+=",
+                                    "value": 100
+                                }
+                            ]
+                        }
+                    ]
+                },
+                "editor_data": {
+                    "id": "epic_defeat",
+                    "x": 1500,
+                    "y": 650
+                }
+            },
+            "combat_defeat": {
+                "node_type": "DialogueNode",
+                "game_data": {
+                    "npc": "Narrator",
+                    "text": "Defeat is a teacher as much as victory. You've learned valuable lessons about combat tactics. Rest, recover, and apply what you've learned!",
+                    "options": [
+                        {
+                            "text": "Return to choose a different path",
+                            "nextNode": "path_choice",
+                            "conditions": [],
+                            "effects": [
+                                {
+                                    "type": "stat",
+                                    "subject": "experience",
+                                    "operator": "+=",
+                                    "value": 25
+                                }
+                            ]
+                        }
+                    ]
+                },
+                "editor_data": {
+                    "id": "combat_defeat",
+                    "x": 100,
+                    "y": 800
+                }
+            }
+        },
+        "player_stats": {
+            "health": 120,
+            "strength": 12,
+            "agility": 10,
+            "intelligence": 14,
+            "vitality": 12,
+            "luck": 10,
+            "experience": 0
+        },
+        "player_inventory": [
+            {
+                "name": "Traveler's Sword",
+                "description": "A reliable blade for any adventure"
+            },
+            {
+                "name": "Health Potion",
+                "description": "Restores health when used"
+            }
+        ],
+        "story_flags": {},
+        "quests": {
+            "shadow_realm_quest": {
+                "name": "Restore the Balance",
+                "description": "Defeat the Shadow Lord and restore peace to the realm",
+                "state": "active"
+            }
+        },
+        "variables": {
+            "gold": 100,
+            "combat_mastery": 0
+        },
+        "enemies": {},
+        "timers": {},
+        "node_id_counter": 25,
+        "project_settings": {
+            "font": "Cinzel",
+            "title_font": "Cinzel Decorative",
+            "background": "linear-gradient(135deg, #1a1a2e, #16213e)"
+        }
+    }
+}

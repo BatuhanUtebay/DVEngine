@@ -1,0 +1,570 @@
+{
+    "id": "romance_story",
+    "name": "Romance Story",
+    "description": "A heartwarming romance with relationship mechanics, multiple love interests, and meaningful choices that affect character relationships.",
+    "category": "Romance",
+    "difficulty": "Intermediate",
+    "tags": [
+        "romance",
+        "relationships",
+        "love",
+        "dating",
+        "emotional"
+    ],
+    "author": "DVGE Team",
+    "version": "1.0",
+    "help_text": "This template shows how to create romantic storylines with relationship tracking, multiple love interests, and meaningful emotional choices. Notice how stats track relationship levels.",
+    "tutorial_steps": [
+        "Pay attention to how relationship stats change with each choice",
+        "Try different conversation approaches to see varying outcomes",
+        "Notice how previous choices affect later dialogue options",
+        "Experiment with pursuing different love interests",
+        "See how personality stats influence relationship success"
+    ],
+    "project_data": {
+        "version": "1.0.0",
+        "nodes": {
+            "intro": {
+                "node_type": "DialogueNode",
+                "game_data": {
+                    "npc": "Narrator",
+                    "text": "It's your first day at the new coffee shop downtown. You're nervous but excited to start fresh in a new city. As you walk in, the warm aroma of coffee beans welcomes you.",
+                    "options": [
+                        {
+                            "text": "Approach the counter confidently",
+                            "nextNode": "meet_barista",
+                            "conditions": [],
+                            "effects": [
+                                {
+                                    "type": "stat",
+                                    "subject": "confidence",
+                                    "operator": "+=",
+                                    "value": 1
+                                }
+                            ]
+                        },
+                        {
+                            "text": "Look around nervously first",
+                            "nextNode": "observe_cafe",
+                            "conditions": [],
+                            "effects": [
+                                {
+                                    "type": "stat",
+                                    "subject": "observation",
+                                    "operator": "+=",
+                                    "value": 1
+                                }
+                            ]
+                        }
+                    ]
+                },
+                "editor_data": {
+                    "id": "intro",
+                    "x": 100,
+                    "y": 100
+                }
+            },
+            "meet_barista": {
+                "node_type": "DialogueNode",
+                "game_data": {
+                    "npc": "Alex (Barista)",
+                    "text": "Hi there! Welcome to Moonbeam Caf\u00e9. I haven't seen you around before - first time here?",
+                    "options": [
+                        {
+                            "text": "Yes, I just moved to the city!",
+                            "nextNode": "alex_conversation_1",
+                            "conditions": [],
+                            "effects": [
+                                {
+                                    "type": "stat",
+                                    "subject": "alex_relationship",
+                                    "operator": "+=",
+                                    "value": 1
+                                }
+                            ]
+                        },
+                        {
+                            "text": "Just visiting, probably won't be back",
+                            "nextNode": "alex_conversation_cold",
+                            "conditions": [],
+                            "effects": []
+                        },
+                        {
+                            "text": "Yes, any recommendations?",
+                            "nextNode": "alex_recommendations",
+                            "conditions": [],
+                            "effects": [
+                                {
+                                    "type": "stat",
+                                    "subject": "alex_relationship",
+                                    "operator": "+=",
+                                    "value": 1
+                                }
+                            ]
+                        }
+                    ]
+                },
+                "editor_data": {
+                    "id": "meet_barista",
+                    "x": 300,
+                    "y": 50
+                }
+            },
+            "observe_cafe": {
+                "node_type": "DialogueNode",
+                "game_data": {
+                    "npc": "Narrator",
+                    "text": "You notice the caf\u00e9 has a cozy, artistic vibe. Local artwork covers the walls, and soft jazz plays in the background. At a corner table, someone is reading a book that catches your eye - it's your favorite novel!",
+                    "options": [
+                        {
+                            "text": "Approach the reader about the book",
+                            "nextNode": "meet_reader",
+                            "conditions": [],
+                            "effects": []
+                        },
+                        {
+                            "text": "Go order coffee first",
+                            "nextNode": "meet_barista",
+                            "conditions": [],
+                            "effects": []
+                        }
+                    ]
+                },
+                "editor_data": {
+                    "id": "observe_cafe",
+                    "x": 300,
+                    "y": 150
+                }
+            },
+            "meet_reader": {
+                "node_type": "DialogueNode",
+                "game_data": {
+                    "npc": "Jordan (Reader)",
+                    "text": "Oh, hi! Sorry, I was completely absorbed in this book. It's amazing how a good story can transport you anywhere.",
+                    "options": [
+                        {
+                            "text": "I love that book! It's one of my favorites",
+                            "nextNode": "jordan_book_bond",
+                            "conditions": [],
+                            "effects": [
+                                {
+                                    "type": "stat",
+                                    "subject": "jordan_relationship",
+                                    "operator": "+=",
+                                    "value": 2
+                                }
+                            ]
+                        },
+                        {
+                            "text": "I've heard of it but never read it",
+                            "nextNode": "jordan_book_curious",
+                            "conditions": [],
+                            "effects": [
+                                {
+                                    "type": "stat",
+                                    "subject": "jordan_relationship",
+                                    "operator": "+=",
+                                    "value": 1
+                                }
+                            ]
+                        },
+                        {
+                            "text": "Sorry for interrupting your reading",
+                            "nextNode": "jordan_polite_retreat",
+                            "conditions": [],
+                            "effects": [
+                                {
+                                    "type": "stat",
+                                    "subject": "politeness",
+                                    "operator": "+=",
+                                    "value": 1
+                                }
+                            ]
+                        }
+                    ]
+                },
+                "editor_data": {
+                    "id": "meet_reader",
+                    "x": 500,
+                    "y": 150
+                }
+            },
+            "alex_conversation_1": {
+                "node_type": "DialogueNode",
+                "game_data": {
+                    "npc": "Alex (Barista)",
+                    "text": "That's exciting! New city, new adventures. What brought you here?",
+                    "options": [
+                        {
+                            "text": "A new job - I'm still figuring everything out",
+                            "nextNode": "alex_job_talk",
+                            "conditions": [],
+                            "effects": [
+                                {
+                                    "type": "stat",
+                                    "subject": "alex_relationship",
+                                    "operator": "+=",
+                                    "value": 1
+                                }
+                            ]
+                        },
+                        {
+                            "text": "Just wanted a fresh start somewhere new",
+                            "nextNode": "alex_fresh_start",
+                            "conditions": [],
+                            "effects": [
+                                {
+                                    "type": "stat",
+                                    "subject": "alex_relationship",
+                                    "operator": "+=",
+                                    "value": 1
+                                }
+                            ]
+                        }
+                    ]
+                },
+                "editor_data": {
+                    "id": "alex_conversation_1",
+                    "x": 500,
+                    "y": 50
+                }
+            },
+            "alex_recommendations": {
+                "node_type": "DialogueNode",
+                "game_data": {
+                    "npc": "Alex (Barista)",
+                    "text": "Well, if you like something unique, try our lavender honey latte. It's my personal creation. Or if you prefer classic, our espresso is perfect.",
+                    "options": [
+                        {
+                            "text": "I'll trust your recommendation - lavender honey latte please",
+                            "nextNode": "alex_special_drink",
+                            "conditions": [],
+                            "effects": [
+                                {
+                                    "type": "stat",
+                                    "subject": "alex_relationship",
+                                    "operator": "+=",
+                                    "value": 2
+                                }
+                            ]
+                        },
+                        {
+                            "text": "I'll play it safe with espresso",
+                            "nextNode": "alex_safe_choice",
+                            "conditions": [],
+                            "effects": []
+                        }
+                    ]
+                },
+                "editor_data": {
+                    "id": "alex_recommendations",
+                    "x": 500,
+                    "y": 0
+                }
+            },
+            "jordan_book_bond": {
+                "node_type": "DialogueNode",
+                "game_data": {
+                    "npc": "Jordan (Reader)",
+                    "text": "Really? Oh wow, I rarely meet someone who appreciates this author's work! What's your favorite part?",
+                    "options": [
+                        {
+                            "text": "The character development is incredible",
+                            "nextNode": "jordan_deep_discussion",
+                            "conditions": [],
+                            "effects": [
+                                {
+                                    "type": "stat",
+                                    "subject": "jordan_relationship",
+                                    "operator": "+=",
+                                    "value": 2
+                                }
+                            ]
+                        },
+                        {
+                            "text": "The plot twists always surprise me",
+                            "nextNode": "jordan_plot_talk",
+                            "conditions": [],
+                            "effects": [
+                                {
+                                    "type": "stat",
+                                    "subject": "jordan_relationship",
+                                    "operator": "+=",
+                                    "value": 1
+                                }
+                            ]
+                        }
+                    ]
+                },
+                "editor_data": {
+                    "id": "jordan_book_bond",
+                    "x": 700,
+                    "y": 100
+                }
+            },
+            "alex_special_drink": {
+                "node_type": "DialogueNode",
+                "game_data": {
+                    "npc": "Alex (Barista)",
+                    "text": "I love when people are adventurous! *starts making the drink with obvious care* You know, I spent weeks perfecting this recipe. Tell me what you think!",
+                    "options": [
+                        {
+                            "text": "*taste the drink* This is absolutely amazing!",
+                            "nextNode": "alex_impressed",
+                            "conditions": [],
+                            "effects": [
+                                {
+                                    "type": "stat",
+                                    "subject": "alex_relationship",
+                                    "operator": "+=",
+                                    "value": 2
+                                }
+                            ]
+                        },
+                        {
+                            "text": "It's really unique, I can taste the effort",
+                            "nextNode": "alex_appreciated",
+                            "conditions": [],
+                            "effects": [
+                                {
+                                    "type": "stat",
+                                    "subject": "alex_relationship",
+                                    "operator": "+=",
+                                    "value": 1
+                                }
+                            ]
+                        }
+                    ]
+                },
+                "editor_data": {
+                    "id": "alex_special_drink",
+                    "x": 700,
+                    "y": 0
+                }
+            },
+            "jordan_deep_discussion": {
+                "node_type": "DialogueNode",
+                "game_data": {
+                    "npc": "Jordan (Reader)",
+                    "text": "Yes! The way the author develops each character's inner world... it's like meeting real people. I'm Jordan, by the way. Mind if I ask your name?",
+                    "options": [
+                        {
+                            "text": "I'm [Your name]. Want to discuss books over coffee?",
+                            "nextNode": "jordan_coffee_date",
+                            "conditions": [],
+                            "effects": [
+                                {
+                                    "type": "stat",
+                                    "subject": "jordan_relationship",
+                                    "operator": "+=",
+                                    "value": 2
+                                }
+                            ]
+                        },
+                        {
+                            "text": "Nice to meet you Jordan. I should let you get back to reading",
+                            "nextNode": "jordan_respectful_exit",
+                            "conditions": [],
+                            "effects": [
+                                {
+                                    "type": "stat",
+                                    "subject": "politeness",
+                                    "operator": "+=",
+                                    "value": 1
+                                }
+                            ]
+                        }
+                    ]
+                },
+                "editor_data": {
+                    "id": "jordan_deep_discussion",
+                    "x": 900,
+                    "y": 80
+                }
+            },
+            "alex_impressed": {
+                "node_type": "DialogueNode",
+                "game_data": {
+                    "npc": "Alex (Barista)",
+                    "text": "*beams with pride* Thank you! That really means a lot. You know, I don't usually do this, but... would you like to try some of my other experimental drinks sometime? Maybe when my shift ends?",
+                    "options": [
+                        {
+                            "text": "I'd love to! When do you get off work?",
+                            "nextNode": "alex_date_yes",
+                            "conditions": [],
+                            "effects": [
+                                {
+                                    "type": "stat",
+                                    "subject": "alex_relationship",
+                                    "operator": "+=",
+                                    "value": 3
+                                },
+                                {
+                                    "type": "flag",
+                                    "subject": "alex_date_planned",
+                                    "operator": "=",
+                                    "value": true
+                                }
+                            ]
+                        },
+                        {
+                            "text": "That sounds nice, but I should probably get settled in first",
+                            "nextNode": "alex_maybe_later",
+                            "conditions": [],
+                            "effects": []
+                        }
+                    ]
+                },
+                "editor_data": {
+                    "id": "alex_impressed",
+                    "x": 900,
+                    "y": 0
+                }
+            },
+            "jordan_coffee_date": {
+                "node_type": "DialogueNode",
+                "game_data": {
+                    "npc": "Jordan (Reader)",
+                    "text": "I'd love that! I know this place has great coffee, and I have so many book recommendations. This could be the start of a beautiful friendship... or maybe something more?",
+                    "options": [
+                        {
+                            "text": "I'm looking forward to finding out",
+                            "nextNode": "romance_potential_jordan",
+                            "conditions": [],
+                            "effects": [
+                                {
+                                    "type": "stat",
+                                    "subject": "jordan_relationship",
+                                    "operator": "+=",
+                                    "value": 3
+                                },
+                                {
+                                    "type": "flag",
+                                    "subject": "jordan_romance_track",
+                                    "operator": "=",
+                                    "value": true
+                                }
+                            ]
+                        }
+                    ]
+                },
+                "editor_data": {
+                    "id": "jordan_coffee_date",
+                    "x": 1100,
+                    "y": 80
+                }
+            },
+            "alex_date_yes": {
+                "node_type": "DialogueNode",
+                "game_data": {
+                    "npc": "Alex (Barista)",
+                    "text": "Perfect! I finish at 6 PM. There's a little rooftop garden upstairs where I test my recipes. It's quiet and has a beautiful view of the city.",
+                    "options": [
+                        {
+                            "text": "That sounds magical. See you at 6!",
+                            "nextNode": "romance_potential_alex",
+                            "conditions": [],
+                            "effects": [
+                                {
+                                    "type": "stat",
+                                    "subject": "alex_relationship",
+                                    "operator": "+=",
+                                    "value": 2
+                                },
+                                {
+                                    "type": "flag",
+                                    "subject": "alex_romance_track",
+                                    "operator": "=",
+                                    "value": true
+                                }
+                            ]
+                        }
+                    ]
+                },
+                "editor_data": {
+                    "id": "alex_date_yes",
+                    "x": 1100,
+                    "y": 0
+                }
+            },
+            "romance_potential_alex": {
+                "node_type": "DialogueNode",
+                "game_data": {
+                    "npc": "Narrator",
+                    "text": "As you leave the caf\u00e9, you can't help but smile. Alex's enthusiasm for their craft and genuine warmth has made quite an impression. Your heart races a little thinking about the evening ahead.",
+                    "options": [
+                        {
+                            "text": "Continue your story...",
+                            "nextNode": "story_continues",
+                            "conditions": [],
+                            "effects": []
+                        }
+                    ]
+                },
+                "editor_data": {
+                    "id": "romance_potential_alex",
+                    "x": 1300,
+                    "y": 0
+                }
+            },
+            "romance_potential_jordan": {
+                "node_type": "DialogueNode",
+                "game_data": {
+                    "npc": "Narrator",
+                    "text": "There's something special about connecting with someone over shared passions. Jordan's intellectual curiosity and gentle nature intrigue you. You sense this could develop into something wonderful.",
+                    "options": [
+                        {
+                            "text": "Continue your story...",
+                            "nextNode": "story_continues",
+                            "conditions": [],
+                            "effects": []
+                        }
+                    ]
+                },
+                "editor_data": {
+                    "id": "romance_potential_jordan",
+                    "x": 1300,
+                    "y": 80
+                }
+            },
+            "story_continues": {
+                "node_type": "DialogueNode",
+                "game_data": {
+                    "npc": "Narrator",
+                    "text": "Your adventure in love and life continues. Will you pursue romance with Alex, the passionate barista? Or with Jordan, the thoughtful reader? The choice is yours...",
+                    "options": []
+                },
+                "editor_data": {
+                    "id": "story_continues",
+                    "x": 1500,
+                    "y": 40
+                }
+            }
+        },
+        "player_stats": {
+            "confidence": 5,
+            "charm": 5,
+            "empathy": 5,
+            "observation": 5,
+            "politeness": 5,
+            "alex_relationship": 0,
+            "jordan_relationship": 0
+        },
+        "player_inventory": [],
+        "story_flags": {
+            "alex_date_planned": false,
+            "jordan_romance_track": false,
+            "alex_romance_track": false
+        },
+        "quests": {},
+        "variables": {},
+        "enemies": {},
+        "timers": {},
+        "node_id_counter": 15,
+        "project_settings": {
+            "font": "Merriweather",
+            "title_font": "Special Elite",
+            "background": ""
+        }
+    }
+}

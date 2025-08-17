@@ -10,12 +10,17 @@ class HTMLExporter:
     
     def __init__(self, app):
         self.app = app
+        self.style_settings = None  # Will be set by style customizer
     
     def export_game(self):
         """Exports the current project to a single, playable HTML file."""
         if not self.app.nodes: 
             messagebox.showwarning("Export Error", "Cannot export an empty project.")
             return False
+        
+        # Apply any saved style settings
+        if hasattr(self.app, 'html_export_settings') and self.app.html_export_settings:
+            self.style_settings = self.app.html_export_settings
         
         # Validate project first
         errors, warnings = self.app.validator.validate_project()
@@ -61,6 +66,18 @@ class HTMLExporter:
                 'active_puzzles': getattr(self.app, 'active_puzzles', {}),
                 'minigame_results': getattr(self.app, 'minigame_results', {})
             }, indent=4)
+            
+            # Portrait system data
+            portrait_data = json.dumps(
+                getattr(self.app, 'portrait_manager', None).to_dict() if hasattr(self.app, 'portrait_manager') and self.app.portrait_manager else {},
+                indent=4
+            )
+            
+            # Music system data
+            music_data = json.dumps(
+                getattr(self.app, 'music_engine', None).to_dict() if hasattr(self.app, 'music_engine') and self.app.music_engine else {},
+                indent=4
+            )
 
             # Update the _generate_html call:
             html_content = self._generate_html(
@@ -71,7 +88,9 @@ class HTMLExporter:
                 variables_data,
                 enemies_data,
                 timers_data,
-                feature_data
+                feature_data,
+                portrait_data,
+                music_data
             )
 
             # Save file
@@ -182,7 +201,7 @@ class HTMLExporter:
     
         return dialogue_data
     
-    def _generate_html(self, dialogue_data, player_data, flags_data, quests_data, variables_data, enemies_data=None, timers_data=None, feature_data=None):
+    def _generate_html(self, dialogue_data, player_data, flags_data, quests_data, variables_data, enemies_data=None, timers_data=None, feature_data=None, portrait_data=None, music_data=None):
         """Generate the complete HTML file content."""
         font_name = self.app.project_settings.get("font", "Merriweather")
         title_font_name = self.app.project_settings.get("title_font", "Special Elite")
@@ -196,6 +215,9 @@ class HTMLExporter:
         title_font_css = f'--title-font:"{title_font_name}",cursive;'
 
         background_css = self._generate_background_css(background_setting)
+        
+        # Generate custom CSS if style settings are available
+        custom_css = self._generate_custom_css() if self.style_settings else ""
         
         html_template = '''<!DOCTYPE html>
 <html lang="en">
@@ -276,6 +298,34 @@ class HTMLExporter:
         
         #options button:hover {{ background:var(--button-hover-bg); border-color: var(--accent-color); transform: translateY(-2px); }}
         #options button:disabled {{ opacity:0.5; cursor:not-allowed; filter:grayscale(70%); }}
+        
+        /* Combat Buttons */
+        .combat-button {{
+            background: linear-gradient(135deg, #8B0000, #DC143C) !important;
+            border: 2px solid #FFD700 !important;
+            color: #FFD700 !important;
+            font-weight: bold !important;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.8) !important;
+            box-shadow: 0 4px 8px rgba(139, 0, 0, 0.3) !important;
+        }}
+        
+        .combat-button:hover {{
+            background: linear-gradient(135deg, #A0000A, #F0143C) !important;
+            transform: translateY(-3px) !important;
+            box-shadow: 0 6px 12px rgba(139, 0, 0, 0.5) !important;
+        }}
+        
+        .escape-button {{
+            background: linear-gradient(135deg, #FF8C00, #FF6347) !important;
+            border: 1px solid #FFD700 !important;
+            color: white !important;
+            font-weight: bold !important;
+        }}
+        
+        .escape-button:hover {{
+            background: linear-gradient(135deg, #FF9500, #FF7F50) !important;
+            transform: translateY(-2px) !important;
+        }}
 
         /* Shop Interface */
         .shop-interface {{
@@ -440,6 +490,12 @@ class HTMLExporter:
         
         #start-overlay h1 {{ font-size: 4em; font-family: var(--title-font); margin-bottom: 0.2em; }}
         #start-overlay p {{ font-size: 1.2em; }}
+        
+        /* Custom user styles */
+        {custom_css}
+        
+        /* Advanced Combat Styles */
+        {advanced_combat_css}
     </style>
 </head>
 <body>
@@ -501,6 +557,8 @@ class HTMLExporter:
         let enemiesData = {enemies_data};
         let timersData = {timers_data};
         let featureData = {feature_data};
+        let portraitData = {portrait_data};
+        let musicData = {music_data};
         let autoAdvanceTimer = null;
         let currentShopData = null;
         let currentInventoryData = null;
@@ -591,6 +649,110 @@ class HTMLExporter:
                 document.body.style.backgroundImage = `url(${{nodeData.backgroundImage}})`;
             }} else {{
                 document.body.style.backgroundImage = '';
+            }}
+        }}
+
+        // Dynamic Music System
+        let currentAudio = null;
+        let currentTrack = null;
+        let musicVolume = 0.7;
+        let isMusicMuted = false;
+
+        function initializeMusicSystem() {{
+            if (musicData && musicData.playlists) {{
+                updateMusicForContext({{}});
+            }}
+        }}
+
+        function calculateTrackScore(track, context) {{
+            let score = 0;
+            
+            // Mood matching (highest priority)
+            if (context.mood && track.mood === context.mood) {{
+                score += 10;
+            }}
+            
+            // Intensity matching
+            if (context.intensity && track.intensity === context.intensity) {{
+                score += 5;
+            }}
+            
+            // Tag matching
+            if (context.tags && track.tags) {{
+                const matchingTags = context.tags.filter(tag => track.tags.includes(tag));
+                score += matchingTags.length * 2;
+            }}
+            
+            // Scene type matching
+            if (context.scene_type && track.scene_types && track.scene_types.includes(context.scene_type)) {{
+                score += 3;
+            }}
+            
+            return score;
+        }}
+
+        function selectBestTrack(context) {{
+            if (!musicData || !musicData.tracks) return null;
+            
+            let bestTrack = null;
+            let bestScore = -1;
+            
+            for (const trackId in musicData.tracks) {{
+                const track = musicData.tracks[trackId];
+                if (!track.enabled) continue;
+                
+                const score = calculateTrackScore(track, context);
+                if (score > bestScore) {{
+                    bestScore = score;
+                    bestTrack = track;
+                }}
+            }}
+            
+            return bestTrack;
+        }}
+
+        function updateMusicForContext(context) {{
+            if (isMusicMuted) return;
+            
+            const selectedTrack = selectBestTrack(context);
+            
+            if (selectedTrack && selectedTrack !== currentTrack) {{
+                playTrack(selectedTrack);
+            }}
+        }}
+
+        function playTrack(track) {{
+            if (currentAudio) {{
+                currentAudio.pause();
+                currentAudio = null;
+            }}
+            
+            if (track && track.file_path) {{
+                currentAudio = new Audio(track.file_path);
+                currentAudio.volume = musicVolume;
+                currentAudio.loop = track.loop_track || false;
+                
+                currentAudio.play().catch(e => {{
+                    console.log('Audio playback failed:', e);
+                }});
+                
+                currentTrack = track;
+            }}
+        }}
+
+        function setMusicVolume(volume) {{
+            musicVolume = Math.max(0, Math.min(1, volume));
+            if (currentAudio) {{
+                currentAudio.volume = musicVolume;
+            }}
+        }}
+
+        function toggleMusicMute() {{
+            isMusicMuted = !isMusicMuted;
+            if (isMusicMuted && currentAudio) {{
+                currentAudio.pause();
+            }} else if (!isMusicMuted && currentTrack) {{
+                playTrack(currentTrack);
             }}
         }}
 
@@ -734,6 +896,16 @@ class HTMLExporter:
     
             currentNode = key;
             setBackground(nodeData);
+            
+            // Update music based on node context
+            const musicContext = {{
+                mood: nodeData.mood || 'neutral',
+                intensity: nodeData.intensity || 'medium',
+                scene_type: nodeData.scene_type || 'dialogue',
+                tags: nodeData.tags || []
+            }};
+            updateMusicForContext(musicContext);
+            
             updateHud();
 
             // Handle audio/music
@@ -785,6 +957,9 @@ class HTMLExporter:
                     break;
                 case "Combat":
                     handleCombatNode(nodeData);
+                    break;
+                case "AdvancedCombat":
+                    handleAdvancedCombatNode(nodeData);
                     break;
                 default:
                     handleDialogueNode(nodeData);
@@ -1159,6 +1334,46 @@ class HTMLExporter:
             }}, 1500);
         }}
 
+        function handleAdvancedCombatNode(nodeData) {{
+            const optionsContainer = document.getElementById("options");
+            
+            const combatButton = document.createElement("button");
+            combatButton.textContent = "🛡️ Enter Advanced Combat";
+            combatButton.className = "combat-button";
+            combatButton.onclick = () => startAdvancedCombat(nodeData);
+            optionsContainer.appendChild(combatButton);
+            
+            // Add escape option if allowed
+            if (nodeData.game_data && nodeData.game_data.allow_escape && nodeData.game_data.escape_node) {{
+                const escapeButton = document.createElement("button");
+                escapeButton.textContent = "🏃 Try to Avoid Combat";
+                escapeButton.className = "escape-button";
+                escapeButton.onclick = () => {{
+                    const escapeRoll = Math.random() * 20 + 1;
+                    const difficulty = nodeData.game_data.escape_difficulty || 10;
+                    
+                    if (escapeRoll >= difficulty) {{
+                        showNotification("Successfully avoided combat!");
+                        setTimeout(() => renderNode(nodeData.game_data.escape_node), 1000);
+                    }} else {{
+                        showNotification("Failed to avoid combat! You must fight!");
+                        setTimeout(() => startAdvancedCombat(nodeData), 1000);
+                    }}
+                }};
+                optionsContainer.appendChild(escapeButton);
+            }}
+        }}
+
+        function startAdvancedCombat(nodeData) {{
+            if (typeof advancedCombat !== 'undefined' && handleAdvancedCombat(nodeData)) {{
+                return; // Combat system takes over
+            }} else {{
+                // Fallback if advanced combat fails
+                showNotification("Advanced combat system not available, using basic combat");
+                performCombat(nodeData);
+            }}
+        }}
+
         function handleDialogueNode(nodeData) {{
             const optionsContainer = document.getElementById("options");
             
@@ -1171,8 +1386,11 @@ class HTMLExporter:
                 }} else if (nodeData.audio) {{
                     document.getElementById('audio-player').onended = () => renderNode(nextNode);
                 }}
+            }} else if (nodeData.enable_timed_choices && nodeData.options && nodeData.options.length > 0) {{
+                // Handle timed choices (Telltale style)
+                handleTimedChoices(nodeData);
             }} else {{
-                // Show dialogue options
+                // Show regular dialogue options
                 (nodeData.options || []).forEach(opt => {{
                     if (!checkConditions(opt.conditions)) return;
                     const button = document.createElement("button");
@@ -1183,6 +1401,138 @@ class HTMLExporter:
                     }};
                     optionsContainer.appendChild(button);
                 }});
+            }}
+        }}
+
+        // Timed Choice System (Telltale Style)
+        let choiceTimer = null;
+        let timerDisplay = null;
+
+        function handleTimedChoices(nodeData) {{
+            const optionsContainer = document.getElementById("options");
+            
+            // Create timer display if enabled
+            if (nodeData.show_timer !== false) {{
+                timerDisplay = document.createElement("div");
+                timerDisplay.className = "choice-timer";
+                timerDisplay.style.cssText = `
+                    text-align: center;
+                    font-size: 18px;
+                    font-weight: bold;
+                    margin-bottom: 15px;
+                    padding: 10px;
+                    background: rgba(0,0,0,0.7);
+                    border-radius: 5px;
+                    color: white;
+                `;
+                optionsContainer.appendChild(timerDisplay);
+            }}
+            
+            // Filter valid choices
+            const validChoices = nodeData.options.filter(opt => checkConditions(opt.conditions));
+            
+            // Add silence option if enabled
+            if (nodeData.allow_silence !== false) {{
+                validChoices.push({{
+                    text: nodeData.silence_text || "...",
+                    nextNode: nodeData.options[nodeData.default_choice_index || 0]?.nextNode || "",
+                    effects: [],
+                    conditions: []
+                }});
+            }}
+            
+            // Create choice buttons
+            validChoices.forEach((choice, index) => {{
+                const button = document.createElement("button");
+                button.textContent = choice.text;
+                button.className = "timed-choice-button";
+                button.style.cssText = `
+                    display: block;
+                    width: 100%;
+                    margin: 5px 0;
+                    padding: 12px;
+                    background: #2a4a3a;
+                    color: white;
+                    border: 2px solid #3a5a4a;
+                    border-radius: 5px;
+                    cursor: pointer;
+                    font-size: 14px;
+                    transition: all 0.2s ease;
+                `;
+                
+                button.onmouseover = () => {{
+                    button.style.background = "#3a5a4a";
+                    button.style.borderColor = "#4a6a5a";
+                }};
+                
+                button.onmouseout = () => {{
+                    button.style.background = "#2a4a3a";
+                    button.style.borderColor = "#3a5a4a";
+                }};
+                
+                button.onclick = () => {{
+                    selectTimedChoice(choice);
+                }};
+                
+                optionsContainer.appendChild(button);
+            }});
+            
+            // Start countdown timer
+            startChoiceTimer(nodeData, validChoices);
+        }}
+
+        function startChoiceTimer(nodeData, choices) {{
+            const duration = (nodeData.choice_timer_duration || 10) * 1000; // Convert to milliseconds
+            const warningTime = (nodeData.timer_warning_time || 3) * 1000;
+            let timeLeft = duration;
+            
+            const updateTimer = () => {{
+                if (timerDisplay) {{
+                    const seconds = Math.ceil(timeLeft / 1000);
+                    timerDisplay.textContent = `⏱️ ${{seconds}}`;
+                    
+                    // Change color when time is running out
+                    if (timeLeft <= warningTime) {{
+                        timerDisplay.style.color = "#ff4444";
+                        timerDisplay.style.animation = "pulse 0.5s infinite";
+                    }}
+                }}
+                
+                timeLeft -= 100;
+                
+                if (timeLeft <= 0) {{
+                    // Time's up - select default choice
+                    const defaultIndex = Math.min(nodeData.default_choice_index || 0, choices.length - 1);
+                    const defaultChoice = choices[defaultIndex];
+                    selectTimedChoice(defaultChoice);
+                }} else {{
+                    choiceTimer = setTimeout(updateTimer, 100);
+                }}
+            }};
+            
+            updateTimer();
+        }}
+
+        function selectTimedChoice(choice) {{
+            // Clear timer
+            if (choiceTimer) {{
+                clearTimeout(choiceTimer);
+                choiceTimer = null;
+            }}
+            
+            // Remove timer display
+            if (timerDisplay) {{
+                timerDisplay.remove();
+                timerDisplay = null;
+            }}
+            
+            // Apply choice effects and navigate
+            if (choice.effects) {{
+                applyEffects(choice.effects);
+            }}
+            
+            if (choice.nextNode) {{
+                renderNode(choice.nextNode);
             }}
         }}
 
@@ -1594,6 +1944,7 @@ class HTMLExporter:
 
         document.addEventListener('DOMContentLoaded', () => {{
             updateHud();
+            initializeMusicSystem();
             renderNode('intro');
 
             const startOverlay = document.getElementById('start-overlay');
@@ -1736,10 +2087,71 @@ class HTMLExporter:
         const reputationSystem = new ReputationSystem();
         const lootSystem = new LootSystem();
         
+        // Advanced Combat Engine Integration
+        {advanced_combat_js}
+        
+        // Integration function for advanced combat nodes
+        function handleAdvancedCombat(nodeData) {{
+            if (nodeData.node_type === 'AdvancedCombat') {{
+                
+                // Handle both export formats - nested game_data or flattened structure
+                const combatData = nodeData.game_data || nodeData;
+                
+                if (!combatData) {{
+                    console.error("No combat data found in node");
+                    return false;
+                }}
+                
+                if (!combatData.enemies || !Array.isArray(combatData.enemies)) {{
+                    console.error("Combat data missing enemies array:", combatData);
+                    showNotification("Error: No enemies configured for this combat encounter!");
+                    return false;
+                }}
+                
+                if (combatData.enemies.length === 0) {{
+                    console.error("Combat data has empty enemies array:", combatData);
+                    showNotification("Error: This combat encounter has no enemies configured!");
+                    return false;
+                }}
+                
+                const playerParty = [{{
+                    id: 'player',
+                    name: 'Player',
+                    level: 1,
+                    health: 100,
+                    max_health: 100,
+                    mana: 50,
+                    max_mana: 50,
+                    stats: {{
+                        strength: player.stats.strength || 10,
+                        intelligence: player.stats.intelligence || 10,
+                        agility: player.stats.agility || 10,
+                        vitality: player.stats.vitality || 10,
+                        luck: player.stats.luck || 10
+                    }},
+                    skills: ['basic_attack', 'heal', 'fireball'],
+                    type: 'player'
+                }}];
+                
+                
+                if (typeof advancedCombat !== 'undefined') {{
+                    return advancedCombat.startCombat(combatData, playerParty, gameState);
+                }} else {{
+                    console.error("advancedCombat engine not available");
+                    return false;
+                }}
+            }}
+            return false;
+        }}
+        
     </script>
 </body>
 </html>'''
 
+        # Get advanced combat components
+        advanced_combat_js = self._get_advanced_combat_js()
+        advanced_combat_css = self._get_advanced_combat_css()
+        
         # Replace placeholders manually to avoid brace conflicts
         html_result = html_template.replace('{dialogue_data}', dialogue_data)
         html_result = html_result.replace('{player_data}', player_data)
@@ -1749,10 +2161,15 @@ class HTMLExporter:
         html_result = html_result.replace('{enemies_data}', enemies_data or '{}')
         html_result = html_result.replace('{timers_data}', timers_data or '{}')
         html_result = html_result.replace('{feature_data}', feature_data or '{}')
+        html_result = html_result.replace('{portrait_data}', portrait_data or '{}')
+        html_result = html_result.replace('{music_data}', music_data or '{}')
         html_result = html_result.replace('{font_link}', font_link)
         html_result = html_result.replace('{font_css}', font_css)
         html_result = html_result.replace('{title_font_css}', title_font_css)
         html_result = html_result.replace('{background_css}', background_css)
+        html_result = html_result.replace('{custom_css}', custom_css)
+        html_result = html_result.replace('{advanced_combat_css}', advanced_combat_css)
+        html_result = html_result.replace('{advanced_combat_js}', advanced_combat_js)
         
         # Convert double braces back to single braces for CSS/JS (but be careful about order)
         # First handle spacing issues, then convert double braces
@@ -1763,6 +2180,245 @@ class HTMLExporter:
         
         return html_result
     
+    def generate_preview_html(self):
+        """Generate preview HTML with current style settings."""
+        # Sample content for preview
+        sample_content = {
+            "intro": {
+                "npc": "Preview Character", 
+                "text": "This is a preview of how your exported HTML game will look with the current style settings. You can see the typography, colors, and layout here.",
+                "options": [
+                    {"text": "This is a sample choice", "nextNode": ""},
+                    {"text": "Another dialogue option", "nextNode": ""},
+                    {"text": "Final sample choice", "nextNode": ""}
+                ]
+            }
+        }
+        
+        sample_data = json.dumps(sample_content)
+        player_data = json.dumps({"stats": {"health": 100, "strength": 15}, "inventory": []})
+        flags_data = json.dumps({})
+        
+        return self._generate_html(sample_data, player_data, flags_data, "{}", "{}", "{}", "{}", "{}")
+    
+    def _generate_custom_css(self):
+        """Generate CSS based on style settings."""
+        if not self.style_settings:
+            return ""
+        
+        css_parts = []
+        
+        # Custom CSS variables
+        css_vars = []
+        
+        # Colors
+        if self.style_settings.get("background_color"):
+            css_vars.append(f"--custom-bg-color: {self.style_settings['background_color']};")
+        if self.style_settings.get("text_color"):
+            css_vars.append(f"--custom-text-color: {self.style_settings['text_color']};")
+        if self.style_settings.get("accent_color"):
+            css_vars.append(f"--custom-accent-color: {self.style_settings['accent_color']};")
+        if self.style_settings.get("choice_color"):
+            css_vars.append(f"--custom-choice-color: {self.style_settings['choice_color']};")
+        if self.style_settings.get("choice_hover_color"):
+            css_vars.append(f"--custom-choice-hover-color: {self.style_settings['choice_hover_color']};")
+        if self.style_settings.get("npc_name_color"):
+            css_vars.append(f"--custom-npc-name-color: {self.style_settings['npc_name_color']};")
+        
+        # Typography
+        if self.style_settings.get("font_family"):
+            css_vars.append(f"--custom-font-family: {self.style_settings['font_family']};")
+        if self.style_settings.get("font_size"):
+            css_vars.append(f"--custom-font-size: {self.style_settings['font_size']};")
+        if self.style_settings.get("line_height"):
+            css_vars.append(f"--custom-line-height: {self.style_settings['line_height']};")
+        if self.style_settings.get("heading_font"):
+            css_vars.append(f"--custom-heading-font: {self.style_settings['heading_font']};")
+        if self.style_settings.get("heading_size"):
+            css_vars.append(f"--custom-heading-size: {self.style_settings['heading_size']};")
+        
+        # Layout
+        if self.style_settings.get("max_width"):
+            css_vars.append(f"--custom-max-width: {self.style_settings['max_width']};")
+        if self.style_settings.get("padding"):
+            css_vars.append(f"--custom-padding: {self.style_settings['padding']};")
+        if self.style_settings.get("border_radius"):
+            css_vars.append(f"--custom-border-radius: {self.style_settings['border_radius']};")
+        
+        # Animations
+        if self.style_settings.get("transition_duration"):
+            css_vars.append(f"--custom-transition-duration: {self.style_settings['transition_duration']};")
+        
+        if css_vars:
+            css_parts.append(":root {\n" + "\n".join(f"    {var}" for var in css_vars) + "\n}")
+        
+        # Body styles
+        body_styles = []
+        
+        # Background handling
+        bg_type = self.style_settings.get("background_type", "solid")
+        if bg_type == "solid":
+            if self.style_settings.get("background_color"):
+                body_styles.append(f"background: var(--custom-bg-color) !important;")
+        elif bg_type == "gradient":
+            if self.style_settings.get("background_gradient"):
+                body_styles.append(f"background: {self.style_settings['background_gradient']} !important;")
+        elif bg_type == "image":
+            if self.style_settings.get("background_image"):
+                # Convert file path to data URI for embedded images
+                bg_image = self.style_settings['background_image']
+                if bg_image.startswith("data:") or bg_image.startswith("http"):
+                    body_styles.append(f"background-image: url({bg_image}) !important;")
+                else:
+                    # Try to encode local file
+                    try:
+                        import base64
+                        with open(bg_image, "rb") as f:
+                            encoded = base64.b64encode(f.read()).decode('utf-8')
+                            ext = bg_image.lower().split('.')[-1]
+                            mime_type = {"jpg": "jpeg", "jpeg": "jpeg", "png": "png", "gif": "gif"}.get(ext, "png")
+                            body_styles.append(f"background-image: url(data:image/{mime_type};base64,{encoded}) !important;")
+                    except:
+                        body_styles.append(f"background-image: url({bg_image}) !important;")
+                body_styles.append("background-size: cover !important;")
+                body_styles.append("background-position: center !important;")
+                body_styles.append("background-attachment: fixed !important;")
+        elif bg_type == "pattern":
+            pattern = self.style_settings.get("background_pattern", "none")
+            if pattern != "none":
+                pattern_css = self._generate_pattern_css(pattern)
+                if pattern_css:
+                    body_styles.append(pattern_css)
+        
+        # Typography styles
+        if self.style_settings.get("font_family"):
+            body_styles.append(f"font-family: var(--custom-font-family) !important;")
+        if self.style_settings.get("font_size"):
+            body_styles.append(f"font-size: var(--custom-font-size) !important;")
+        if self.style_settings.get("line_height"):
+            body_styles.append(f"line-height: var(--custom-line-height) !important;")
+        if self.style_settings.get("text_color"):
+            body_styles.append(f"color: var(--custom-text-color) !important;")
+        
+        if body_styles:
+            css_parts.append("body {\n" + "\n".join(f"    {style}" for style in body_styles) + "\n}")
+        
+        # Dialogue box styles
+        dialogue_styles = []
+        if self.style_settings.get("max_width"):
+            dialogue_styles.append(f"max-width: var(--custom-max-width) !important;")
+        if self.style_settings.get("padding"):
+            dialogue_styles.append(f"padding: var(--custom-padding) !important;")
+        if self.style_settings.get("border_radius"):
+            dialogue_styles.append(f"border-radius: var(--custom-border-radius) !important;")
+        
+        if dialogue_styles:
+            css_parts.append("#dialogue-box {\n" + "\n".join(f"    {style}" for style in dialogue_styles) + "\n}")
+        
+        # NPC name styles
+        npc_styles = []
+        if self.style_settings.get("npc_name_color"):
+            npc_styles.append(f"color: var(--custom-npc-name-color) !important;")
+        if self.style_settings.get("heading_font"):
+            npc_styles.append(f"font-family: var(--custom-heading-font) !important;")
+        if self.style_settings.get("heading_size"):
+            npc_styles.append(f"font-size: var(--custom-heading-size) !important;")
+        
+        if npc_styles:
+            css_parts.append("#npc-name {\n" + "\n".join(f"    {style}" for style in npc_styles) + "\n}")
+        
+        # Choice button styles
+        choice_styles = []
+        if self.style_settings.get("choice_color"):
+            choice_styles.append(f"background: var(--custom-choice-color) !important;")
+        if self.style_settings.get("text_color"):
+            choice_styles.append(f"color: var(--custom-text-color) !important;")
+        if self.style_settings.get("transition_duration"):
+            choice_styles.append(f"transition: all var(--custom-transition-duration) ease !important;")
+        if self.style_settings.get("border_radius"):
+            choice_styles.append(f"border-radius: calc(var(--custom-border-radius) / 2) !important;")
+        
+        if choice_styles:
+            css_parts.append("#options button {\n" + "\n".join(f"    {style}" for style in choice_styles) + "\n}")
+        
+        # Choice button hover styles
+        hover_styles = []
+        if self.style_settings.get("choice_hover_color"):
+            hover_styles.append(f"background: var(--custom-choice-hover-color) !important;")
+        if self.style_settings.get("accent_color"):
+            hover_styles.append(f"border-color: var(--custom-accent-color) !important;")
+        
+        if hover_styles:
+            css_parts.append("#options button:hover {\n" + "\n".join(f"    {style}" for style in hover_styles) + "\n}")
+        
+        # Animation styles
+        if not self.style_settings.get("enable_animations", True):
+            css_parts.append("* { animation: none !important; transition: none !important; }")
+        
+        # High contrast mode
+        if self.style_settings.get("high_contrast", False):
+            css_parts.append("""
+            body { filter: contrast(150%) !important; }
+            #dialogue-box { border: 2px solid currentColor !important; }
+            #options button { border: 1px solid currentColor !important; }
+            """)
+        
+        # Mobile responsive adjustments
+        if self.style_settings.get("mobile_responsive", True):
+            css_parts.append("""
+            @media (max-width: 768px) {
+                #dialogue-box { 
+                    width: 95% !important; 
+                    padding: 1rem !important; 
+                    bottom: 1rem !important; 
+                }
+                body { font-size: calc(var(--custom-font-size, 16px) * 0.9) !important; }
+            }
+            """)
+        
+        # Custom CSS injection
+        if self.style_settings.get("custom_css"):
+            css_parts.append(self.style_settings["custom_css"])
+        
+        return "\n\n".join(css_parts)
+    
+    def _generate_pattern_css(self, pattern_type):
+        """Generate CSS for background patterns."""
+        patterns = {
+            "dots": """
+                background-image: radial-gradient(circle, var(--custom-accent-color, #80CBC4) 2px, transparent 2px);
+                background-size: 20px 20px;
+            """,
+            "grid": """
+                background-image: 
+                    linear-gradient(var(--custom-accent-color, #80CBC4) 1px, transparent 1px),
+                    linear-gradient(90deg, var(--custom-accent-color, #80CBC4) 1px, transparent 1px);
+                background-size: 20px 20px;
+            """,
+            "diagonal": """
+                background-image: repeating-linear-gradient(
+                    45deg,
+                    transparent,
+                    transparent 10px,
+                    var(--custom-accent-color, #80CBC4) 10px,
+                    var(--custom-accent-color, #80CBC4) 11px
+                );
+            """,
+            "hexagon": """
+                background-image: 
+                    radial-gradient(circle at 25% 25%, transparent 25%, var(--custom-accent-color, #80CBC4) 26%, var(--custom-accent-color, #80CBC4) 50%, transparent 51%),
+                    radial-gradient(circle at 75% 75%, transparent 25%, var(--custom-accent-color, #80CBC4) 26%, var(--custom-accent-color, #80CBC4) 50%, transparent 51%);
+                background-size: 20px 20px;
+            """,
+            "triangles": """
+                background-image: 
+                    linear-gradient(60deg, var(--custom-accent-color, #80CBC4) 25%, transparent 25%, transparent 75%, var(--custom-accent-color, #80CBC4) 75%),
+                    linear-gradient(-60deg, var(--custom-accent-color, #80CBC4) 25%, transparent 25%, transparent 75%, var(--custom-accent-color, #80CBC4) 75%);
+                background-size: 20px 20px;
+            """
+        }
+        return patterns.get(pattern_type, "")
+    
     def _generate_background_css(self, background_setting):
         """Generate CSS for the background setting."""
         if background_setting:
@@ -1772,3 +2428,369 @@ class HTMLExporter:
                 return f"background: {background_setting};"
         else:
             return "background:linear-gradient(135deg,var(--bg-grad-start-default) 0%,var(--bg-grad-end-default) 100%);"
+
+    def _get_advanced_combat_js(self):
+        """Get the advanced combat engine JavaScript code only."""
+        try:
+            combat_js_path = os.path.join(os.path.dirname(__file__), 'advanced_combat_engine.js')
+            with open(combat_js_path, 'r', encoding='utf-8') as f:
+                combat_js = f.read()
+            return combat_js
+        except Exception as e:
+            print(f"Warning: Could not load advanced combat engine: {e}")
+            return "console.warn('Advanced combat engine not available'); function handleAdvancedCombat() { return false; }"
+
+    def _get_advanced_combat_css(self):
+        """Get the advanced combat CSS styles."""
+        return '''
+        /* Advanced Combat Interface Styles */
+        .advanced-combat-interface {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.95);
+            z-index: 10000;
+            display: flex;
+            flex-direction: column;
+            color: white;
+            font-family: Arial, sans-serif;
+        }
+        
+        .combat-header {
+            background: linear-gradient(135deg, #8B0000, #DC143C);
+            padding: 15px;
+            text-align: center;
+            border-bottom: 2px solid #FFD700;
+        }
+        
+        .combat-title {
+            font-size: 1.5em;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .combat-info {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            font-size: 0.9em;
+        }
+        
+        .combat-battlefield {
+            flex: 1;
+            display: grid;
+            grid-template-columns: 1fr 300px 1fr;
+            gap: 20px;
+            padding: 20px;
+            overflow-y: auto;
+        }
+        
+        .enemy-area, .player-area {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 15px;
+            border: 2px solid #444;
+        }
+        
+        .enemy-area h3, .player-area h3 {
+            margin: 0 0 15px 0;
+            text-align: center;
+            font-size: 1.2em;
+            color: #FFD700;
+        }
+        
+        .combatants-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .combatant {
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 8px;
+            padding: 10px;
+            border: 1px solid #666;
+            position: relative;
+        }
+        
+        .combatant.player {
+            border-color: #4CAF50;
+        }
+        
+        .combatant.enemy {
+            border-color: #f44336;
+        }
+        
+        .combatant.valid-target {
+            border-color: #FFD700;
+            box-shadow: 0 0 10px #FFD700;
+            cursor: pointer;
+        }
+        
+        .combatant-portrait {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        
+        .combatant-name {
+            font-weight: bold;
+            font-size: 1.1em;
+        }
+        
+        .combatant-level {
+            font-size: 0.9em;
+            color: #ccc;
+        }
+        
+        .target-indicator {
+            cursor: pointer;
+            font-size: 1.2em;
+            padding: 2px 6px;
+            border-radius: 4px;
+            background: rgba(255, 215, 0, 0.2);
+        }
+        
+        .target-indicator:hover {
+            background: rgba(255, 215, 0, 0.4);
+        }
+        
+        .combatant-stats {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        
+        .health-bar, .mana-bar {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .bar-label {
+            font-size: 0.8em;
+            min-width: 25px;
+            color: #ccc;
+        }
+        
+        .bar {
+            flex: 1;
+            height: 16px;
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 8px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .bar-fill {
+            height: 100%;
+            transition: width 0.3s ease;
+            border-radius: 8px;
+        }
+        
+        .health-fill {
+            background: linear-gradient(90deg, #f44336, #4CAF50);
+        }
+        
+        .mana-fill {
+            background: linear-gradient(90deg, #2196F3, #00BCD4);
+        }
+        
+        .bar-text {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75em;
+            color: white;
+            text-shadow: 1px 1px 1px rgba(0, 0, 0, 0.8);
+        }
+        
+        .status-effects {
+            display: flex;
+            gap: 3px;
+            margin-top: 5px;
+        }
+        
+        .status-effect {
+            font-size: 1em;
+            padding: 2px 4px;
+            border-radius: 3px;
+            background: rgba(255, 255, 255, 0.2);
+            cursor: help;
+        }
+        
+        .battlefield-center {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        
+        .combat-log {
+            background: rgba(0, 0, 0, 0.7);
+            border-radius: 8px;
+            padding: 15px;
+            height: 200px;
+            overflow-y: auto;
+            border: 1px solid #444;
+        }
+        
+        .log-entry {
+            margin-bottom: 8px;
+            padding: 4px 8px;
+            border-radius: 4px;
+            background: rgba(255, 255, 255, 0.1);
+            font-size: 0.9em;
+            line-height: 1.3;
+        }
+        
+        .environmental-effects {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+        }
+        
+        .environmental-effect {
+            background: rgba(255, 165, 0, 0.2);
+            border: 1px solid #FF8C00;
+            border-radius: 6px;
+            padding: 8px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.9em;
+        }
+        
+        .combat-controls {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-top: 2px solid #444;
+        }
+        
+        .current-actor-info {
+            text-align: center;
+            margin-bottom: 15px;
+            padding: 10px;
+            background: rgba(255, 215, 0, 0.1);
+            border-radius: 6px;
+            border: 1px solid #FFD700;
+        }
+        
+        .actor-name {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #FFD700;
+        }
+        
+        .actor-stats-mini {
+            font-size: 0.9em;
+            color: #ccc;
+            margin-top: 4px;
+        }
+        
+        .action-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            align-items: center;
+        }
+        
+        .skills-container, .other-actions-container {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        
+        .action-button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            font-size: 1em;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-weight: bold;
+        }
+        
+        .attack-button {
+            background: #f44336;
+            color: white;
+        }
+        
+        .attack-button:hover {
+            background: #d32f2f;
+            transform: translateY(-2px);
+        }
+        
+        .skill-button {
+            background: #9C27B0;
+            color: white;
+        }
+        
+        .skill-button:hover {
+            background: #7B1FA2;
+            transform: translateY(-2px);
+        }
+        
+        .skill-button.disabled {
+            background: #666;
+            color: #999;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .defend-button {
+            background: #2196F3;
+            color: white;
+        }
+        
+        .defend-button:hover {
+            background: #1976D2;
+            transform: translateY(-2px);
+        }
+        
+        .escape-button {
+            background: #FF9800;
+            color: white;
+        }
+        
+        .escape-button:hover {
+            background: #F57C00;
+            transform: translateY(-2px);
+        }
+        
+        .damage-flash {
+            animation: damageFlash 0.5s ease;
+        }
+        
+        .healing-flash {
+            animation: healingFlash 0.5s ease;
+        }
+        
+        @keyframes damageFlash {
+            0%, 100% { background: rgba(255, 255, 255, 0.15); }
+            50% { background: rgba(255, 0, 0, 0.5); }
+        }
+        
+        @keyframes healingFlash {
+            0%, 100% { background: rgba(255, 255, 255, 0.15); }
+            50% { background: rgba(0, 255, 0, 0.3); }
+        }
+        
+        .damage-number, .healing-number {
+            animation: numberFloat 1s ease-out forwards;
+        }
+        
+        @keyframes numberFloat {
+            0% { opacity: 1; transform: translateY(0); }
+            100% { opacity: 0; transform: translateY(-30px); }
+        }
+        '''

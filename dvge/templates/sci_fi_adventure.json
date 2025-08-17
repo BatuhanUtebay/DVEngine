@@ -1,0 +1,844 @@
+{
+    "id": "sci_fi_adventure",
+    "name": "Sci-Fi Space Adventure",
+    "description": "An epic space adventure with alien encounters, technology upgrades, and moral dilemmas about the future of humanity and alien civilizations.",
+    "category": "Sci-Fi",
+    "difficulty": "Advanced",
+    "tags": [
+        "sci-fi",
+        "space",
+        "aliens",
+        "technology",
+        "moral choices"
+    ],
+    "author": "DVGE Team",
+    "version": "1.0",
+    "help_text": "This template demonstrates science fiction storytelling with complex moral choices, technology systems, and multiple alien species. Notice the branching paths based on philosophical decisions.",
+    "tutorial_steps": [
+        "Pay attention to how your moral choices affect relationships with alien species",
+        "Notice the technology upgrade system and how it opens new options",
+        "Observe how scientific decisions impact story outcomes",
+        "Try different approaches to first contact scenarios",
+        "Consider the long-term consequences of your technological choices"
+    ],
+    "project_data": {
+        "version": "1.0.0",
+        "nodes": {
+            "intro": {
+                "node_type": "DialogueNode",
+                "game_data": {
+                    "npc": "Ship AI - ARIA",
+                    "text": "Captain, we've detected an uncharted planet with signs of intelligent life. Our long-range scans show advanced structures and energy signatures. This could be humanity's first contact with an alien civilization.",
+                    "options": [
+                        {
+                            "text": "Approach with peaceful intentions",
+                            "nextNode": "peaceful_approach",
+                            "conditions": [],
+                            "effects": [
+                                {
+                                    "type": "stat",
+                                    "subject": "diplomatic_reputation",
+                                    "operator": "+=",
+                                    "value": 2
+                                }
+                            ]
+                        },
+                        {
+                            "text": "Maintain caution - scan for threats first",
+                            "nextNode": "cautious_scan",
+                            "conditions": [],
+                            "effects": [
+                                {
+                                    "type": "stat",
+                                    "subject": "tactical_analysis",
+                                    "operator": "+=",
+                                    "value": 1
+                                }
+                            ]
+                        },
+                        {
+                            "text": "Study the planet from a safe distance",
+                            "nextNode": "scientific_observation",
+                            "conditions": [],
+                            "effects": [
+                                {
+                                    "type": "stat",
+                                    "subject": "scientific_knowledge",
+                                    "operator": "+=",
+                                    "value": 2
+                                }
+                            ]
+                        },
+                        {
+                            "text": "We need to decide quickly - something's approaching!",
+                            "nextNode": "urgent_decision",
+                            "conditions": [],
+                            "effects": []
+                        }
+                    ]
+                },
+                "editor_data": {
+                    "id": "intro",
+                    "x": 100,
+                    "y": 100
+                }
+            },
+            "cautious_scan": {
+                "node_type": "DialogueNode",
+                "game_data": {
+                    "npc": "Tactical Officer",
+                    "text": "Captain, tactical scans show no immediate weapon signatures, but their technology is far beyond our understanding. They could pose a threat or be completely peaceful - we simply don't know.",
+                    "options": [
+                        {
+                            "text": "Proceed with peaceful contact",
+                            "nextNode": "peaceful_approach",
+                            "conditions": [],
+                            "effects": []
+                        },
+                        {
+                            "text": "Maintain safe distance and observe",
+                            "nextNode": "scientific_observation",
+                            "conditions": [],
+                            "effects": []
+                        }
+                    ]
+                },
+                "editor_data": {
+                    "id": "cautious_scan",
+                    "x": 300,
+                    "y": 200
+                }
+            },
+            "peaceful_approach": {
+                "node_type": "DialogueNode",
+                "game_data": {
+                    "npc": "Ship AI - ARIA",
+                    "text": "Broadcasting standard peaceful greeting on all frequencies. Captain, we're receiving a response! They're... they're responding in multiple Earth languages. How could they know our languages?",
+                    "options": [
+                        {
+                            "text": "This is incredible - they've been watching us",
+                            "nextNode": "alien_contact_peaceful",
+                            "conditions": [],
+                            "effects": []
+                        },
+                        {
+                            "text": "Stay alert - this could be a trap",
+                            "nextNode": "alien_contact_suspicious",
+                            "conditions": [],
+                            "effects": [
+                                {
+                                    "type": "stat",
+                                    "subject": "paranoia_level",
+                                    "operator": "+=",
+                                    "value": 1
+                                }
+                            ]
+                        }
+                    ]
+                },
+                "editor_data": {
+                    "id": "peaceful_approach",
+                    "x": 300,
+                    "y": 50
+                }
+            },
+            "scientific_observation": {
+                "node_type": "DialogueNode",
+                "game_data": {
+                    "npc": "Science Officer Chen",
+                    "text": "Captain, the readings are extraordinary! Their technology appears to be based on principles we don't understand. Bio-mechanical fusion, energy manipulation... this could advance human science by centuries.",
+                    "options": [
+                        {
+                            "text": "Focus on learning their technology",
+                            "nextNode": "tech_focused_approach",
+                            "conditions": [],
+                            "effects": [
+                                {
+                                    "type": "stat",
+                                    "subject": "technology_priority",
+                                    "operator": "+=",
+                                    "value": 2
+                                }
+                            ]
+                        },
+                        {
+                            "text": "Study their culture and society first",
+                            "nextNode": "cultural_study",
+                            "conditions": [],
+                            "effects": [
+                                {
+                                    "type": "stat",
+                                    "subject": "cultural_understanding",
+                                    "operator": "+=",
+                                    "value": 2
+                                }
+                            ]
+                        },
+                        {
+                            "text": "Try to establish contact now",
+                            "nextNode": "delayed_contact",
+                            "conditions": [],
+                            "effects": []
+                        }
+                    ]
+                },
+                "editor_data": {
+                    "id": "scientific_observation",
+                    "x": 300,
+                    "y": 150
+                }
+            },
+            "alien_contact_suspicious": {
+                "node_type": "DialogueNode",
+                "game_data": {
+                    "npc": "Zephyrian Voice",
+                    "text": "We detect wariness in your thoughts, humans. This is... wise. Many species approach with false friendliness. Your caution shows you may yet survive the challenges ahead.",
+                    "options": [
+                        {
+                            "text": "We mean no harm, but we protect ourselves",
+                            "nextNode": "pragmatic_path",
+                            "conditions": [],
+                            "effects": [
+                                {
+                                    "type": "stat",
+                                    "subject": "zephyrian_trust",
+                                    "operator": "+=",
+                                    "value": 1
+                                }
+                            ]
+                        },
+                        {
+                            "text": "What challenges do you speak of?",
+                            "nextNode": "galactic_threats_revealed",
+                            "conditions": [],
+                            "effects": []
+                        }
+                    ]
+                },
+                "editor_data": {
+                    "id": "alien_contact_suspicious",
+                    "x": 500,
+                    "y": 250
+                }
+            },
+            "alien_contact_peaceful": {
+                "node_type": "DialogueNode",
+                "game_data": {
+                    "npc": "Zephyrian Ambassador",
+                    "text": "Greetings, beings of Terra. We are the Zephyrians. We have observed your species' growth with great interest. You show promise - both for creation and destruction. We wish to share knowledge, but we must know: what is humanity's true nature?",
+                    "options": [
+                        {
+                            "text": "We are explorers seeking knowledge and friendship",
+                            "nextNode": "diplomatic_path",
+                            "conditions": [],
+                            "effects": [
+                                {
+                                    "type": "stat",
+                                    "subject": "zephyrian_trust",
+                                    "operator": "+=",
+                                    "value": 3
+                                }
+                            ]
+                        },
+                        {
+                            "text": "We are survivors who have learned to adapt",
+                            "nextNode": "pragmatic_path",
+                            "conditions": [],
+                            "effects": [
+                                {
+                                    "type": "stat",
+                                    "subject": "zephyrian_trust",
+                                    "operator": "+=",
+                                    "value": 1
+                                }
+                            ]
+                        },
+                        {
+                            "text": "We are protectors of our own and those who need help",
+                            "nextNode": "guardian_path",
+                            "conditions": [],
+                            "effects": [
+                                {
+                                    "type": "stat",
+                                    "subject": "zephyrian_trust",
+                                    "operator": "+=",
+                                    "value": 2
+                                }
+                            ]
+                        }
+                    ]
+                },
+                "editor_data": {
+                    "id": "alien_contact_peaceful",
+                    "x": 500,
+                    "y": 50
+                }
+            },
+            "tech_focused_approach": {
+                "node_type": "DialogueNode",
+                "game_data": {
+                    "npc": "Science Officer Chen",
+                    "text": "Captain, I've identified what appears to be a damaged alien probe at the edge of their system. If we could study it without being detected, we might learn about their technology before making contact.",
+                    "options": [
+                        {
+                            "text": "Retrieve the probe for analysis",
+                            "nextNode": "probe_retrieval",
+                            "conditions": [],
+                            "effects": [
+                                {
+                                    "type": "stat",
+                                    "subject": "tech_advantage",
+                                    "operator": "+=",
+                                    "value": 2
+                                }
+                            ]
+                        },
+                        {
+                            "text": "That feels too much like theft. Make contact first",
+                            "nextNode": "ethical_contact",
+                            "conditions": [],
+                            "effects": [
+                                {
+                                    "type": "stat",
+                                    "subject": "ethical_standing",
+                                    "operator": "+=",
+                                    "value": 2
+                                }
+                            ]
+                        }
+                    ]
+                },
+                "editor_data": {
+                    "id": "tech_focused_approach",
+                    "x": 500,
+                    "y": 150
+                }
+            },
+            "diplomatic_path": {
+                "node_type": "DialogueNode",
+                "game_data": {
+                    "npc": "Zephyrian Ambassador",
+                    "text": "Your words resonate with truth. We sense sincerity in your crew's thoughts. We offer a gift - a crystal that contains knowledge of sustainable energy. Use it wisely, and perhaps greater gifts will follow.",
+                    "options": [
+                        {
+                            "text": "We are honored by your trust and gift",
+                            "nextNode": "alliance_beginning",
+                            "conditions": [],
+                            "effects": [
+                                {
+                                    "type": "item",
+                                    "subject": "Zephyrian Energy Crystal",
+                                    "operator": "add",
+                                    "value": 1
+                                },
+                                {
+                                    "type": "stat",
+                                    "subject": "zephyrian_trust",
+                                    "operator": "+=",
+                                    "value": 2
+                                }
+                            ]
+                        },
+                        {
+                            "text": "What do you expect in return?",
+                            "nextNode": "suspicious_response",
+                            "conditions": [],
+                            "effects": [
+                                {
+                                    "type": "stat",
+                                    "subject": "zephyrian_trust",
+                                    "operator": "-=",
+                                    "value": 1
+                                }
+                            ]
+                        }
+                    ]
+                },
+                "editor_data": {
+                    "id": "diplomatic_path",
+                    "x": 700,
+                    "y": 0
+                }
+            },
+            "probe_retrieval": {
+                "node_type": "DialogueNode",
+                "game_data": {
+                    "npc": "Science Officer Chen",
+                    "text": "Analysis complete, Captain. This technology is incredible - but I'm detecting an active distress beacon. The probe isn't damaged... it's calling for help. The aliens know we have it.",
+                    "options": [
+                        {
+                            "text": "Return the probe immediately with apologies",
+                            "nextNode": "probe_return_honest",
+                            "conditions": [],
+                            "effects": [
+                                {
+                                    "type": "stat",
+                                    "subject": "redemption_chance",
+                                    "operator": "+=",
+                                    "value": 2
+                                }
+                            ]
+                        },
+                        {
+                            "text": "Keep studying it - we need every advantage",
+                            "nextNode": "probe_keep_studying",
+                            "conditions": [],
+                            "effects": [
+                                {
+                                    "type": "stat",
+                                    "subject": "tech_advantage",
+                                    "operator": "+=",
+                                    "value": 3
+                                },
+                                {
+                                    "type": "stat",
+                                    "subject": "alien_hostility",
+                                    "operator": "+=",
+                                    "value": 2
+                                }
+                            ]
+                        },
+                        {
+                            "text": "Destroy the evidence and leave this system",
+                            "nextNode": "retreat_path",
+                            "conditions": [],
+                            "effects": [
+                                {
+                                    "type": "stat",
+                                    "subject": "missed_opportunity",
+                                    "operator": "+=",
+                                    "value": 3
+                                }
+                            ]
+                        }
+                    ]
+                },
+                "editor_data": {
+                    "id": "probe_retrieval",
+                    "x": 700,
+                    "y": 150
+                }
+            },
+            "alliance_beginning": {
+                "node_type": "DialogueNode",
+                "game_data": {
+                    "npc": "Zephyrian Ambassador",
+                    "text": "Your species shows wisdom. We propose a cultural exchange - some of your crew may study on our world, while our scholars visit Earth. Together, we can explore the galaxy as friends.",
+                    "options": [
+                        {
+                            "text": "Accept the exchange program",
+                            "nextNode": "cultural_exchange",
+                            "conditions": [],
+                            "effects": [
+                                {
+                                    "type": "flag",
+                                    "subject": "zephyrian_alliance",
+                                    "operator": "=",
+                                    "value": true
+                                },
+                                {
+                                    "type": "stat",
+                                    "subject": "galactic_standing",
+                                    "operator": "+=",
+                                    "value": 5
+                                }
+                            ]
+                        },
+                        {
+                            "text": "We need to consult with Earth first",
+                            "nextNode": "cautious_diplomacy",
+                            "conditions": [],
+                            "effects": []
+                        }
+                    ]
+                },
+                "editor_data": {
+                    "id": "alliance_beginning",
+                    "x": 900,
+                    "y": 0
+                }
+            },
+            "probe_return_honest": {
+                "node_type": "DialogueNode",
+                "game_data": {
+                    "npc": "Zephyrian Security Chief",
+                    "text": "You took our property, but you return it freely and with honesty. This shows character. Our Ambassador wishes to speak with you despite this... incident.",
+                    "options": [
+                        {
+                            "text": "We apologize and request forgiveness",
+                            "nextNode": "redemption_meeting",
+                            "conditions": [],
+                            "effects": [
+                                {
+                                    "type": "stat",
+                                    "subject": "zephyrian_trust",
+                                    "operator": "+=",
+                                    "value": 1
+                                }
+                            ]
+                        },
+                        {
+                            "text": "We acted out of scientific curiosity, not malice",
+                            "nextNode": "scientific_justification",
+                            "conditions": [],
+                            "effects": []
+                        }
+                    ]
+                },
+                "editor_data": {
+                    "id": "probe_return_honest",
+                    "x": 900,
+                    "y": 120
+                }
+            },
+            "probe_keep_studying": {
+                "node_type": "DialogueNode",
+                "game_data": {
+                    "npc": "Hostile Alien Voice",
+                    "text": "Thieves from Terra! You steal our technology and show your true nature. We defended against beings like you before. Leave our space immediately or face consequences.",
+                    "options": [
+                        {
+                            "text": "We're sorry - we'll return your property",
+                            "nextNode": "desperate_apology",
+                            "conditions": [],
+                            "effects": []
+                        },
+                        {
+                            "text": "We won't be intimidated by threats",
+                            "nextNode": "hostile_standoff",
+                            "conditions": [],
+                            "effects": [
+                                {
+                                    "type": "stat",
+                                    "subject": "alien_hostility",
+                                    "operator": "+=",
+                                    "value": 3
+                                }
+                            ]
+                        },
+                        {
+                            "text": "Prepare for combat if necessary",
+                            "nextNode": "combat_preparation",
+                            "conditions": [],
+                            "effects": [
+                                {
+                                    "type": "stat",
+                                    "subject": "military_escalation",
+                                    "operator": "+=",
+                                    "value": 5
+                                }
+                            ]
+                        }
+                    ]
+                },
+                "editor_data": {
+                    "id": "probe_keep_studying",
+                    "x": 900,
+                    "y": 180
+                }
+            },
+            "cultural_exchange": {
+                "node_type": "DialogueNode",
+                "game_data": {
+                    "npc": "Narrator",
+                    "text": "Months later, the cultural exchange has transformed both civilizations. Human creativity combines with Zephyrian wisdom to solve galactic challenges. Your choice to prioritize friendship over fear has opened a new chapter for humanity among the stars.",
+                    "options": [
+                        {
+                            "text": "Continue the adventure...",
+                            "nextNode": "galactic_federation",
+                            "conditions": [],
+                            "effects": []
+                        }
+                    ]
+                },
+                "editor_data": {
+                    "id": "cultural_exchange",
+                    "x": 1100,
+                    "y": 0
+                }
+            },
+            "hostile_standoff": {
+                "node_type": "DialogueNode",
+                "game_data": {
+                    "npc": "Narrator",
+                    "text": "The standoff escalates into a cold war between species. Humanity gains advanced technology but at the cost of making powerful enemies. The galaxy becomes a more dangerous place, and other alien races view humans with suspicion.",
+                    "options": [
+                        {
+                            "text": "Face the consequences of our choices",
+                            "nextNode": "galactic_isolation",
+                            "conditions": [],
+                            "effects": []
+                        }
+                    ]
+                },
+                "editor_data": {
+                    "id": "hostile_standoff",
+                    "x": 1100,
+                    "y": 180
+                }
+            },
+            "galactic_federation": {
+                "node_type": "DialogueNode",
+                "game_data": {
+                    "npc": "Federation Speaker",
+                    "text": "Captain, your diplomatic success with the Zephyrians has earned humanity a seat in the Galactic Federation. We face new challenges, but we face them together with allies across the stars.",
+                    "options": []
+                },
+                "editor_data": {
+                    "id": "galactic_federation",
+                    "x": 1300,
+                    "y": 0
+                }
+            },
+            "galactic_isolation": {
+                "node_type": "DialogueNode",
+                "game_data": {
+                    "npc": "Earth Command",
+                    "text": "Captain, our aggressive approach has made us enemies across the galaxy. We have advanced technology, but we stand alone in a hostile universe. Humanity must now defend itself from threats we helped create.",
+                    "options": []
+                },
+                "editor_data": {
+                    "id": "galactic_isolation",
+                    "x": 1300,
+                    "y": 180
+                }
+            },
+            "urgent_decision": {
+                "node_type": "TimerNode",
+                "game_data": {
+                    "npc": "Ship AI - ARIA",
+                    "text": "Captain! Multiple alien vessels are approaching fast! We have 30 seconds to decide our response before they're in communication range. Your choice now will set the tone for humanity's first contact!",
+                    "duration": 30,
+                    "display_timer": true,
+                    "warning_at": 10,
+                    "success_node": "quick_diplomatic_choice",
+                    "timeout_node": "forced_contact"
+                },
+                "editor_data": {
+                    "id": "urgent_decision",
+                    "x": 100,
+                    "y": 250
+                }
+            },
+            "quick_diplomatic_choice": {
+                "node_type": "DialogueNode",
+                "game_data": {
+                    "npc": "Ship AI - ARIA",
+                    "text": "Well done, Captain! You made your decision just in time. The alien vessels have slowed their approach and are now broadcasting what appears to be a peaceful greeting.",
+                    "options": [
+                        {
+                            "text": "Respond with our own peaceful greeting",
+                            "nextNode": "alien_contact_peaceful",
+                            "conditions": [],
+                            "effects": [
+                                {
+                                    "type": "stat",
+                                    "subject": "diplomatic_reputation",
+                                    "operator": "+=",
+                                    "value": 1
+                                }
+                            ]
+                        }
+                    ]
+                },
+                "editor_data": {
+                    "id": "quick_diplomatic_choice",
+                    "x": 300,
+                    "y": 300
+                }
+            },
+            "forced_contact": {
+                "node_type": "DialogueNode",
+                "game_data": {
+                    "npc": "Alien Fleet Commander",
+                    "text": "Human vessel, you hesitate when action is required. This suggests either wisdom or weakness. We are the Zephyrian fleet. State your intentions in our space.",
+                    "options": [
+                        {
+                            "text": "We come in peace and seek dialogue",
+                            "nextNode": "alien_contact_suspicious",
+                            "conditions": [],
+                            "effects": [
+                                {
+                                    "type": "stat",
+                                    "subject": "first_impression",
+                                    "operator": "+=",
+                                    "value": -1
+                                }
+                            ]
+                        },
+                        {
+                            "text": "We were cautious out of respect for your territory",
+                            "nextNode": "pragmatic_path",
+                            "conditions": [],
+                            "effects": []
+                        }
+                    ]
+                },
+                "editor_data": {
+                    "id": "forced_contact",
+                    "x": 100,
+                    "y": 350
+                }
+            },
+            "pragmatic_path": {
+                "node_type": "DialogueNode",
+                "game_data": {
+                    "npc": "Zephyrian Negotiator",
+                    "text": "Survival and adaptability - these are valuable traits. The galaxy is dangerous, and those who survive do so through careful choices. We may have much to discuss about the realities of interstellar existence.",
+                    "options": [
+                        {
+                            "text": "We're willing to learn from your experience",
+                            "nextNode": "practical_alliance",
+                            "conditions": [],
+                            "effects": [
+                                {
+                                    "type": "stat",
+                                    "subject": "zephyrian_trust",
+                                    "operator": "+=",
+                                    "value": 2
+                                }
+                            ]
+                        }
+                    ]
+                },
+                "editor_data": {
+                    "id": "pragmatic_path",
+                    "x": 700,
+                    "y": 50
+                }
+            },
+            "guardian_path": {
+                "node_type": "DialogueNode",
+                "game_data": {
+                    "npc": "Zephyrian Elder",
+                    "text": "Protectors... yes, we sense this truth in you. The galaxy needs guardians, for there are forces that would consume all life. Perhaps we can teach you to protect not just yourselves, but entire worlds.",
+                    "options": [
+                        {
+                            "text": "We accept the responsibility",
+                            "nextNode": "guardian_alliance",
+                            "conditions": [],
+                            "effects": [
+                                {
+                                    "type": "stat",
+                                    "subject": "zephyrian_trust",
+                                    "operator": "+=",
+                                    "value": 3
+                                }
+                            ]
+                        }
+                    ]
+                },
+                "editor_data": {
+                    "id": "guardian_path",
+                    "x": 700,
+                    "y": 100
+                }
+            },
+            "galactic_threats_revealed": {
+                "node_type": "DialogueNode",
+                "game_data": {
+                    "npc": "Zephyrian Voice",
+                    "text": "Ancient machines stir in the galaxy's core. Devourers that consume entire star systems. Species that view organic life as infection to be cleansed. Your caution may serve you well in the trials ahead.",
+                    "options": [
+                        {
+                            "text": "How can we prepare for such threats?",
+                            "nextNode": "preparation_offered",
+                            "conditions": [],
+                            "effects": []
+                        }
+                    ]
+                },
+                "editor_data": {
+                    "id": "galactic_threats_revealed",
+                    "x": 700,
+                    "y": 250
+                }
+            },
+            "practical_alliance": {
+                "node_type": "DialogueNode",
+                "game_data": {
+                    "npc": "Narrator",
+                    "text": "Your practical approach earned respect. The Zephyrians share defensive technologies and survival strategies. Humanity gains powerful allies through pragmatic wisdom rather than idealistic promises.",
+                    "options": []
+                },
+                "editor_data": {
+                    "id": "practical_alliance",
+                    "x": 900,
+                    "y": 50
+                }
+            },
+            "guardian_alliance": {
+                "node_type": "DialogueNode",
+                "game_data": {
+                    "npc": "Narrator",
+                    "text": "Accepting the guardian role, humanity joins an ancient order protecting the galaxy's younger species. The responsibility is great, but so too is the honor and the advanced knowledge you gain.",
+                    "options": []
+                },
+                "editor_data": {
+                    "id": "guardian_alliance",
+                    "x": 900,
+                    "y": 100
+                }
+            },
+            "preparation_offered": {
+                "node_type": "DialogueNode",
+                "game_data": {
+                    "npc": "Narrator",
+                    "text": "The Zephyrians offer training and advanced warning systems. Your cautious nature has earned their respect, and they believe humanity can survive the coming galactic upheaval with proper preparation.",
+                    "options": []
+                },
+                "editor_data": {
+                    "id": "preparation_offered",
+                    "x": 900,
+                    "y": 250
+                }
+            }
+        },
+        "player_stats": {
+            "diplomatic_reputation": 0,
+            "tactical_analysis": 0,
+            "scientific_knowledge": 0,
+            "paranoia_level": 0,
+            "technology_priority": 0,
+            "cultural_understanding": 0,
+            "zephyrian_trust": 0,
+            "tech_advantage": 0,
+            "ethical_standing": 0,
+            "galactic_standing": 0,
+            "alien_hostility": 0,
+            "military_escalation": 0,
+            "first_impression": 0
+        },
+        "player_inventory": [
+            {
+                "name": "Captain's Logbook",
+                "description": "Record of your deep space exploration mission"
+            },
+            {
+                "name": "Universal Translator",
+                "description": "Advanced device for communicating with alien species"
+            }
+        ],
+        "story_flags": {
+            "zephyrian_alliance": false,
+            "first_contact_made": false,
+            "probe_incident": false
+        },
+        "quests": {
+            "first_contact": {
+                "name": "First Contact Protocol",
+                "description": "Successfully establish contact with alien civilization",
+                "state": "active"
+            }
+        },
+        "variables": {},
+        "enemies": {},
+        "timers": {},
+        "node_id_counter": 18,
+        "project_settings": {
+            "font": "Merriweather",
+            "title_font": "Special Elite",
+            "background": ""
+        }
+    }
+}

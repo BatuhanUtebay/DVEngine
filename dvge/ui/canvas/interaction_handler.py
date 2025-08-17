@@ -38,6 +38,7 @@ class InteractionHandler:
         node_menu.add_command(label="Dialogue Node", command=lambda: self._add_node_type("dialogue"))
         node_menu.add_command(label="Dice Roll Node", command=lambda: self._add_node_type("dice_roll"))
         node_menu.add_command(label="Combat Node", command=lambda: self._add_node_type("combat"))
+        node_menu.add_command(label="Advanced Combat Node", command=lambda: self._add_node_type("advanced_combat"))
         node_menu.add_separator()
         node_menu.add_command(label="Shop Node", command=lambda: self._add_node_type("shop"))
         node_menu.add_command(label="Random Event Node", command=lambda: self._add_node_type("random_event"))
@@ -360,7 +361,13 @@ class InteractionHandler:
     
     def _add_node_type(self, node_type):
         """Adds a specific node type at the right-click position."""
-        self.app.canvas_manager.add_node(*self.right_click_pos, node_type=node_type)
+        if node_type == "advanced_combat":
+            # Open the advanced combat editor for new nodes
+            from ...ui.windows import AdvancedCombatEditor
+            # Pass the right-click position to the editor
+            editor = AdvancedCombatEditor(self.app, position=self.right_click_pos)
+        else:
+            self.app.canvas_manager.add_node(*self.right_click_pos, node_type=node_type)
 
     def on_pan_start(self, event):
         """Handles the start of canvas panning."""

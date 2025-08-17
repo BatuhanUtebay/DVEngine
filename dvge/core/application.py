@@ -135,18 +135,46 @@ class DVGApp(ctk.CTk):
 
     def new_project_handler(self):
         """Create a new project."""
-        from ..core.utils import ask_yes_no
-        if ask_yes_no("New Project", "Create a new project? Unsaved changes will be lost."):
-            self._initialize_project_state()
-            
-            # Re-initialize variable system with new references
-            self.variable_system.set_variables_ref(self.variables)
-            self.variable_system.set_flags_ref(self.story_flags)
-            
-            self.state_manager.clear_history()
-            self.canvas_manager.redraw_all_nodes()
-            self.properties_panel.update_all_panels()
-            self.state_manager.save_state("New Project")
+        try:
+            print("DEBUG: Starting new_project_handler")
+            from ..core.utils import ask_yes_no
+            if ask_yes_no("New Project", "Create a new project? Unsaved changes will be lost."):
+                print("DEBUG: User confirmed new project")
+                # Show template selection dialog
+                from ..ui.dialogs.template_selection_dialog import TemplateSelectionDialog
+                print("DEBUG: Imported template dialog")
+                template_dialog = TemplateSelectionDialog(self)
+                print("DEBUG: Created template dialog")
+                result = template_dialog.show()
+                print(f"DEBUG: Dialog result: {result}")
+                
+                if result is None:
+                    print("DEBUG: User cancelled")
+                    return  # User cancelled
+                    
+                if result["action"] == "create_blank":
+                    print("DEBUG: Creating blank project")
+                    self._initialize_project_state()
+                elif result["action"] == "create_from_template":
+                    template = result["template"]
+                    print(f"DEBUG: Applying template: {template.name}")
+                    self._apply_template(template)
+                
+                # Re-initialize variable system with new references
+                self.variable_system.set_variables_ref(self.variables)
+                self.variable_system.set_flags_ref(self.story_flags)
+                
+                self.state_manager.clear_history()
+                self.canvas_manager.redraw_all_nodes()
+                self.properties_panel.update_all_panels()
+                self.state_manager.save_state("New Project")
+                print("DEBUG: New project handler completed successfully")
+            else:
+                print("DEBUG: User declined new project")
+        except Exception as e:
+            print(f"DEBUG ERROR in new_project_handler: {e}")
+            import traceback
+            traceback.print_exc()
 
     def save_project_handler(self): 
         """Save the current project."""
@@ -214,3 +242,10 @@ class DVGApp(ctk.CTk):
     def _save_state_for_undo(self, action_name=""):
         """Wrapper for state manager save_state method."""
         self.state_manager.save_state(action_name)
+        
+    def _apply_template(self, template):
+        """Apply a project template to create a new project."""
+        from .template_manager import TemplateManager
+        
+        template_manager = TemplateManager()
+        template_manager.apply_template(template, self)

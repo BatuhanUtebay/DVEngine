@@ -227,10 +227,12 @@ class DVGApp(ctk.CTk):
             from ..features.skill_checks import SkillCheckSystem
             from ..features.reputation import ReputationSystem
             from ..features.loot_system import LootTable
+            from ..features.media_system import MediaLibrary
             
             self.skill_check_system = SkillCheckSystem()
             self.reputation_system = ReputationSystem()
             self.loot_tables = {}  # Will store loot tables by ID
+            self.media_library = MediaLibrary()
             
         except ImportError as e:
             print(f"Warning: Some feature systems not available: {e}")
@@ -238,6 +240,7 @@ class DVGApp(ctk.CTk):
             self.skill_check_system = None
             self.reputation_system = None
             self.loot_tables = {}
+            self.media_library = None
 
     def _save_state_for_undo(self, action_name=""):
         """Wrapper for state manager save_state method."""

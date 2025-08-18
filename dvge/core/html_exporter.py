@@ -78,6 +78,12 @@ class HTMLExporter:
                 getattr(self.app, 'music_engine', None).to_dict() if hasattr(self.app, 'music_engine') and self.app.music_engine else {},
                 indent=4
             )
+            
+            # Advanced Media system data
+            media_data = json.dumps(
+                getattr(self.app, 'media_library', None).to_dict() if hasattr(self.app, 'media_library') and self.app.media_library else {},
+                indent=4
+            )
 
             # Update the _generate_html call:
             html_content = self._generate_html(
@@ -90,7 +96,8 @@ class HTMLExporter:
                 timers_data,
                 feature_data,
                 portrait_data,
-                music_data
+                music_data,
+                media_data
             )
 
             # Save file
@@ -188,6 +195,9 @@ class HTMLExporter:
             else:
                 game_data['music'] = ""
             
+            # Process advanced media assets
+            self._process_advanced_media_assets(game_data, node)
+            
             # Apply variable substitution to text content
             if 'text' in game_data:
                 game_data['text'] = temp_var_system.substitute_text(game_data['text'])
@@ -201,7 +211,61 @@ class HTMLExporter:
     
         return dialogue_data
     
-    def _generate_html(self, dialogue_data, player_data, flags_data, quests_data, variables_data, enemies_data=None, timers_data=None, feature_data=None, portrait_data=None, music_data=None):
+    def _process_advanced_media_assets(self, game_data, node):
+        """Process advanced media assets for a node."""
+        # Check if node has media assets and media library is available
+        if not hasattr(node, 'media_assets') or not node.media_assets:
+            return
+        
+        media_library = getattr(self.app, 'media_library', None)
+        if not media_library:
+            return
+        
+        # Process each media asset
+        processed_assets = []
+        
+        for asset_id in node.media_assets:
+            asset = media_library.get_asset(asset_id)
+            if not asset:
+                continue
+            
+            # Encode asset file
+            encoded_data = media_library.encode_asset_for_export(asset)
+            if not encoded_data:
+                continue
+            
+            # Create processed asset data
+            asset_data = {
+                'id': asset.asset_id,
+                'name': asset.name,
+                'type': asset.media_type.value,
+                'data': encoded_data,
+                'properties': {
+                    'x': asset.x,
+                    'y': asset.y,
+                    'width': asset.width,
+                    'height': asset.height,
+                    'rotation': asset.rotation,
+                    'opacity': asset.opacity,
+                    'z_index': asset.z_index,
+                    'autoplay': asset.autoplay,
+                    'loop': asset.loop,
+                    'muted': asset.muted,
+                    'volume': asset.volume,
+                    'start_time': asset.start_time,
+                    'fade_in_duration': asset.fade_in_duration,
+                    'fade_out_duration': asset.fade_out_duration
+                },
+                'animations': asset.animations,
+                'effects': [effect.to_dict() for effect in asset.effects]
+            }
+            
+            processed_assets.append(asset_data)
+        
+        # Add processed assets to game data
+        game_data['advanced_media_assets'] = processed_assets
+    
+    def _generate_html(self, dialogue_data, player_data, flags_data, quests_data, variables_data, enemies_data=None, timers_data=None, feature_data=None, portrait_data=None, music_data=None, media_data=None):
         """Generate the complete HTML file content."""
         font_name = self.app.project_settings.get("font", "Merriweather")
         title_font_name = self.app.project_settings.get("title_font", "Special Elite")
@@ -559,6 +623,7 @@ class HTMLExporter:
         let featureData = {feature_data};
         let portraitData = {portrait_data};
         let musicData = {music_data};
+        let mediaData = {media_data};
         let autoAdvanceTimer = null;
         let currentShopData = null;
         let currentInventoryData = null;
@@ -650,6 +715,164 @@ class HTMLExporter:
             }} else {{
                 document.body.style.backgroundImage = '';
             }}
+        }}
+
+        // Advanced Media System
+        let mediaContainer = null;
+        let activeMediaElements = [];
+
+        function initializeMediaSystem() {{
+            // Create media container if it doesn't exist
+            if (!mediaContainer) {{
+                mediaContainer = document.createElement('div');
+                mediaContainer.id = 'media-container';
+                mediaContainer.style.cssText = `
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    width: 100vw;
+                    height: 100vh;
+                    pointer-events: none;
+                    z-index: -1;
+                `;
+                document.body.appendChild(mediaContainer);
+            }}
+        }}
+
+        function clearAllMedia() {{
+            if (mediaContainer) {{
+                mediaContainer.innerHTML = '';
+            }}
+            activeMediaElements = [];
+        }}
+
+        function processAdvancedMediaAssets(nodeData) {{
+            // Clear previous media
+            clearAllMedia();
+            
+            if (!nodeData.advanced_media_assets || nodeData.advanced_media_assets.length === 0) {{
+                return;
+            }}
+
+            // Process each media asset
+            nodeData.advanced_media_assets.forEach(asset => {{
+                createMediaElement(asset);
+            }});
+        }}
+
+        function createMediaElement(asset) {{
+            let element;
+            const props = asset.properties;
+
+            // Create appropriate HTML element based on media type
+            switch(asset.type) {{
+                case 'image':
+                    element = document.createElement('img');
+                    element.src = asset.data;
+                    element.alt = asset.name;
+                    break;
+                case 'video':
+                    element = document.createElement('video');
+                    element.src = asset.data;
+                    element.autoplay = props.autoplay;
+                    element.loop = props.loop;
+                    element.muted = props.muted;
+                    element.volume = props.volume;
+                    if (props.start_time > 0) {{
+                        element.currentTime = props.start_time;
+                    }}
+                    break;
+                case 'audio':
+                    element = document.createElement('audio');
+                    element.src = asset.data;
+                    element.autoplay = props.autoplay;
+                    element.loop = props.loop;
+                    element.muted = props.muted;
+                    element.volume = props.volume;
+                    break;
+                default:
+                    return;
+            }}
+
+            // Apply transform properties
+            element.style.cssText = `
+                position: absolute;
+                left: ${{props.x}}%;
+                top: ${{props.y}}%;
+                width: ${{props.width}}%;
+                height: ${{props.height}}%;
+                transform: rotate(${{props.rotation}}deg);
+                opacity: ${{props.opacity}};
+                z-index: ${{props.z_index}};
+                pointer-events: none;
+            `;
+
+            // Apply visual effects
+            if (asset.effects && asset.effects.length > 0) {{
+                const filters = asset.effects.map(effect => {{
+                    return `${{effect.effect_type}}(${{effect.value}})`;
+                }}).join(' ');
+                element.style.filter = filters;
+            }}
+
+            // Apply animations
+            if (asset.animations && asset.animations.length > 0) {{
+                asset.animations.forEach((animation, index) => {{
+                    applyAnimation(element, animation, index);
+                }});
+            }}
+
+            // Add to container and track
+            mediaContainer.appendChild(element);
+            activeMediaElements.push({{
+                id: asset.id,
+                element: element,
+                asset: asset
+            }});
+
+            // Handle fade in
+            if (props.fade_in_duration > 0) {{
+                element.style.opacity = '0';
+                setTimeout(() => {{
+                    element.style.transition = `opacity ${{props.fade_in_duration}}s ease-in-out`;
+                    element.style.opacity = props.opacity;
+                }}, 100);
+            }}
+        }}
+
+        function applyAnimation(element, animation, animIndex) {{
+            if (!animation.keyframes || animation.keyframes.length === 0) {{
+                return;
+            }}
+
+            // Create CSS animation
+            const animationName = `media-anim-${{Date.now()}}-${{animIndex}}`;
+            let keyframesCSS = `@keyframes ${{animationName}} {{\\n`;
+
+            animation.keyframes.forEach(keyframe => {{
+                const percentage = (keyframe.time / animation.duration) * 100;
+                keyframesCSS += `  ${{percentage}}% {{`;
+                
+                for (const [prop, value] of Object.entries(keyframe.properties)) {{
+                    if (prop === 'x') keyframesCSS += ` left: ${{value}}%;`;
+                    else if (prop === 'y') keyframesCSS += ` top: ${{value}}%;`;
+                    else if (prop === 'scale') keyframesCSS += ` transform: scale(${{value}});`;
+                    else if (prop === 'rotation') keyframesCSS += ` transform: rotate(${{value}}deg);`;
+                    else keyframesCSS += ` ${{prop}}: ${{value}};`;
+                }}
+                
+                keyframesCSS += ` }}\\n`;
+            }});
+
+            keyframesCSS += `}}`;
+
+            // Inject keyframes into document
+            const style = document.createElement('style');
+            style.textContent = keyframesCSS;
+            document.head.appendChild(style);
+
+            // Apply animation to element
+            element.style.animation = `${{animationName}} ${{animation.duration}}s ${{animation.easing || 'ease-in-out'}} infinite`;
         }}
 
         // Dynamic Music System
@@ -896,6 +1119,9 @@ class HTMLExporter:
     
             currentNode = key;
             setBackground(nodeData);
+            
+            // Process advanced media assets
+            processAdvancedMediaAssets(nodeData);
             
             // Update music based on node context
             const musicContext = {{
@@ -2087,6 +2313,9 @@ class HTMLExporter:
         const reputationSystem = new ReputationSystem();
         const lootSystem = new LootSystem();
         
+        // Initialize advanced media system
+        initializeMediaSystem();
+        
         // Advanced Combat Engine Integration
         {advanced_combat_js}
         
@@ -2199,7 +2428,7 @@ class HTMLExporter:
         player_data = json.dumps({"stats": {"health": 100, "strength": 15}, "inventory": []})
         flags_data = json.dumps({})
         
-        return self._generate_html(sample_data, player_data, flags_data, "{}", "{}", "{}", "{}", "{}")
+        return self._generate_html(sample_data, player_data, flags_data, "{}", "{}", "{}", "{}", "{}", "{}", "{}", "{}")
     
     def _generate_custom_css(self):
         """Generate CSS based on style settings."""

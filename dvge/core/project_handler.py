@@ -69,6 +69,7 @@ class ProjectHandler:
             "variables": getattr(self.app, 'variables', {}),
             "enemies": {eid: e.to_dict() for eid, e in getattr(self.app, 'enemies', {}).items()},
             "timers": {tid: t.to_dict() for tid, t in getattr(self.app, 'timers', {}).items()},
+            "media_library": getattr(self.app, 'media_library', None).to_dict() if hasattr(self.app, 'media_library') and self.app.media_library else {},
             "node_id_counter": self.app.node_id_counter,
             "project_settings": self.app.project_settings
         }
@@ -110,6 +111,12 @@ class ProjectHandler:
         self.app.timers.clear()
         for timer_id, timer_data in project_data.get("timers", {}).items():
             self.app.timers[timer_id] = GameTimer.from_dict(timer_data)
+
+        # Load media library
+        if hasattr(self.app, 'media_library') and self.app.media_library:
+            media_library_data = project_data.get("media_library", {})
+            if media_library_data:
+                self.app.media_library.from_dict(media_library_data)
 
         # Load nodes
         for node_id, node_data in project_data.get("nodes", {}).items():

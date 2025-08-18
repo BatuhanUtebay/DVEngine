@@ -7,6 +7,35 @@ import customtkinter as ctk
 from ..constants import *
 
 
+def _open_media_window(app):
+    """Open the advanced media manager window."""
+    try:
+        from .windows.advanced_media_window import AdvancedMediaWindow
+        
+        # Check if a node is selected
+        if not app.active_node_id:
+            from tkinter import messagebox
+            messagebox.showinfo(
+                "No Node Selected", 
+                "Please select a node first to manage its media assets."
+            )
+            return
+        
+        # Open advanced media window
+        media_window = AdvancedMediaWindow(app, app)
+        
+    except Exception as e:
+        from tkinter import messagebox
+        messagebox.showerror("Error", f"Could not open advanced media window: {str(e)}")
+        
+        # Fallback to simple media window
+        try:
+            from .windows.media_window import MediaWindow
+            media_window = MediaWindow(app, app)
+        except:
+            messagebox.showerror("Error", "Could not open any media window")
+
+
 def setup_main_window(app):
     """Sets up the main window layout and components."""
     # --- UI Structure ---
@@ -41,13 +70,27 @@ def _create_header(app):
         font=FONT_TITLE
     ).grid(row=0, column=0, sticky="w")
     
+    # Button frame for Media and Export
+    button_frame = ctk.CTkFrame(title_export_frame, fg_color="transparent")
+    button_frame.grid(row=0, column=1, sticky="e")
+    
     ctk.CTkButton(
-        title_export_frame, 
+        button_frame,
+        text="Media Manager",
+        command=lambda: _open_media_window(app),
+        width=120,
+        fg_color="#FF6B35",
+        hover_color="#E55A2B"
+    ).pack(side="left", padx=(0, 10))
+    
+    ctk.CTkButton(
+        button_frame, 
         text="Export Game", 
         command=app.export_game_handler, 
         fg_color=COLOR_SUCCESS, 
-        hover_color="#27AE60"
-    ).grid(row=0, column=1, sticky="e")
+        hover_color="#27AE60",
+        width=120
+    ).pack(side="left")
     
     # Preview toolbar
     from .widgets.preview_controls import PreviewToolbar

@@ -44,6 +44,11 @@ class BaseNode:
         self.intensity = "medium"  # low, medium, high
         self.scene_type = "dialogue"  # dialogue, combat, exploration, cutscene, shop
         self.tags = []  # Custom tags for additional context
+        
+        # Advanced Media System
+        self.media_assets = []  # List of media asset IDs
+        self.media_enabled = True  # Whether to use advanced media system
+        self.legacy_mode = False  # Use simple background/audio only
     
     def to_dict(self):
         """Serializes the node's data into a dictionary format."""
@@ -66,7 +71,10 @@ class BaseNode:
                 "mood": getattr(self, 'mood', 'neutral'),
                 "intensity": getattr(self, 'intensity', 'medium'),
                 "scene_type": getattr(self, 'scene_type', 'dialogue'),
-                "tags": getattr(self, 'tags', [])
+                "tags": getattr(self, 'tags', []),
+                "media_assets": getattr(self, 'media_assets', []),
+                "media_enabled": getattr(self, 'media_enabled', True),
+                "legacy_mode": getattr(self, 'legacy_mode', False)
             },
             "editor_data": {
                 "x": self.x,
@@ -113,6 +121,9 @@ class BaseNode:
             self.music = game_data.get('music', self.music)
             self.auto_advance = game_data.get('auto_advance', self.auto_advance)
             self.auto_advance_delay = game_data.get('auto_advance_delay', self.auto_advance_delay)
+            self.media_assets = game_data.get('media_assets', getattr(self, 'media_assets', []))
+            self.media_enabled = game_data.get('media_enabled', getattr(self, 'media_enabled', True))
+            self.legacy_mode = game_data.get('legacy_mode', getattr(self, 'legacy_mode', False))
         else:
             # New flat format
             self.x = data.get('x', self.x)
@@ -128,6 +139,9 @@ class BaseNode:
             self.music = data.get('music', self.music)
             self.auto_advance = data.get('auto_advance', self.auto_advance)
             self.auto_advance_delay = data.get('auto_advance_delay', self.auto_advance_delay)
+            self.media_assets = data.get('media_assets', getattr(self, 'media_assets', []))
+            self.media_enabled = data.get('media_enabled', getattr(self, 'media_enabled', True))
+            self.legacy_mode = data.get('legacy_mode', getattr(self, 'legacy_mode', False))
     
     @classmethod
     def from_dict(cls, data):
@@ -214,3 +228,40 @@ class BaseNode:
         """Sets new text and automatically analyzes emotional context."""
         self.text = new_text
         self.analyze_emotional_context()
+    
+    # Advanced Media System Methods
+    def add_media_asset(self, asset_id: str):
+        """Add a media asset to this node."""
+        if asset_id not in self.media_assets:
+            self.media_assets.append(asset_id)
+    
+    def remove_media_asset(self, asset_id: str):
+        """Remove a media asset from this node."""
+        if asset_id in self.media_assets:
+            self.media_assets.remove(asset_id)
+    
+    def has_media_assets(self) -> bool:
+        """Check if this node has any media assets."""
+        return bool(self.media_assets)
+    
+    def get_media_asset_count(self) -> int:
+        """Get the number of media assets."""
+        return len(self.media_assets)
+    
+    def clear_media_assets(self):
+        """Clear all media assets from this node."""
+        self.media_assets.clear()
+    
+    def toggle_media_mode(self):
+        """Toggle between legacy and advanced media modes."""
+        self.legacy_mode = not self.legacy_mode
+        self.media_enabled = not self.legacy_mode
+    
+    def get_media_summary(self) -> str:
+        """Get a summary of media assets for display."""
+        if not self.media_assets:
+            return "No media assets"
+        
+        count = len(self.media_assets)
+        mode = "Legacy" if self.legacy_mode else "Advanced"
+        return f"{count} media asset{'s' if count != 1 else ''} ({mode} mode)"

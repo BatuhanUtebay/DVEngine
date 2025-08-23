@@ -1,0 +1,12 @@
+{
+    "name": "Example Exporter Plugin",
+    "version": "1.0.0",
+    "description": "Example plugin that adds JSON export functionality",
+    "author": "DVGE Team",
+    "plugin_type": "exporter",
+    "dependencies": [],
+    "min_dvge_version": "1.0.0",
+    "max_dvge_version": null,
+    "enabled": true,
+    "priority": 100
+}

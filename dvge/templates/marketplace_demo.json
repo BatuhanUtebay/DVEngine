@@ -1,0 +1,270 @@
+{
+  "name": "Marketplace Demo Template",
+  "description": "A sample template showcasing marketplace functionality with multiple dialogue paths.",
+  "author": "DVGE Team",
+  "version": "1.0.0",
+  "nodes": {
+    "intro": {
+      "id": "intro",
+      "node_type": "dialogue",
+      "character": "Guide",
+      "text": "Welcome to the Community Marketplace demo! This template shows how you can create and share interactive stories.",
+      "options": [
+        {
+          "text": "Tell me about the marketplace",
+          "nextNode": "marketplace_info",
+          "conditions": [],
+          "effects": []
+        },
+        {
+          "text": "How do I share my creations?",
+          "nextNode": "sharing_info",
+          "conditions": [],
+          "effects": []
+        },
+        {
+          "text": "What can I download?",
+          "nextNode": "download_info",
+          "conditions": [],
+          "effects": []
+        }
+      ],
+      "ui_data": {
+        "x": 100,
+        "y": 100
+      }
+    },
+    "marketplace_info": {
+      "id": "marketplace_info",
+      "node_type": "dialogue",
+      "character": "Guide",
+      "text": "The Community Marketplace lets creators share templates, character sprites, backgrounds, voice packs, and complete games. It's like a library where everyone contributes!",
+      "options": [
+        {
+          "text": "That sounds amazing!",
+          "nextNode": "positive_response",
+          "conditions": [],
+          "effects": [{"type": "setFlag", "flag": "interested_in_marketplace", "value": true}]
+        },
+        {
+          "text": "How do I find good content?",
+          "nextNode": "finding_content",
+          "conditions": [],
+          "effects": []
+        },
+        {
+          "text": "Go back to main menu",
+          "nextNode": "intro",
+          "conditions": [],
+          "effects": []
+        }
+      ],
+      "ui_data": {
+        "x": 300,
+        "y": 200
+      }
+    },
+    "sharing_info": {
+      "id": "sharing_info",
+      "node_type": "dialogue",
+      "character": "Guide",
+      "text": "Sharing is easy! Go to the Marketplace tab, click Upload, fill in the details about your creation, and hit 'Upload Current Project'. Your work will be available for others to discover and enjoy.",
+      "options": [
+        {
+          "text": "Can I earn reputation?",
+          "nextNode": "reputation_info",
+          "conditions": [],
+          "effects": []
+        },
+        {
+          "text": "What should I upload?",
+          "nextNode": "upload_suggestions",
+          "conditions": [],
+          "effects": []
+        },
+        {
+          "text": "Back to main menu",
+          "nextNode": "intro",
+          "conditions": [],
+          "effects": []
+        }
+      ],
+      "ui_data": {
+        "x": 100,
+        "y": 300
+      }
+    },
+    "download_info": {
+      "id": "download_info",
+      "node_type": "dialogue",
+      "character": "Guide",
+      "text": "You can download templates for different genres, character sprite packs, background art, voice recordings, music, and even complete games to play or study.",
+      "options": [
+        {
+          "text": "How do I install downloaded content?",
+          "nextNode": "install_info",
+          "conditions": [],
+          "effects": []
+        },
+        {
+          "text": "Is everything free?",
+          "nextNode": "pricing_info",
+          "conditions": [],
+          "effects": []
+        },
+        {
+          "text": "Back to main menu",
+          "nextNode": "intro",
+          "conditions": [],
+          "effects": []
+        }
+      ],
+      "ui_data": {
+        "x": 500,
+        "y": 200
+      }
+    },
+    "positive_response": {
+      "id": "positive_response",
+      "node_type": "dialogue",
+      "character": "Guide",
+      "text": "I'm glad you're excited! The marketplace grows stronger with each creator who participates. Whether you're sharing your first story or downloading inspiration, you're part of a creative community.",
+      "options": [
+        {
+          "text": "I want to contribute!",
+          "nextNode": "contribute_encourage",
+          "conditions": [],
+          "effects": [{"type": "addVariable", "variable": "enthusiasm", "value": 10}]
+        },
+        {
+          "text": "Tell me more about finding content",
+          "nextNode": "finding_content",
+          "conditions": [],
+          "effects": []
+        }
+      ],
+      "ui_data": {
+        "x": 400,
+        "y": 350
+      }
+    },
+    "finding_content": {
+      "id": "finding_content",
+      "node_type": "dialogue",
+      "character": "Guide",
+      "text": "The marketplace has powerful search and filtering tools. You can search by keywords, filter by content type (templates, sprites, etc.), browse by category (fantasy, sci-fi, modern), and sort by popularity or ratings.",
+      "options": [
+        {
+          "text": "What about content quality?",
+          "nextNode": "quality_info",
+          "conditions": [],
+          "effects": []
+        },
+        {
+          "text": "Explore more options",
+          "nextNode": "intro",
+          "conditions": [],
+          "effects": []
+        }
+      ],
+      "ui_data": {
+        "x": 600,
+        "y": 300
+      }
+    },
+    "reputation_info": {
+      "id": "reputation_info",
+      "node_type": "dialogue",
+      "character": "Guide",
+      "text": "Yes! When people download and rate your content positively, your reputation score increases. High reputation creators get featured placement and build a following in the community.",
+      "options": [
+        {
+          "text": "That motivates me to create quality content",
+          "nextNode": "quality_focus",
+          "conditions": [],
+          "effects": [{"type": "setFlag", "flag": "quality_motivated", "value": true}]
+        },
+        {
+          "text": "Back to main menu",
+          "nextNode": "intro",
+          "conditions": [],
+          "effects": []
+        }
+      ],
+      "ui_data": {
+        "x": 200,
+        "y": 450
+      }
+    },
+    "upload_suggestions": {
+      "id": "upload_suggestions",
+      "node_type": "dialogue",
+      "character": "Guide",
+      "text": "Great question! Templates for specific genres are always popular, character sprite collections, beautiful backgrounds, interesting story mechanics, or educational content. Even simple but well-crafted examples help newcomers learn.",
+      "options": [
+        {
+          "text": "I have ideas already!",
+          "nextNode": "ideas_response",
+          "conditions": [],
+          "effects": []
+        },
+        {
+          "text": "Back to main menu",
+          "nextNode": "intro",
+          "conditions": [],
+          "effects": []
+        }
+      ],
+      "ui_data": {
+        "x": 300,
+        "y": 450
+      }
+    },
+    "contribute_encourage": {
+      "id": "contribute_encourage",
+      "node_type": "dialogue",
+      "character": "Guide",
+      "text": "Wonderful! Remember, every expert was once a beginner. Share your unique perspective and stories - they matter to the community. Start small and grow your skills alongside your reputation.",
+      "options": [
+        {
+          "text": "Thank you for the encouragement!",
+          "nextNode": "finale",
+          "conditions": [],
+          "effects": [{"type": "addVariable", "variable": "confidence", "value": 5}]
+        }
+      ],
+      "ui_data": {
+        "x": 500,
+        "y": 500
+      }
+    },
+    "finale": {
+      "id": "finale",
+      "node_type": "dialogue",
+      "character": "Guide",
+      "text": "You're very welcome! The marketplace tab is waiting for you when you're ready. Happy creating, and thank you for being part of our community!",
+      "options": [],
+      "ui_data": {
+        "x": 600,
+        "y": 600
+      }
+    }
+  },
+  "player_stats": {
+    "enthusiasm": 0,
+    "confidence": 0
+  },
+  "story_flags": {
+    "interested_in_marketplace": false,
+    "quality_motivated": false
+  },
+  "variables": {
+    "enthusiasm": 0,
+    "confidence": 0
+  },
+  "project_settings": {
+    "font": "Merriweather",
+    "title_font": "Special Elite",
+    "background": ""
+  }
+}

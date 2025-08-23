@@ -1,0 +1,101 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "dialogue-venture-game-engine"
+version = "1.0.0"
+authors = [{name = "Dice Verce"}]
+description = "A powerful, intuitive, node-based editor for creating branching dialogue and narrative-driven experiences"
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.8"
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers", 
+    "Intended Audience :: End Users/Desktop",
+    "Topic :: Games/Entertainment",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9", 
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+]
+dependencies = [
+    "customtkinter>=5.0.0",
+    "Pillow>=10.0.0", 
+    "reportlab>=4.0.0",
+    "markdown>=3.4.0"
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+    "black>=23.0.0", 
+    "flake8>=6.0.0",
+    "mypy>=1.0.0",
+    "pre-commit>=3.0.0",
+    "isort>=5.0.0"
+]
+
+[project.scripts]
+dvge = "main:main"
+dialogue-venture = "main:main"
+
+[project.urls]
+Homepage = "https://github.com/BatuhanUtebay/DVEngine"
+"Bug Reports" = "https://github.com/BatuhanUtebay/DVEngine/issues"
+"Source Code" = "https://github.com/BatuhanUtebay/DVEngine"
+
+[tool.black]
+line-length = 88
+target-version = ['py38', 'py39', 'py310', 'py311']
+extend-exclude = '''
+/(
+    # directories
+    __pycache__
+    | \.git
+    | \.pytest_cache
+    | htmlcov
+    | venv
+    | build
+    | dist
+    | \.egg-info
+)/
+'''
+
+[tool.mypy]
+python_version = "3.8"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = false  # Start lenient, can tighten later
+ignore_missing_imports = true
+exclude = [
+    "tests/",
+    "venv/",
+    "__pycache__/",
+]
+
+[tool.coverage.run]
+source = ["dvge"]
+omit = [
+    "*/tests/*",
+    "*/venv/*",
+    "*/__pycache__/*"
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if self.debug:",
+    "if settings.DEBUG",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if 0:",
+    "if __name__ == .__main__.:",
+    "class .*\\bProtocol\\):",
+    "@(abc\\.)?abstractmethod",
+]

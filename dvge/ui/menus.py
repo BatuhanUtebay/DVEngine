@@ -33,6 +33,18 @@ def create_menu(app):
         command=app.export_game_handler
     )
     file_menu.add_command(
+        label="Export Enhanced Mobile Game", 
+        command=lambda: _export_enhanced_mobile(app)
+    )
+    
+    # Add custom exporters from plugins
+    if hasattr(app, 'custom_exporters'):
+        for name, exporter in app.custom_exporters.items():
+            file_menu.add_command(
+                label=f"Export as {name}",
+                command=lambda e=exporter: app._export_with_plugin(e)
+            )
+    file_menu.add_command(
         label="HTML Export Styling...", 
         command=lambda: _open_style_customizer(app)
     )
@@ -102,6 +114,16 @@ def create_menu(app):
 
     # Tools Menu
     tools_menu = tk.Menu(menu_bar, tearoff=0)
+    tools_menu.add_command(
+        label="Batch Operations...",
+        command=lambda: _open_batch_operations(app)
+    )
+    tools_menu.add_separator()
+    tools_menu.add_command(
+        label="Plugin Manager...",
+        command=lambda: _open_plugin_manager(app)
+    )
+    tools_menu.add_separator()
     tools_menu.add_command(
         label="Character Portraits...",
         command=lambda: _open_portrait_manager(app)
@@ -242,6 +264,96 @@ def _toggle_node_groups(app):
         status = "shown" if app.canvas_manager.show_node_groups else "hidden"
         from ..core.utils import show_info
         show_info("Node Groups", f"Node group backgrounds {status}")
+
+
+def _export_enhanced_mobile(app):
+    """Export game with enhanced mobile-responsive features."""
+    try:
+        from ..core.enhanced_html_exporter import EnhancedHTMLExporter
+        from ..core.utils import show_info, show_error, ask_yes_no
+        
+        # Show options dialog
+        if ask_yes_no(
+            "Enhanced Mobile Export",
+            "Export with enhanced mobile features?\n\n"
+            "This includes:\n"
+            "• Mobile-responsive design\n"
+            "• Touch controls and gestures\n" 
+            "• Dark mode toggle\n"
+            "• PWA support (offline capable)\n"
+            "• Optimized performance\n\n"
+            "Continue with enhanced export?"
+        ):
+            enhanced_exporter = EnhancedHTMLExporter(app)
+            
+            # Configure mobile options
+            mobile_options = {
+                'enable_touch_controls': True,
+                'responsive_design': True,
+                'pwa_support': True,
+                'offline_mode': True,
+                'dark_mode_toggle': True
+            }
+            
+            success = enhanced_exporter.export_game(mobile_options)
+            
+            if success:
+                show_info(
+                    "Enhanced Export Complete",
+                    "Your game has been exported with enhanced mobile features!\n\n"
+                    "The exported game includes:\n"
+                    "• Responsive design for all screen sizes\n"
+                    "• Touch and swipe gesture support\n"
+                    "• PWA capabilities for app-like experience\n"
+                    "• Dark/light theme toggle\n"
+                    "• Optimized mobile performance"
+                )
+        
+    except Exception as e:
+        show_error("Enhanced Export Error", f"Failed to export enhanced mobile game:\n{str(e)}")
+
+
+def _open_batch_operations(app):
+    """Open the batch operations dialog."""
+    try:
+        from .dialogs.batch_operations_dialog import BatchOperationsDialog
+        dialog = BatchOperationsDialog(app, app)
+        
+    except Exception as e:
+        from ..core.utils import show_error
+        show_error("Batch Operations Error", f"Failed to open batch operations dialog:\n{str(e)}")
+
+
+def _open_plugin_manager(app):
+    """Open the plugin manager dialog."""
+    try:
+        from ..core.utils import show_info
+        
+        if not hasattr(app, 'plugin_manager') or app.plugin_manager is None:
+            show_info("Plugin Manager", "Plugin system is not available.")
+            return
+        
+        plugin_info = []
+        for name, plugin in app.plugin_manager.plugins.items():
+            status = "Enabled" if plugin.enabled else "Disabled"
+            plugin_info.append(f"• {name} v{plugin.metadata.version} - {status}")
+        
+        if not plugin_info:
+            plugin_info = ["No plugins loaded."]
+        
+        info_text = (
+            f"Plugin Manager\n\n"
+            f"Loaded Plugins ({len(app.plugin_manager.plugins)}):\n\n" +
+            "\n".join(plugin_info) +
+            f"\n\nPlugin directories:\n" +
+            "\n".join(f"• {d}" for d in app.plugin_manager.plugin_directories)
+        )
+        
+        show_info("Plugin Manager", info_text)
+        
+    except Exception as e:
+        from ..core.utils import show_error
+        show_error("Plugin Manager Error", f"Failed to open plugin manager:\n{str(e)}")
 
 
 def _open_style_customizer(app):

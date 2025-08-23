@@ -2,6 +2,7 @@
 
 """Main application class for DVGE."""
 
+import os
 import customtkinter as ctk
 from ..constants import *
 from ..models import DialogueNode, Quest, GameTimer, Enemy
@@ -49,6 +50,9 @@ class DVGApp(ctk.CTk):
         
         # Create property widgets container
         self.prop_widgets = {}
+        
+        # Initialize plugin system
+        self._initialize_plugin_system()
         
         # Initial state
         self.after(100, self.state_manager.save_state, "Initial State")
@@ -241,6 +245,24 @@ class DVGApp(ctk.CTk):
             self.reputation_system = None
             self.loot_tables = {}
             self.media_library = None
+        
+        # Initialize AI service
+        self._initialize_ai_service()
+        
+    
+    def _initialize_ai_service(self):
+        """Initialize the AI-powered content generation service."""
+        try:
+            from ..ai import AIService
+            self.ai_service = AIService(self)
+            print("AI Service initialized successfully")
+        except ImportError as e:
+            print(f"AI Service not available: {e}")
+            self.ai_service = None
+        except Exception as e:
+            print(f"Failed to initialize AI Service: {e}")
+            self.ai_service = None
+    
 
     def _save_state_for_undo(self, action_name=""):
         """Wrapper for state manager save_state method."""
@@ -252,3 +274,89 @@ class DVGApp(ctk.CTk):
         
         template_manager = TemplateManager()
         template_manager.apply_template(template, self)
+    
+    def _initialize_plugin_system(self):
+        """Initialize the plugin system."""
+        try:
+            from .plugin_system import PluginManager
+            self.plugin_manager = PluginManager(self)
+            
+            # Load all plugins
+            self.plugin_manager.load_all_plugins()
+            
+            # Load plugin states if they exist
+            plugin_states_file = os.path.expanduser('~/.dvge/plugin_states.json')
+            if os.path.exists(plugin_states_file):
+                self.plugin_manager.load_plugin_states(plugin_states_file)
+                
+        except Exception as e:
+            print(f"Failed to initialize plugin system: {e}")
+            self.plugin_manager = None
+    
+    def register_exporter(self, exporter_plugin):
+        """Register a custom exporter plugin."""
+        if not hasattr(self, 'custom_exporters'):
+            self.custom_exporters = {}
+        
+        format_name = exporter_plugin.get_export_format_name()
+        self.custom_exporters[format_name] = exporter_plugin
+        
+        print(f"Registered custom exporter: {format_name}")
+    
+    def get_available_exporters(self):
+        """Get all available export formats."""
+        exporters = {
+            "HTML Game": self.export_game_handler,
+            "Enhanced Mobile HTML": self._export_enhanced_mobile
+        }
+        
+        # Add custom exporters from plugins
+        if hasattr(self, 'custom_exporters'):
+            for name, exporter in self.custom_exporters.items():
+                exporters[name] = lambda path=None, exp=exporter: self._export_with_plugin(exp, path)
+        
+        return exporters
+    
+    def _export_with_plugin(self, exporter_plugin, file_path=None):
+        """Export using a plugin exporter."""
+        from tkinter import filedialog
+        
+        if not file_path:
+            file_path = filedialog.asksaveasfilename(
+                title=f"Export as {exporter_plugin.get_export_format_name()}",
+                defaultextension=exporter_plugin.get_file_extension(),
+                filetypes=[(
+                    exporter_plugin.get_export_format_name(),
+                    f"*{exporter_plugin.get_file_extension()}"
+                )]
+            )
+        
+        if file_path:
+            return exporter_plugin.export(self, file_path)
+        return False
+    
+    def add_menu_item(self, menu_item):
+        """Add a menu item from a plugin."""
+        # This would integrate with the menu system
+        print(f"Plugin wants to add menu item: {menu_item}")
+    
+    def register_ui_panel(self, panel_class):
+        """Register a UI panel from a plugin."""
+        # This would integrate with the UI system
+        print(f"Plugin wants to register UI panel: {panel_class}")
+    
+    def cleanup_plugins(self):
+        """Clean up the plugin system."""
+        if hasattr(self, 'plugin_manager') and self.plugin_manager:
+            # Save plugin states
+            plugin_states_file = os.path.expanduser('~/.dvge/plugin_states.json')
+            os.makedirs(os.path.dirname(plugin_states_file), exist_ok=True)
+            self.plugin_manager.save_plugin_states(plugin_states_file)
+            
+            # Cleanup plugins
+            self.plugin_manager.cleanup()
+    
+    def destroy(self):
+        """Override destroy to cleanup plugins."""
+        self.cleanup_plugins()
+        super().destroy()

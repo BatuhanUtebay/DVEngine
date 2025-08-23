@@ -84,6 +84,12 @@ class HTMLExporter:
                 getattr(self.app, 'media_library', None).to_dict() if hasattr(self.app, 'media_library') and self.app.media_library else {},
                 indent=4
             )
+            
+            # Voice Acting Pipeline data
+            voice_data = json.dumps(
+                getattr(self.app, 'voice_manager', None).export_voice_data_for_html() if hasattr(self.app, 'voice_manager') and self.app.voice_manager else {},
+                indent=4
+            )
 
             # Update the _generate_html call:
             html_content = self._generate_html(
@@ -97,7 +103,8 @@ class HTMLExporter:
                 feature_data,
                 portrait_data,
                 music_data,
-                media_data
+                media_data,
+                voice_data
             )
 
             # Save file
@@ -265,7 +272,7 @@ class HTMLExporter:
         # Add processed assets to game data
         game_data['advanced_media_assets'] = processed_assets
     
-    def _generate_html(self, dialogue_data, player_data, flags_data, quests_data, variables_data, enemies_data=None, timers_data=None, feature_data=None, portrait_data=None, music_data=None, media_data=None):
+    def _generate_html(self, dialogue_data, player_data, flags_data, quests_data, variables_data, enemies_data=None, timers_data=None, feature_data=None, portrait_data=None, music_data=None, media_data=None, voice_data=None):
         """Generate the complete HTML file content."""
         font_name = self.app.project_settings.get("font", "Merriweather")
         title_font_name = self.app.project_settings.get("title_font", "Special Elite")

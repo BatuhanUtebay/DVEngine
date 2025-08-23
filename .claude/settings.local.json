@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -m pytest tests/ -v)",
+      "Bash(pip install:*)",
+      "Bash(flake8:*)",
+      "Bash(black:*)",
+      "Bash(python -m build:*)",
+      "Bash(python -m pytest tests/core/test_batch_operations.py -v)",
+      "Bash(python -m pytest tests/core/test_plugin_system.py -v)",
+      "Bash(python -m pytest tests/ -v --tb=short)",
+      "Bash(copy:*)",
+      "Bash(python:*)",
+      "Bash(find:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

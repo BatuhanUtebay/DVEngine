@@ -1,0 +1,17 @@
+[flake8]
+max-line-length = 88
+extend-ignore = E203,E501,W503,E402
+exclude =
+    __pycache__,
+    .git,
+    .pytest_cache,
+    htmlcov,
+    venv,
+    build,
+    dist,
+    *.egg-info
+per-file-ignores =
+    # Tests can have longer lines and unused imports for fixtures
+    tests/*:F401,E501
+    # GUI files often need specific import patterns
+    dvge/ui/*:E402

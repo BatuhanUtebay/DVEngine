@@ -1,6 +1,6 @@
 # Byte-compiled / optimized / DLL files
 __pycache__/
-*.py[cod]
+*.py[codz]
 *$py.class
 
 # C extensions
@@ -46,7 +46,7 @@ htmlcov/
 nosetests.xml
 coverage.xml
 *.cover
-*.py,cover
+*.py.cover
 .hypothesis/
 .pytest_cache/
 cover/
@@ -94,20 +94,35 @@ ipython_config.py
 #   install all needed dependencies.
 #Pipfile.lock
 
+# UV
+#   Similar to Pipfile.lock, it is generally recommended to include uv.lock in version control.
+#   This is especially recommended for binary packages to ensure reproducibility, and is more
+#   commonly ignored for libraries.
+#uv.lock
+
 # poetry
 #   Similar to Pipfile.lock, it is generally recommended to include poetry.lock in version control.
 #   This is especially recommended for binary packages to ensure reproducibility, and is more
 #   commonly ignored for libraries.
 #   https://python-poetry.org/docs/basic-usage/#commit-your-poetrylock-file-to-version-control
 #poetry.lock
+#poetry.toml
 
 # pdm
 #   Similar to Pipfile.lock, it is generally recommended to include pdm.lock in version control.
+#   pdm recommends including project-wide configuration in pdm.toml, but excluding .pdm-python.
+#   https://pdm-project.org/en/latest/usage/project/#working-with-version-control
 #pdm.lock
-#   pdm stores project-wide configurations in .pdm.toml, but it is recommended to not include it
-#   in version control.
-#   https://pdm.fming.dev/#use-with-ide
-.pdm.toml
+#pdm.toml
+.pdm-python
+.pdm-build/
+
+# pixi
+#   Similar to Pipfile.lock, it is generally recommended to include pixi.lock in version control.
+#pixi.lock
+#   Pixi creates a virtual environment in the .pixi directory, just like venv module creates one
+#   in the .venv directory. It is recommended not to include this directory in version control.
+.pixi
 
 # PEP 582; used by e.g. github.com/David-OConnor/pyflow and github.com/pdm-project/pdm
 __pypackages__/
@@ -116,11 +131,25 @@ __pypackages__/
 celerybeat-schedule
 celerybeat.pid
 
+# Redis 
+*.rdb
+*.aof
+*.pid
+
+# RabbitMQ
+mnesia/
+rabbitmq/
+rabbitmq-data/
+
+# ActiveMQ
+activemq-data/
+
 # SageMath parsed files
 *.sage.py
 
 # Environments
 .env
+.envrc
 .venv
 env/
 venv/
@@ -152,119 +181,36 @@ dmypy.json
 # Cython debug symbols
 cython_debug/
 
-# DVGE Specific Files
-# ==================
+# PyCharm
+#  JetBrains specific template is maintained in a separate JetBrains.gitignore that can
+#  be found at https://github.com/github/gitignore/blob/main/Global/JetBrains.gitignore
+#  and can be added to the global gitignore or merged into this file.  For a more nuclear
+#  option (not recommended) you can uncomment the following to ignore the entire idea folder.
+#.idea/
 
-# User data directories
-user_data/
-projects/
-exports/
+# Abstra
+# Abstra is an AI-powered process automation framework.
+# Ignore directories containing user credentials, local state, and settings.
+# Learn more at https://abstra.io/docs
+.abstra/
 
-# Cache directories
-.dvge/
-cache/
-temp/
-tmp/
+# Visual Studio Code
+#  Visual Studio Code specific template is maintained in a separate VisualStudioCode.gitignore 
+#  that can be found at https://github.com/github/gitignore/blob/main/Global/VisualStudioCode.gitignore
+#  and can be added to the global gitignore or merged into this file. However, if you prefer, 
+#  you could uncomment the following to ignore the entire vscode folder
+# .vscode/
 
-# Log files
-*.log
-logs/
+# Ruff stuff:
+.ruff_cache/
 
-# Debug files
-debug_*.py
-test_*.py
-*_debug.py
-*_test.py
+# PyPI configuration file
+.pypirc
 
-# Temporary files
-*.tmp
-*.temp
-*~
-*.swp
-*.swo
-.DS_Store
-Thumbs.db
+# Marimo
+marimo/_static/
+marimo/_lsp/
+__marimo__/
 
-# Editor files
-.vscode/
-.idea/
-*.sublime-project
-*.sublime-workspace
-*.code-workspace
-
-# OS generated files
-.DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
-Thumbs.db
-
-# API Keys and secrets
-secrets.py
-config_local.py
-.secrets
-api_keys.json
-credentials.json
-
-# Media files (if large)
-*.psd
-*.ai
-*.sketch
-large_assets/
-
-# Backup files
-*.bak
-*.backup
-*_backup.*
-backup_*/
-
-# Development files
-dev_*
-development/
-staging/
-
-# Local configuration
-local_config.*
-config_dev.*
-
-# Generated documentation
-docs/build/
-docs/_build/
-*.epub
-*.pdf
-
-# Node.js (if using for build tools)
-node_modules/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-
-# Rust (if using for extensions)
-target/
-Cargo.lock
-
-# Go (if using for extensions)
-*.exe
-*.exe~
-*.dll
-*.so
-*.dylib
-vendor/
-
-# Database files
-*.db
-*.sqlite
-*.sqlite3
-
-# Screenshots and recordings
-screenshots/
-recordings/
-*.gif
-*.mov
-*.mp4
-
-# Profiling data
-*.prof
-profile_*
+# Streamlit
+.streamlit/secrets.toml

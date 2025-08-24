@@ -505,8 +505,8 @@ class AdvancedCombatEditor(ctk.CTkToplevel):
         ctk.CTkLabel(details_frame, text="Health:").grid(row=1, column=0, sticky="w", padx=(0, 5), pady=(5, 0))
         health_entry = ctk.CTkEntry(details_frame, width=80)
         health_entry.grid(row=1, column=1, sticky="ew", padx=5, pady=(5, 0))
-        health_entry.insert(0, str(enemy.get('health', 100)))
-        health_entry.bind('<KeyRelease>', lambda e, idx=index, field='health': self._update_enemy_field(idx, field, health_entry.get()))
+        health_entry.insert(0, str(enemy.get('hp', 100)))
+        health_entry.bind('<KeyRelease>', lambda e, idx=index, field='hp': self._update_enemy_field(idx, field, health_entry.get()))
         
         ctk.CTkLabel(details_frame, text="Mana:").grid(row=1, column=2, sticky="w", padx=(10, 5), pady=(5, 0))
         mana_entry = ctk.CTkEntry(details_frame, width=80)

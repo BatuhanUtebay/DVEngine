@@ -1,9 +1,16 @@
 {
+  "id": "marketplace_demo",
   "name": "Marketplace Demo Template",
   "description": "A sample template showcasing marketplace functionality with multiple dialogue paths.",
+  "category": "Tutorial",
+  "difficulty": "Beginner",
+  "tags": ["tutorial", "marketplace", "community", "demo"],
   "author": "DVGE Team",
   "version": "1.0.0",
-  "nodes": {
+  "help_text": "This template demonstrates the Community Marketplace features, showing how to create engaging dialogue about sharing and discovering content.",
+  "project_data": {
+    "version": "1.0.0",
+    "nodes": {
     "intro": {
       "id": "intro",
       "node_type": "dialogue",
@@ -250,21 +257,22 @@
       }
     }
   },
-  "player_stats": {
-    "enthusiasm": 0,
-    "confidence": 0
-  },
-  "story_flags": {
-    "interested_in_marketplace": false,
-    "quality_motivated": false
-  },
-  "variables": {
-    "enthusiasm": 0,
-    "confidence": 0
-  },
-  "project_settings": {
-    "font": "Merriweather",
-    "title_font": "Special Elite",
-    "background": ""
+    "player_stats": {
+      "enthusiasm": 0,
+      "confidence": 0
+    },
+    "story_flags": {
+      "interested_in_marketplace": false,
+      "quality_motivated": false
+    },
+    "variables": {
+      "enthusiasm": 0,
+      "confidence": 0
+    },
+    "project_settings": {
+      "font": "Merriweather",
+      "title_font": "Special Elite",
+      "background": ""
+    }
   }
 }

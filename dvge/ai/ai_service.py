@@ -135,6 +135,43 @@ class AIService:
             
         except ImportError as e:
             print(f"Warning: Could not initialize AI providers: {e}")
+        
+        # Initialize enhanced AI systems
+        self._initialize_enhanced_systems()
+    
+    def _initialize_enhanced_systems(self):
+        """Initialize enhanced AI content generation systems."""
+        try:
+            from .enhanced_generators import create_enhanced_ai_system
+            from .contextual_suggestions import create_contextual_assistant
+            from .story_templates import create_ai_template_system
+            
+            # Create enhanced AI systems
+            self.enhanced_systems = create_enhanced_ai_system(self)
+            self.contextual_assistant = create_contextual_assistant(self)
+            self.template_manager = create_ai_template_system(self)
+            
+            print("Enhanced AI systems initialized successfully")
+            
+        except ImportError as e:
+            print(f"Warning: Could not initialize enhanced AI systems: {e}")
+            self.enhanced_systems = None
+            self.contextual_assistant = None
+            self.template_manager = None
+        except Exception as e:
+            print(f"Error initializing enhanced AI systems: {e}")
+            self.enhanced_systems = None
+            self.contextual_assistant = None
+            self.template_manager = None
+    
+    def is_enhanced_ai_available(self) -> bool:
+        """Check if enhanced AI systems are available."""
+        return (
+            hasattr(self, 'enhanced_systems') and 
+            self.enhanced_systems is not None and
+            hasattr(self, 'contextual_assistant') and 
+            self.contextual_assistant is not None
+        )
     
     def add_provider(self, provider: AIProvider):
         """Add an AI provider to the service."""

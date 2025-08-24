@@ -246,22 +246,36 @@ class DVGApp(ctk.CTk):
             self.loot_tables = {}
             self.media_library = None
         
-        # Initialize AI service
-        self._initialize_ai_service()
-        
+        # Initialize AI service and enhanced systems
+        self._initialize_ai_systems()
     
-    def _initialize_ai_service(self):
-        """Initialize the AI-powered content generation service."""
+    def _initialize_ai_systems(self):
+        """Initialize AI service and enhanced AI features."""
         try:
-            from ..ai import AIService
+            from ..ai.ai_service import AIService
+            
+            # Initialize AI service
             self.ai_service = AIService(self)
             print("AI Service initialized successfully")
+            
+            # Initialize AI UI integration
+            if self.ai_service.is_enhanced_ai_available():
+                from ..ui.ai_integration import AIIntegrationManager
+                self.ai_integration = AIIntegrationManager(self)
+                print("AI Integration Manager initialized successfully")
+            else:
+                self.ai_integration = None
+                print("Enhanced AI features not available")
+            
         except ImportError as e:
-            print(f"AI Service not available: {e}")
+            print(f"Warning: AI systems not available: {e}")
             self.ai_service = None
+            self.ai_integration = None
         except Exception as e:
-            print(f"Failed to initialize AI Service: {e}")
+            print(f"Error initializing AI systems: {e}")
             self.ai_service = None
+            self.ai_integration = None
+        
     
 
     def _save_state_for_undo(self, action_name=""):

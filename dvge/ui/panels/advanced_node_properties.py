@@ -601,9 +601,9 @@ class AdvancedNodePropertiesTab:
             
             ctk.CTkLabel(hp_frame, text="HP:").grid(row=0, column=0, sticky="w")
             hp_entry = ctk.CTkEntry(hp_frame, width=80)
-            hp_entry.insert(0, str(enemy.get('max_health', 100)))
+            hp_entry.insert(0, str(enemy.get('max_hp', 100)))
             hp_entry.grid(row=0, column=1, padx=5)
-            hp_entry.bind("<KeyRelease>", lambda e, idx=i, w=hp_entry: self._update_advanced_enemy_numeric(node, idx, 'max_health', w.get()))
+            hp_entry.bind("<KeyRelease>", lambda e, idx=i, w=hp_entry: self._update_advanced_enemy_numeric(node, idx, 'max_hp', w.get()))
             
             ctk.CTkLabel(hp_frame, text="MP:").grid(row=0, column=2, sticky="w")
             mp_entry = ctk.CTkEntry(hp_frame, width=80)

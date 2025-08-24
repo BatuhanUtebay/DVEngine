@@ -29,9 +29,17 @@ def create_menu(app):
     )
     file_menu.add_separator()
     file_menu.add_command(
-        label="Export Game", 
+        label="Export Game (Classic HTML)", 
         command=app.export_game_handler
     )
+    
+    # Add modern web export if available
+    if hasattr(app, 'html_exporter') and app.html_exporter.is_modern_export_available():
+        file_menu.add_command(
+            label="Export Modern Web App (React PWA)",
+            command=lambda: app.html_exporter.export_modern_web()
+        )
+    
     file_menu.add_command(
         label="Export Enhanced Mobile Game", 
         command=lambda: _export_enhanced_mobile(app)
@@ -132,6 +140,31 @@ def create_menu(app):
         label="Dynamic Music Manager...",
         command=lambda: _open_music_manager(app)
     )
+    tools_menu.add_separator()
+    
+    # AI Tools submenu
+    if hasattr(app, 'ai_service') and app.ai_service and app.ai_service.is_enhanced_ai_available():
+        ai_menu = tk.Menu(tools_menu, tearoff=0)
+        ai_menu.add_command(
+            label="Run Story Analysis",
+            command=lambda: _run_story_analysis(app)
+        )
+        ai_menu.add_command(
+            label="Batch Improve Dialogue",
+            command=lambda: _batch_improve_dialogue(app)
+        )
+        ai_menu.add_separator()
+        ai_menu.add_command(
+            label="Generate Story Template",
+            command=lambda: _generate_ai_template(app)
+        )
+        ai_menu.add_separator()
+        ai_menu.add_command(
+            label="AI Settings...",
+            command=lambda: _open_ai_settings(app)
+        )
+        tools_menu.add_cascade(label="AI Tools", menu=ai_menu)
+    
     menu_bar.add_cascade(label="Tools", menu=tools_menu)
 
     # Help Menu
@@ -399,3 +432,91 @@ def _open_music_manager(app):
     except Exception as e:
         from ..core.utils import show_error
         show_error("Music Manager Error", f"Failed to open music manager: {e}")
+
+
+def _run_story_analysis(app):
+    """Run AI story analysis on the current project."""
+    try:
+        if not hasattr(app, 'ai_service') or not app.ai_service:
+            from ..core.utils import show_error
+            show_error("AI Service Error", "AI service is not available.")
+            return
+        
+        if not app.ai_service.is_enhanced_ai_available():
+            from ..core.utils import show_error
+            show_error("Enhanced AI Error", "Enhanced AI features are not available.")
+            return
+        
+        from ..ui.dialogs.ai_analysis_dialog import AIAnalysisDialog
+        dialog = AIAnalysisDialog(app)
+        
+    except Exception as e:
+        from ..core.utils import show_error
+        show_error("AI Analysis Error", f"Failed to run story analysis: {e}")
+
+
+def _batch_improve_dialogue(app):
+    """Run batch AI dialogue improvement on selected or all nodes."""
+    try:
+        if not hasattr(app, 'ai_service') or not app.ai_service:
+            from ..core.utils import show_error
+            show_error("AI Service Error", "AI service is not available.")
+            return
+        
+        if not app.ai_service.is_enhanced_ai_available():
+            from ..core.utils import show_error
+            show_error("Enhanced AI Error", "Enhanced AI features are not available.")
+            return
+        
+        from ..ui.dialogs.batch_ai_dialog import BatchAIDialog
+        dialog = BatchAIDialog(app)
+        
+    except Exception as e:
+        from ..core.utils import show_error
+        show_error("Batch AI Error", f"Failed to open batch AI improvements: {e}")
+
+
+def _generate_ai_template(app):
+    """Generate a new story template using AI."""
+    try:
+        if not hasattr(app, 'ai_service') or not app.ai_service:
+            from ..core.utils import show_error
+            show_error("AI Service Error", "AI service is not available.")
+            return
+        
+        if not app.ai_service.is_enhanced_ai_available():
+            from ..core.utils import show_error
+            show_error("Enhanced AI Error", "Enhanced AI features are not available.")
+            return
+        
+        from ..ui.dialogs.ai_template_dialog import AITemplateDialog
+        dialog = AITemplateDialog(app)
+        result = dialog.show()
+        
+        if result and result.get('action') == 'apply_template':
+            template = result.get('template')
+            if template:
+                app._apply_template(template)
+                app.canvas_manager.redraw_all_nodes()
+                app.properties_panel.update_all_panels()
+                app.state_manager.save_state("Applied AI-generated template")
+        
+    except Exception as e:
+        from ..core.utils import show_error
+        show_error("AI Template Error", f"Failed to generate AI template: {e}")
+
+
+def _open_ai_settings(app):
+    """Open AI service settings and configuration."""
+    try:
+        if not hasattr(app, 'ai_service') or not app.ai_service:
+            from ..core.utils import show_error
+            show_error("AI Service Error", "AI service is not available.")
+            return
+        
+        from ..ui.dialogs.ai_settings_dialog import AISettingsDialog
+        dialog = AISettingsDialog(app)
+        
+    except Exception as e:
+        from ..core.utils import show_error
+        show_error("AI Settings Error", f"Failed to open AI settings: {e}")

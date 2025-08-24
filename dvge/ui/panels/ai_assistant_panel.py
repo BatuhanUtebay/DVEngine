@@ -62,6 +62,7 @@ class AIAssistantPanel(ctk.CTkFrame):
         self.notebook.grid(row=1, column=0, sticky="nsew", padx=10, pady=5)
         
         # Set up tabs
+        self.setup_suggestions_tab()  # Add suggestions tab first
         self.setup_chat_tab()
         self.setup_dialogue_tab()
         self.setup_character_tab()
@@ -133,6 +134,29 @@ class AIAssistantPanel(ctk.CTkFrame):
                 height=30
             )
             button.grid(row=row, column=col, padx=5, pady=2, sticky="ew")
+    
+    def setup_suggestions_tab(self):
+        """Set up the contextual suggestions tab."""
+        tab = self.notebook.add("Suggestions")
+        
+        # Import and create contextual suggestions widget
+        try:
+            from ..contextual_suggestions_widget import ContextualSuggestionsWidget
+            
+            self.suggestions_widget = ContextualSuggestionsWidget(tab, self.app)
+            self.suggestions_widget.pack(fill="both", expand=True, padx=10, pady=10)
+            
+        except Exception as e:
+            print(f"Failed to initialize contextual suggestions: {e}")
+            # Show error message in tab
+            error_label = ctk.CTkLabel(
+                tab,
+                text="Contextual suggestions not available.\nError initializing suggestions widget.",
+                font=ctk.CTkFont(size=12),
+                text_color="red"
+            )
+            error_label.pack(pady=20)
+            self.suggestions_widget = None
     
     def setup_dialogue_tab(self):
         """Set up the dialogue generation tab."""

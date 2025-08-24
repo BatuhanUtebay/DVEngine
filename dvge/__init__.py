@@ -10,6 +10,7 @@ __author__ = "Dice Verce"
 
 # Import main components for easier access
 from .core.application import DVGApp
+
 from .models import DialogueNode, CombatNode, DiceRollNode, Quest, GameTimer, Enemy
 
 __all__ = [

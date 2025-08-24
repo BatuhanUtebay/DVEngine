@@ -4,6 +4,13 @@ import os
 from tkinter import filedialog, messagebox
 from .variable_system import VariableSystem
 
+# Import modern web export system
+try:
+    from ..exports.modern_web import ReactExporter
+    MODERN_WEB_AVAILABLE = True
+except ImportError:
+    MODERN_WEB_AVAILABLE = False
+
 
 class HTMLExporter:
     """Handles HTML game export functionality."""
@@ -11,13 +18,47 @@ class HTMLExporter:
     def __init__(self, app):
         self.app = app
         self.style_settings = None  # Will be set by style customizer
+        
+        # Initialize modern web exporter if available
+        self.react_exporter = ReactExporter(app) if MODERN_WEB_AVAILABLE else None
     
-    def export_game(self):
-        """Exports the current project to a single, playable HTML file."""
+    def export_game(self, export_format="classic"):
+        """Exports the current project to a playable web format.
+        
+        Args:
+            export_format: 'classic' for single HTML file, 'modern' for React PWA
+        """
         if not self.app.nodes: 
             messagebox.showwarning("Export Error", "Cannot export an empty project.")
             return False
+            
+        # Route to appropriate export method
+        if export_format == "modern" and self.react_exporter:
+            return self.react_exporter.export_game()
+        else:
+            return self._export_classic_html()
+            
+    def export_modern_web(self):
+        """Export as modern React-based Progressive Web App."""
+        if not MODERN_WEB_AVAILABLE:
+            messagebox.showerror(
+                "Modern Web Export Unavailable", 
+                "Modern web export system is not available. Please check the installation."
+            )
+            return False
+            
+        return self.export_game("modern")
         
+    def export_classic_html(self):
+        """Export as classic single HTML file."""
+        return self.export_game("classic")
+        
+    def is_modern_export_available(self):
+        """Check if modern web export is available."""
+        return MODERN_WEB_AVAILABLE and self.react_exporter is not None
+            
+    def _export_classic_html(self):
+        """Export to classic single HTML file format."""
         # Apply any saved style settings
         if hasattr(self.app, 'html_export_settings') and self.app.html_export_settings:
             self.style_settings = self.app.html_export_settings

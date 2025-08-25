@@ -30,7 +30,11 @@ MANIFEST
 #  Usually these files are written by a python script from a template
 #  before PyInstaller builds the exe, so as to inject date/other infos into it.
 *.manifest
-*.spec
+# Note: We keep build_config.spec as it's our custom build configuration
+
+# PyInstaller build output
+build/
+dist/
 
 # Installer logs
 pip-log.txt

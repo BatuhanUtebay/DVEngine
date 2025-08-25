@@ -16,17 +16,17 @@ class TemplateSelectionDialog:
         self._load_templates()
         
     def _create_dialog(self):
-        self.dialog = ctk.CTkToplevel(self.parent)
-        self.dialog.title("Choose Project Template")
-        self.dialog.geometry("900x600")
-        self.dialog.transient(self.parent)
-        self.dialog.grab_set()
+        from .responsive_dialog import ResponsiveDialog
         
-        # Center the dialog
-        self.dialog.geometry("+{}+{}".format(
-            self.parent.winfo_rootx() + 50,
-            self.parent.winfo_rooty() + 50
-        ))
+        self.dialog = ctk.CTkToplevel(self.parent)
+        
+        # Set up responsive dialog sizing
+        ResponsiveDialog.setup_responsive_dialog(
+            self.dialog, self.parent, "Choose Project Template",
+            min_width=800, min_height=600,
+            max_width=1200, max_height=900,
+            resizable=True, modal=True
+        )
         
         # Main container
         main_frame = ctk.CTkFrame(self.dialog)

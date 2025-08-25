@@ -103,8 +103,9 @@ def _create_main_content(app):
     # Main content area
     app.main_frame = ctk.CTkFrame(app, fg_color="transparent")
     app.main_frame.grid(row=2, column=0, sticky="nsew", padx=10, pady=10)  # Changed from row=1 to row=2
-    app.main_frame.grid_columnconfigure(0, weight=3)
-    app.main_frame.grid_columnconfigure(1, weight=1)
+    # Better proportions: 70% canvas, 30% properties panel
+    app.main_frame.grid_columnconfigure(0, weight=7)
+    app.main_frame.grid_columnconfigure(1, weight=3)
     app.main_frame.grid_rowconfigure(0, weight=1)
 
     _create_canvas(app)
@@ -136,6 +137,9 @@ def _create_properties_panel(app):
     from .panels.properties_panel import PropertiesPanel
     app.properties_panel = PropertiesPanel(app.main_frame, app)
     app.properties_panel.grid(row=0, column=1, sticky="nsew", padx=(5, 10))
+    
+    # Set minimum width for properties panel to prevent cramping
+    app.properties_panel.configure(width=400)  # Minimum comfortable width
     
     # Initial update
     app.properties_panel.update_all_panels()

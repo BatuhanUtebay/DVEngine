@@ -4,6 +4,7 @@
 
 import tkinter as tk
 import customtkinter as ctk
+from .responsive_dialog import ResponsiveDialog
 
 
 class SearchDialog(ctk.CTkToplevel):
@@ -12,9 +13,14 @@ class SearchDialog(ctk.CTkToplevel):
     def __init__(self, parent):
         super().__init__(parent)
         self.parent = parent
-        self.title("Find Node")
-        self.geometry("400x300")
-        self.attributes("-topmost", True)
+        
+        # Set up responsive sizing
+        ResponsiveDialog.setup_responsive_dialog(
+            self, parent, "Find Node",
+            min_width=450, min_height=400,
+            max_width=700, max_height=600,
+            resizable=True, modal=True
+        )
 
         self._setup_layout()
         self._create_widgets()

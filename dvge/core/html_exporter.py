@@ -19,6 +19,16 @@ class HTMLExporter:
         self.app = app
         self.style_settings = None  # Will be set by style customizer
         
+        # Mobile-responsive settings (now default for all exports)
+        self.mobile_settings = {
+            'enable_touch_controls': True,
+            'responsive_design': True,
+            'mobile_navigation': True,
+            'dark_mode_toggle': True,
+            'optimized_fonts': True,
+            'touch_friendly_buttons': True
+        }
+        
         # Initialize modern web exporter if available
         self.react_exporter = ReactExporter(app) if MODERN_WEB_AVAILABLE else None
     
@@ -315,6 +325,15 @@ class HTMLExporter:
     
     def _generate_html(self, dialogue_data, player_data, flags_data, quests_data, variables_data, enemies_data=None, timers_data=None, feature_data=None, portrait_data=None, music_data=None, media_data=None, voice_data=None):
         """Generate the complete HTML file content."""
+        # Ensure all optional data parameters have default values
+        enemies_data = enemies_data or "{}"
+        timers_data = timers_data or "{}"
+        feature_data = feature_data or "{}"
+        portrait_data = portrait_data or "{}"
+        music_data = music_data or "{}"
+        media_data = media_data or "{}"
+        voice_data = voice_data or "{}"
+        
         font_name = self.app.project_settings.get("font", "Merriweather")
         title_font_name = self.app.project_settings.get("title_font", "Special Elite")
         background_setting = self.app.project_settings.get("background", "").strip()
@@ -331,11 +350,21 @@ class HTMLExporter:
         # Generate custom CSS if style settings are available
         custom_css = self._generate_custom_css() if self.style_settings else ""
         
+        # Generate PWA manifest
+        manifest_data = self._generate_pwa_manifest()
+        
         html_template = '''<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0, minimum-scale=1.0" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="theme-color" content="#232526" />
+    <meta name="apple-mobile-web-app-title" content="DVG Adventure" />
+    <link rel="manifest" href="data:application/json;base64,{manifest_data}" />
+    <link rel="icon" type="image/png" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==" />
     <title>My DVG Adventure</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -363,6 +392,32 @@ class HTMLExporter:
             --quest-active-color: #F1C40F; 
             --quest-completed-color: #2ECC71; 
             --quest-failed-color: #E74C3C;
+            
+            /* Mobile-responsive enhancements */
+            --mobile-header-height: 60px;
+            --mobile-nav-height: 70px;
+            --touch-target-size: 44px;
+            --mobile-padding: 16px;
+            --mobile-border-radius: 12px;
+            --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            
+            /* Dark theme colors for mobile */
+            --bg-primary-dark: #1a1a1a;
+            --bg-secondary-dark: #2d2d2d;
+            --text-primary-dark: #ffffff;
+            --text-secondary-dark: #b0b0b0;
+        }}
+
+        /* Dark theme support */
+        [data-theme="dark"] {{
+            --bg-grad-start-default: var(--bg-primary-dark);
+            --bg-grad-end-default: var(--bg-secondary-dark);
+            --text-light: var(--text-primary-dark);
+            --text-muted: var(--text-secondary-dark);
+            --dialogue-bg: rgba(45, 45, 45, 0.95);
+            --hud-bg: rgba(45, 45, 45, 0.95);
+            --button-bg: #404040;
+            --button-hover-bg: #555555;
         }}
         
         body {{
@@ -370,7 +425,9 @@ class HTMLExporter:
             margin:0; padding:0; font-family:var(--primary-font); color:var(--text-light); 
             min-height:100vh; transition:background 0.8s ease-in-out; 
             background-size: cover; background-position: center; background-attachment: fixed;
-            overflow: hidden;
+            overflow: hidden; word-break: break-word; overflow-wrap: break-word;
+            /* Enhanced zoom handling */
+            zoom: 1; transform-origin: center center;
         }}
         
         /* Theme variations */
@@ -381,31 +438,46 @@ class HTMLExporter:
 
         #dialogue-box {{
             position:fixed; bottom:2em; left:50%; transform:translateX(-50%);
-            width:90%; max-width:800px; background:var(--dialogue-bg);
-            border-radius:12px; padding:1.5em 2em; 
+            width:min(95%, 1000px); background:var(--dialogue-bg);
+            border-radius:12px; padding:clamp(1em, 3vw, 2em) clamp(1.2em, 4vw, 2.5em); 
             box-shadow:0 10px 30px var(--shadow-color);
             border: 1px solid var(--border-color); backdrop-filter: blur(10px);
             animation: slideUp 0.5s ease-out forwards;
+            max-height:70vh; overflow-y:auto; overflow-wrap:break-word;
+            word-wrap:break-word; hyphens:auto;
         }}
         
         @keyframes slideUp {{ from {{ opacity:0; transform: translate(-50%, 50px); }} to {{ opacity:1; transform: translate(-50%, 0); }} }}
 
         #npc-name {{
-            font-family:var(--title-font); font-size:1.6em; margin-bottom:0.7em;
+            font-family:var(--title-font); font-size:clamp(1.2em, 3.5vw, 1.6em); margin-bottom:0.7em;
             color: var(--accent-color); text-shadow: 0 0 10px var(--accent-color);
+            word-break:break-word; overflow-wrap:break-word;
         }}
         
         #dialogue-text {{
-            font-size:1.15em; line-height:1.7; margin-bottom:1.5em;
-            color:var(--text-light); min-height:60px; font-style: italic;
+            font-size:clamp(1rem, 2.5vw, 1.15em); line-height:1.6; margin-bottom:1.5em;
+            color:var(--text-light); font-style: italic; word-break:break-word;
+            overflow-wrap:break-word; white-space:pre-wrap;
         }}
         
-        #options {{ display:flex; flex-direction:column; gap:0.8em; }}
+        #options {{ 
+            display:flex; flex-direction:column; gap:clamp(0.5em, 2vw, 0.8em); 
+            margin-top:1em; max-width:100%;
+        }}
         
         #options button {{
-            padding:0.9em 1.4em; border:1px solid transparent; background:var(--button-bg);
+            padding:clamp(0.8em, 2.5vw, 1.2em) clamp(1em, 3vw, 1.6em); 
+            border:1px solid transparent; background:var(--button-bg);
             color:var(--text-light); border-radius:8px; cursor:pointer;
-            font-size:1em; transition: all 0.2s ease-out; text-align:left;
+            font-size:clamp(0.9rem, 2.2vw, 1rem); 
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
+            text-align:left; word-break:break-word; overflow-wrap:break-word;
+            white-space:normal; hyphens:auto; line-height:1.4;
+            min-height:auto; width:100%; box-sizing:border-box;
+            /* Enhanced button polish */
+            position: relative; overflow: hidden;
+            text-rendering: optimizeLegibility;
         }}
         
         #options button:hover {{ background:var(--button-hover-bg); border-color: var(--accent-color); transform: translateY(-2px); }}
@@ -442,9 +514,11 @@ class HTMLExporter:
         /* Shop Interface */
         .shop-interface {{
             display: none; position: fixed; top: 50%; left: 50%;
-            transform: translate(-50%, -50%); width: 90%; max-width: 600px;
-            background: var(--hud-bg); border-radius: 12px; padding: 2em;
+            transform: translate(-50%, -50%); width: min(95%, 700px);
+            background: var(--hud-bg); border-radius: 12px; 
+            padding: clamp(1em, 3vw, 2em);
             box-shadow: 0 20px 40px var(--shadow-color); z-index: 1000;
+            max-height: 85vh; overflow-y: auto; overflow-wrap: break-word;
         }}
         
         .shop-interface.active {{ display: block; }}
@@ -515,9 +589,11 @@ class HTMLExporter:
         /* Inventory Interface */
         .inventory-interface {{
             display: none; position: fixed; top: 50%; left: 50%;
-            transform: translate(-50%, -50%); width: 90%; max-width: 700px;
-            background: var(--hud-bg); border-radius: 12px; padding: 2em;
+            transform: translate(-50%, -50%); width: min(95%, 750px);
+            background: var(--hud-bg); border-radius: 12px; 
+            padding: clamp(1em, 3vw, 2em);
             box-shadow: 0 20px 40px var(--shadow-color); z-index: 1000;
+            max-height: 85vh; overflow-y: auto; overflow-wrap: break-word;
         }}
         
         .inventory-interface.active {{ display: block; }}
@@ -540,11 +616,14 @@ class HTMLExporter:
         
         #hud-toggle:hover {{ background: var(--accent-dark); color: white; }}
 
-        #hud-container {{ position: fixed; top: 0; left: -350px; width: 320px; height: 100%;
-            background: var(--hud-bg); padding: 20px;
+        #hud-container {{ position: fixed; top: 0; left: -350px; 
+            width: min(350px, 90vw); height: 100%;
+            background: var(--hud-bg); padding: clamp(1rem, 3vw, 20px);
             box-shadow: 5px 0 25px var(--shadow-color);
             transition: left 0.4s ease-in-out; z-index: 100;
-            overflow-y: auto; border-right: 1px solid var(--border-color); }}
+            overflow-y: auto; border-right: 1px solid var(--border-color);
+            word-wrap: break-word; overflow-wrap: break-word;
+        }}
         
         #hud-container.open {{ left: 0; }}
         
@@ -593,6 +672,387 @@ class HTMLExporter:
             font-family: var(--primary-font); font-style: italic; opacity: 0.8; }}
         
         @keyframes chapterFade {{ 0%,100% {{ opacity:0; }} 20%,80% {{ opacity:1; }} }}
+        
+        /* Mobile notification animations */
+        @keyframes slideUpFade {{
+            from {{
+                opacity: 0;
+                transform: translate(-50%, 20px);
+            }}
+            to {{
+                opacity: 1;
+                transform: translate(-50%, 0);
+            }}
+        }}
+        
+        @keyframes slideDownFade {{
+            from {{
+                opacity: 1;
+                transform: translate(-50%, 0);
+            }}
+            to {{
+                opacity: 0;
+                transform: translate(-50%, 20px);
+            }}
+        }}
+
+        /* ===== ZOOM AND SCALING FIXES ===== */
+        
+        /* Universal container robustness */
+        * {{
+            box-sizing: border-box;
+            word-break: break-word;
+            overflow-wrap: break-word;
+        }}
+        
+        /* Zoom-out protection for main containers */
+        #dialogue-box, .shop-interface, .inventory-interface, #hud-container {{
+            contain: layout style;
+            will-change: auto;
+        }}
+        
+        /* Enhanced Typography System */
+        p, div, span {{
+            line-height: 1.5;
+            max-width: 100%;
+            word-break: break-word;
+            overflow-wrap: break-word;
+            hyphens: auto;
+        }}
+        
+        button {{
+            line-height: 1.4;
+            font-weight: 500;
+            letter-spacing: 0.01em;
+            max-width: 100%;
+            word-break: break-word;
+            overflow-wrap: break-word;
+            hyphens: auto;
+        }}
+        
+        h1, h2, h3, h4, h5, h6 {{
+            line-height: 1.3;
+            font-weight: 700;
+            letter-spacing: 0.02em;
+            max-width: 100%;
+            word-break: break-word;
+            overflow-wrap: break-word;
+            hyphens: auto;
+            margin-bottom: 0.5em;
+        }}
+        
+        /* Improved text readability */
+        #dialogue-text {{
+            text-rendering: optimizeLegibility;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }}
+        
+        #npc-name {{
+            text-rendering: optimizeLegibility;
+            -webkit-font-smoothing: antialiased;
+            letter-spacing: 0.03em;
+        }}
+        
+        /* Flexible container constraints */
+        .modal-overlay, .shop-interface, .inventory-interface {{
+            min-width: min(300px, 90vw);
+            max-width: min(90vw, 1200px);
+        }}
+        
+        /* ===== MOBILE-RESPONSIVE ENHANCEMENTS ===== */
+        
+        /* Touch-friendly button enhancements - only apply on mobile */
+        @media (max-width: 768px) {{
+            #options button, .combat-button, .inventory-tab, .shop-tab {{
+                min-height: var(--touch-target-size);
+                min-width: var(--touch-target-size);
+                touch-action: manipulation;
+                -webkit-tap-highlight-color: transparent;
+            }}
+        }}
+        
+        /* Mobile navigation toggle - only show on mobile */
+        .mobile-nav-toggle {{
+            display: none;
+        }}
+        
+        /* Dark mode toggle button - integrated into existing UI */
+        .theme-toggle {{
+            display: none;
+        }}
+        
+        /* Mobile-responsive media queries */
+        @media (max-width: 768px) {{
+            body {{
+                overflow-y: auto;
+            }}
+            
+            #dialogue-box {{
+                margin: var(--mobile-padding);
+                padding: var(--mobile-padding);
+                border-radius: var(--mobile-border-radius);
+                min-height: auto;
+                max-height: 60vh;
+                overflow-y: auto;
+                -webkit-overflow-scrolling: touch;
+            }}
+            
+            #options {{
+                gap: 0.6em;
+                padding: var(--mobile-padding);
+            }}
+            
+            #options button {{
+                padding: 1em;
+                font-size: 16px;
+                border-radius: var(--mobile-border-radius);
+                text-align: center;
+                word-wrap: break-word;
+            }}
+            
+            #hud-container {{
+                width: 90%;
+                left: 5%;
+                top: auto;
+                bottom: 0;
+                height: auto;
+                max-height: 70vh;
+                border-radius: var(--mobile-border-radius) var(--mobile-border-radius) 0 0;
+                transform: translateY(100%);
+                transition: transform 0.3s ease;
+            }}
+            
+            #hud-container.open {{
+                transform: translateY(0);
+            }}
+            
+            #hud-toggle {{
+                top: auto;
+                bottom: var(--mobile-padding);
+                left: 50%;
+                transform: translateX(-50%);
+            }}
+            
+            .mobile-nav-toggle {{
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                position: fixed;
+                bottom: calc(var(--mobile-nav-height) + var(--mobile-padding));
+                left: var(--mobile-padding);
+                z-index: 999;
+                background: var(--hud-bg);
+                color: var(--text-light);
+                border: 1px solid var(--border-color);
+                border-radius: 50%;
+                width: var(--touch-target-size);
+                height: var(--touch-target-size);
+                box-shadow: 0 4px 12px var(--shadow-color);
+                backdrop-filter: blur(10px);
+            }}
+            
+            .theme-toggle {{
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                position: fixed;
+                bottom: calc(var(--mobile-nav-height) + var(--mobile-padding));
+                right: var(--mobile-padding);
+                z-index: 999;
+                background: var(--hud-bg);
+                color: var(--text-light);
+                border: 1px solid var(--border-color);
+                border-radius: 50%;
+                width: var(--touch-target-size);
+                height: var(--touch-target-size);
+                font-size: 1.2em;
+                box-shadow: 0 4px 12px var(--shadow-color);
+                backdrop-filter: blur(10px);
+            }}
+            
+            .mobile-nav-toggle:hover,
+            .theme-toggle:hover {{
+                background: var(--accent-color);
+                transform: scale(1.05);
+            }}
+            
+            /* Prevent zoom on input focus */
+            input, select, textarea {{
+                font-size: 16px;
+            }}
+            
+            /* Shop modal mobile optimization */
+            #shop-modal .modal-content,
+            #inventory-modal .modal-content {{
+                width: 95%;
+                height: 90vh;
+                border-radius: var(--mobile-border-radius);
+                overflow-y: auto;
+            }}
+            
+            /* Combat UI mobile optimization */
+            .combat-stats {{
+                flex-direction: column;
+                gap: 0.5em;
+            }}
+            
+            .combat-actions {{
+                flex-wrap: wrap;
+                justify-content: center;
+            }}
+            
+            .combat-button {{
+                min-width: 120px;
+                margin: 0.2em;
+            }}
+            
+            /* Text size adjustments for mobile */
+            .npc-name {{
+                font-size: 1.1em;
+            }}
+            
+            .dialogue-text {{
+                font-size: 1em;
+                line-height: 1.5;
+            }}
+            
+            /* Notification positioning for mobile */
+            .notification {{
+                bottom: calc(var(--mobile-nav-height) + var(--mobile-padding));
+                right: var(--mobile-padding);
+                left: var(--mobile-padding);
+                max-width: none;
+            }}
+        }}
+        
+        /* Tablet breakpoint - better intermediate sizing */
+        @media (max-width: 1024px) and (min-width: 769px) {{
+            #dialogue-box {{
+                width: min(85%, 900px);
+                padding: clamp(1.2em, 2.5vw, 1.8em) clamp(1.5em, 3.5vw, 2.2em);
+            }}
+            
+            #options button {{
+                font-size: clamp(0.95rem, 2vw, 1.05rem);
+            }}
+        }}
+        
+        /* Small tablet/large phone breakpoint */
+        @media (max-width: 600px) and (min-width: 481px) {{
+            #dialogue-box {{
+                width: min(92%, 1000px);
+                bottom: 1.5em;
+            }}
+            
+            #options button {{
+                font-size: clamp(0.9rem, 2.8vw, 1rem);
+                padding: clamp(0.9em, 2.8vw, 1.1em) clamp(1.1em, 3.2vw, 1.5em);
+            }}
+        }}
+        
+        @media (max-width: 480px) {{
+            :root {{
+                --mobile-padding: 12px;
+            }}
+            
+            #dialogue-box {{
+                margin: var(--mobile-padding);
+                padding: var(--mobile-padding);
+                bottom: 1em;
+                width: min(96%, 1000px);
+            }}
+            
+            #options button {{
+                padding: 0.8em;
+                font-size: clamp(14px, 4vw, 15px);
+            }}
+            
+            .npc-name {{
+                font-size: clamp(1em, 4vw, 1.1em);
+            }}
+            
+            .dialogue-text {{
+                font-size: clamp(0.9em, 3.5vw, 1em);
+            }}
+        }}
+        
+        /* Ultra-small screens */
+        @media (max-width: 320px) {{
+            #dialogue-box {{
+                padding: 0.8em;
+                margin: 8px;
+            }}
+            
+            #options button {{
+                padding: 0.7em 0.9em;
+                font-size: 14px;
+            }}
+        }}
+        
+        /* Landscape orientation optimizations */
+        @media (max-height: 500px) and (orientation: landscape) {{
+            #dialogue-box {{
+                max-height: 40vh;
+            }}
+            
+            #hud-container {{
+                max-height: 50vh;
+            }}
+            
+            #options {{
+                flex-direction: row;
+                flex-wrap: wrap;
+            }}
+            
+            #options button {{
+                flex: 1 1 calc(50% - 0.3em);
+                min-width: 150px;
+            }}
+        }}
+        
+        /* Touch gestures and animations */
+        .touch-feedback {{
+            position: relative;
+            overflow: hidden;
+        }}
+        
+        .touch-feedback::before {{
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            background: rgba(255,255,255,0.3);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            transition: width 0.6s, height 0.6s;
+        }}
+        
+        .touch-feedback:active::before {{
+            width: 300px;
+            height: 300px;
+        }}
+        
+        /* Accessibility enhancements */
+        @media (prefers-reduced-motion: reduce) {{
+            *, *::before, *::after {{
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }}
+        }}
+        
+        /* High contrast mode support */
+        @media (prefers-contrast: high) {{
+            :root {{
+                --border-color: #000000;
+                --button-bg: #000000;
+                --text-light: #ffffff;
+                --accent-color: #ffff00;
+            }}
+        }}
 
         #start-overlay {{ position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.85); color: white;
@@ -611,6 +1071,14 @@ class HTMLExporter:
     </style>
 </head>
 <body>
+    <!-- Mobile Navigation Controls -->
+    <button class="mobile-nav-toggle" id="mobile-nav-toggle" aria-label="Toggle Navigation">
+        <i class="ph ph-list"></i>
+    </button>
+    <button class="theme-toggle" id="theme-toggle" aria-label="Toggle Dark Mode">
+        <i class="ph ph-moon"></i>
+    </button>
+    
     <div id="game-container">
         <div id="hud-toggle"><i class="ph-fill ph-backpack"></i></div>
         <div id="hud-container"></div>
@@ -675,6 +1143,285 @@ class HTMLExporter:
         let autoAdvanceTimer = null;
         let currentShopData = null;
         let currentInventoryData = null;
+        
+        // ===== MOBILE-RESPONSIVE ENHANCEMENTS =====
+        
+        // Better mobile detection
+        let isMobile = (window.innerWidth <= 768) && ('ontouchstart' in window || navigator.maxTouchPoints > 0);
+        let touchStartX = 0;
+        let touchStartY = 0;
+        let touchEndX = 0;
+        let touchEndY = 0;
+        let swipeThreshold = 50;
+        let isAnimating = false;
+        let currentTheme = 'light';
+        
+        // Touch gesture support
+        function initializeMobileControls() {{
+            // Theme toggle functionality
+            const themeToggle = document.getElementById('theme-toggle');
+            const mobileNavToggle = document.getElementById('mobile-nav-toggle');
+            
+            if (themeToggle) {{
+                themeToggle.addEventListener('click', toggleTheme);
+            }}
+            
+            if (mobileNavToggle) {{
+                mobileNavToggle.addEventListener('click', toggleMobileNavigation);
+            }}
+            
+            // Add touch gesture listeners
+            document.addEventListener('touchstart', handleTouchStart, {{ passive: true }});
+            document.addEventListener('touchend', handleTouchEnd, {{ passive: true }});
+            
+            // Allow context menu for desktop, only prevent on long press for mobile
+            document.addEventListener('contextmenu', (e) => {
+                if (isMobile && e.target.closest('button, #options button')) {
+                    e.preventDefault(); // Only prevent on interactive elements on mobile
+                }
+            });
+            
+            // Handle orientation changes
+            window.addEventListener('orientationchange', handleOrientationChange);
+            window.addEventListener('resize', handleResize);
+            
+            // Add touch feedback to buttons
+            addTouchFeedback();
+            
+            // Load saved theme preference
+            loadThemePreference();
+            
+            // Initialize mobile-specific UI adjustments
+            updateMobileUI();
+            
+            // Initialize enhanced HUD toggle for mobile
+            initializeHUDToggle();
+        }}
+        
+        function handleTouchStart(e) {{
+            if (e.touches.length === 1) {{
+                touchStartX = e.touches[0].clientX;
+                touchStartY = e.touches[0].clientY;
+            }}
+        }}
+        
+        function handleTouchEnd(e) {{
+            if (e.changedTouches.length === 1) {{
+                touchEndX = e.changedTouches[0].clientX;
+                touchEndY = e.changedTouches[0].clientY;
+                handleSwipeGesture();
+            }}
+        }}
+        
+        function handleSwipeGesture() {{
+            const deltaX = touchEndX - touchStartX;
+            const deltaY = touchEndY - touchStartY;
+            const absX = Math.abs(deltaX);
+            const absY = Math.abs(deltaY);
+            
+            if (absX < swipeThreshold && absY < swipeThreshold) return;
+            
+            if (absX > absY) {{
+                // Horizontal swipe
+                if (deltaX > 0) {{
+                    handleSwipeRight();
+                }} else {{
+                    handleSwipeLeft();
+                }}
+            }} else {{
+                // Vertical swipe
+                if (deltaY > 0) {{
+                    handleSwipeDown();
+                }} else {{
+                    handleSwipeUp();
+                }}
+            }}
+        }}
+        
+        function handleSwipeUp() {{
+            // Open inventory/HUD
+            if (isMobile && !document.getElementById('hud-container').classList.contains('open')) {{
+                toggleHUD();
+            }}
+        }}
+        
+        function handleSwipeDown() {{
+            // Close inventory/HUD or show game menu
+            if (isMobile && document.getElementById('hud-container').classList.contains('open')) {{
+                toggleHUD();
+            }}
+        }}
+        
+        function handleSwipeLeft() {{
+            // Quick action: select first choice if only one available
+            const options = document.querySelectorAll('#options button:not(:disabled)');
+            if (options.length === 1) {{
+                options[0].click();
+            }}
+        }}
+        
+        function handleSwipeRight() {{
+            // Could implement back navigation or menu
+            toggleMobileNavigation();
+        }}
+        
+        function toggleTheme() {{
+            const body = document.body;
+            const themeIcon = document.querySelector('#theme-toggle i');
+            
+            if (currentTheme === 'light') {{
+                body.setAttribute('data-theme', 'dark');
+                themeIcon.className = 'ph ph-sun';
+                currentTheme = 'dark';
+            }} else {{
+                body.removeAttribute('data-theme');
+                themeIcon.className = 'ph ph-moon';
+                currentTheme = 'light';
+            }}
+            
+            // Save theme preference
+            localStorage.setItem('dvge_theme', currentTheme);
+            showMobileNotification(`Switched to ${{currentTheme}} theme`);
+        }}
+        
+        function toggleMobileNavigation() {{
+            const hudContainer = document.getElementById('hud-container');
+            const isOpen = hudContainer.classList.contains('open');
+            
+            if (isOpen) {{
+                hudContainer.classList.remove('open');
+            }} else {{
+                hudContainer.classList.add('open');
+            }}
+        }}
+        
+        function addTouchFeedback() {{
+            const buttons = document.querySelectorAll('button, #options button');
+            buttons.forEach(button => {{
+                if (!button.classList.contains('touch-feedback')) {{
+                    button.classList.add('touch-feedback');
+                }}
+            }});
+        }}
+        
+        function handleOrientationChange() {{
+            setTimeout(() => {{
+                updateMobileUI();
+                handleResize();
+            }}, 100);
+        }}
+        
+        function handleResize() {{
+            isMobile = (window.innerWidth <= 768) && ('ontouchstart' in window || navigator.maxTouchPoints > 0);
+            updateMobileUI();
+            
+            // Update viewport height for mobile browsers
+            const vh = window.innerHeight * 0.01;
+            document.documentElement.style.setProperty('--vh', `${{vh}}px`);
+        }}
+        
+        function updateMobileUI() {{
+            const gameContainer = document.getElementById('game-container');
+            const mobileNavToggle = document.getElementById('mobile-nav-toggle');
+            const themeToggle = document.getElementById('theme-toggle');
+            
+            if (isMobile) {{
+                // Add mobile-specific classes
+                gameContainer.classList.add('mobile-layout');
+                
+                // Show mobile controls
+                if (mobileNavToggle) mobileNavToggle.style.display = 'flex';
+                if (themeToggle) themeToggle.style.display = 'flex';
+                
+                // Ensure proper scrolling on mobile
+                document.body.style.overflowY = 'auto';
+                document.body.style.height = 'auto';
+                document.body.style.minHeight = '100vh';
+                
+                // Update button sizes for touch
+                addTouchFeedback();
+            }} else {{
+                // Desktop mode - hide mobile controls and restore desktop behavior
+                gameContainer.classList.remove('mobile-layout');
+                
+                // Hide mobile controls
+                if (mobileNavToggle) mobileNavToggle.style.display = 'none';
+                if (themeToggle) themeToggle.style.display = 'none';
+                
+                // Restore desktop scrolling
+                document.body.style.overflow = 'hidden';
+                document.body.style.height = '100vh';
+            }}
+        }}
+        
+        function loadThemePreference() {{
+            const savedTheme = localStorage.getItem('dvge_theme');
+            if (savedTheme === 'dark') {{
+                document.body.setAttribute('data-theme', 'dark');
+                document.querySelector('#theme-toggle i').className = 'ph ph-sun';
+                currentTheme = 'dark';
+            }}
+        }}
+        
+        function showMobileNotification(message, duration = 2000) {{
+            // Create mobile-friendly notification
+            const notification = document.createElement('div');
+            notification.className = 'mobile-notification';
+            notification.textContent = message;
+            notification.style.cssText = `
+                position: fixed;
+                bottom: ${{isMobile ? 'calc(var(--mobile-nav-height, 70px) + 20px)' : '20px'}};
+                left: 50%;
+                transform: translateX(-50%);
+                background: var(--hud-bg);
+                color: var(--text-light);
+                padding: 12px 24px;
+                border-radius: var(--mobile-border-radius, 12px);
+                z-index: 10000;
+                font-size: 14px;
+                box-shadow: 0 4px 12px var(--shadow-color);
+                animation: slideUpFade 0.3s ease;
+                border: 1px solid var(--border-color);
+                backdrop-filter: blur(10px);
+            `;
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {{
+                notification.style.animation = 'slideDownFade 0.3s ease';
+                setTimeout(() => notification.remove(), 300);
+            }}, duration);
+        }}
+        
+        // Enhanced HUD toggle for mobile
+        function enhancedToggleHUD() {{
+            const hudContainer = document.getElementById('hud-container');
+            const hudToggle = document.getElementById('hud-toggle');
+            
+            if (isMobile) {{
+                hudContainer.classList.toggle('open');
+                if (hudToggle) {{
+                    hudToggle.style.transform = hudContainer.classList.contains('open') ? 
+                        'translateX(-50%) rotate(45deg)' : 'translateX(-50%)';
+                }}
+            }} else {{
+                // Use original desktop behavior - don't override existing functionality
+                const isVisible = hudContainer.style.left === '0px';
+                hudContainer.style.left = isVisible ? '-350px' : '0px';
+            }}
+        }}
+        
+        // Only override HUD toggle if we're on mobile
+        function initializeHUDToggle() {{
+            const hudToggle = document.getElementById('hud-toggle');
+            if (hudToggle && isMobile) {{
+                // Only modify on mobile
+                hudToggle.addEventListener('click', function(e) {{
+                    e.stopPropagation();
+                    enhancedToggleHUD();
+                }});
+            }}
+        }}
         let timerInterval = null;
 
         function updateHud() {{
@@ -2219,6 +2966,7 @@ class HTMLExporter:
         document.addEventListener('DOMContentLoaded', () => {{
             updateHud();
             initializeMusicSystem();
+            initializeMobileControls();  // Initialize mobile-responsive features
             renderNode('intro');
 
             const startOverlay = document.getElementById('start-overlay');
@@ -2440,6 +3188,9 @@ class HTMLExporter:
         html_result = html_result.replace('{feature_data}', feature_data or '{}')
         html_result = html_result.replace('{portrait_data}', portrait_data or '{}')
         html_result = html_result.replace('{music_data}', music_data or '{}')
+        html_result = html_result.replace('{media_data}', media_data or '{}')
+        html_result = html_result.replace('{voice_data}', voice_data or '{}')
+        html_result = html_result.replace('{manifest_data}', manifest_data)
         html_result = html_result.replace('{font_link}', font_link)
         html_result = html_result.replace('{font_css}', font_css)
         html_result = html_result.replace('{title_font_css}', title_font_css)
@@ -2456,6 +3207,50 @@ class HTMLExporter:
         html_result = html_result.replace('}}', '}')
         
         return html_result
+    
+    def _generate_pwa_manifest(self):
+        """Generate PWA manifest data as base64 encoded string."""
+        import base64
+        
+        project_title = self.app.project_settings.get('title', 'DVG Adventure')
+        
+        manifest = {
+            "name": project_title,
+            "short_name": project_title[:12] if len(project_title) > 12 else project_title,
+            "description": "An interactive dialogue adventure game",
+            "start_url": "./",
+            "display": "standalone",
+            "orientation": "portrait-primary",
+            "theme_color": "#232526",
+            "background_color": "#232526",
+            "categories": ["games", "entertainment"],
+            "icons": [
+                {
+                    "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Cpath fill='%23232526' d='M0 0h192v192H0z'/%3E%3Ctext x='96' y='96' font-family='serif' font-size='48' text-anchor='middle' dy='0.35em' fill='white'%3E" + project_title[0].upper() + "%3C/text%3E%3C/svg%3E",
+                    "sizes": "192x192",
+                    "type": "image/svg+xml"
+                },
+                {
+                    "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Cpath fill='%23232526' d='M0 0h512v512H0z'/%3E%3Ctext x='256' y='256' font-family='serif' font-size='128' text-anchor='middle' dy='0.35em' fill='white'%3E" + project_title[0].upper() + "%3C/text%3E%3C/svg%3E",
+                    "sizes": "512x512", 
+                    "type": "image/svg+xml"
+                }
+            ],
+            "shortcuts": [
+                {
+                    "name": "New Game",
+                    "short_name": "New",
+                    "description": "Start a new adventure",
+                    "url": "./"
+                }
+            ],
+            "lang": "en",
+            "dir": "ltr"
+        }
+        
+        manifest_json = json.dumps(manifest, separators=(',', ':'))
+        manifest_b64 = base64.b64encode(manifest_json.encode('utf-8')).decode('utf-8')
+        return manifest_b64
     
     def generate_preview_html(self):
         """Generate preview HTML with current style settings."""

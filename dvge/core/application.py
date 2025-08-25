@@ -16,7 +16,22 @@ class DVGApp(ctk.CTk):
     def __init__(self):
         super().__init__()
         self.title("Dialogue Venture Game Engine")
-        self.geometry("1800x1000")
+        
+        # Get screen dimensions for responsive sizing
+        screen_width = self.winfo_screenwidth()
+        screen_height = self.winfo_screenheight()
+        
+        # Calculate optimal window size (90% of screen with reasonable limits)
+        window_width = max(1400, min(int(screen_width * 0.9), 2400))
+        window_height = max(900, min(int(screen_height * 0.85), 1600))
+        
+        # Center the window
+        pos_x = (screen_width - window_width) // 2
+        pos_y = (screen_height - window_height) // 2
+        
+        self.geometry(f"{window_width}x{window_height}+{pos_x}+{pos_y}")
+        self.minsize(1200, 800)  # Prevent window from being too small
+        
         ctk.set_appearance_mode("dark")
         ctk.set_default_color_theme("blue")
         self.configure(fg_color=COLOR_BACKGROUND)
@@ -46,6 +61,7 @@ class DVGApp(ctk.CTk):
         
         # Setup UI
         self._setup_ui()
+        self._setup_responsive_features()
         self._bind_events()
         
         # Create property widgets container
@@ -88,6 +104,45 @@ class DVGApp(ctk.CTk):
         """Initialize the user interface."""
         from ..ui.main_window import setup_main_window
         setup_main_window(self)
+    
+    def _setup_responsive_features(self):
+        """Set up responsive layout and window handling."""
+        from ..ui.responsive_layout import ResponsiveWindow
+        
+        # Set up responsive window handling
+        ResponsiveWindow.setup_window_resize_handling(self)
+        
+        # Handle window state changes
+        self.bind('<Configure>', self._on_window_configure)
+    
+    def _on_window_configure(self, event):
+        """Handle window configuration changes for responsive behavior."""
+        if event.widget == self:
+            # Update responsive elements when main window is resized
+            self.after_idle(self._update_responsive_elements)
+    
+    def _update_responsive_elements(self):
+        """Update UI elements based on current window size."""
+        try:
+            window_width = self.winfo_width()
+            
+            # Adjust layout proportions based on window width
+            if hasattr(self, 'main_frame'):
+                if window_width < 1400:
+                    # Smaller window: give properties panel more relative space
+                    self.main_frame.grid_columnconfigure(0, weight=6)
+                    self.main_frame.grid_columnconfigure(1, weight=4)
+                elif window_width > 1800:
+                    # Larger window: give canvas more space
+                    self.main_frame.grid_columnconfigure(0, weight=8)
+                    self.main_frame.grid_columnconfigure(1, weight=2)
+                else:
+                    # Default proportions
+                    self.main_frame.grid_columnconfigure(0, weight=7)
+                    self.main_frame.grid_columnconfigure(1, weight=3)
+                    
+        except:
+            pass  # Ignore errors during updates
 
     def _bind_events(self):
         """Bind keyboard shortcuts and events."""

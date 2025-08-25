@@ -152,3 +152,31 @@ cython_debug/
 CLAUDE.md
 CLEANUP_SUMMARY.md
 DEVELOPMENT.md
+
+# Git configuration files (should not be tracked)  
+.gitattributes
+
+# Pre-commit configuration
+.pre-commit-config.yaml
+.pre-commit-hooks.yaml
+
+# Development configuration files
+.editorconfig
+.flake8
+.pylintrc
+pyproject.toml
+
+# IDE and editor configuration
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db

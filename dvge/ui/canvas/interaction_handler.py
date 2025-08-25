@@ -378,6 +378,50 @@ class InteractionHandler:
         self.canvas.scan_dragto(event.x, event.y, gain=1)
         
     def on_zoom(self, event):
-        """Handles canvas zooming with mouse wheel."""
+        """Handles canvas zooming with mouse wheel and maintains text readability."""
         factor = 1.1 if event.delta > 0 else 0.9
+        
+        # Get current zoom level (stored in canvas if available)
+        if not hasattr(self.canvas, 'zoom_level'):
+            self.canvas.zoom_level = 1.0
+            
+        new_zoom = self.canvas.zoom_level * factor
+        
+        # Limit zoom range for usability
+        if new_zoom < 0.3 or new_zoom > 3.0:
+            return
+            
+        # Update zoom level
+        self.canvas.zoom_level = new_zoom
+        
+        # Standard scaling for most elements
         self.canvas.scale("all", self.canvas.canvasx(event.x), self.canvas.canvasy(event.y), factor, factor)
+        
+        # For very small zoom levels, trigger node text optimization
+        if new_zoom < 0.6:
+            self._optimize_nodes_for_small_zoom()
+        elif hasattr(self, '_zoom_optimized') and self._zoom_optimized:
+            # Restore normal view when zooming back in
+            self._restore_normal_node_view()
+    
+    def _optimize_nodes_for_small_zoom(self):
+        """Optimizes node display for small zoom levels."""
+        if hasattr(self, '_zoom_optimized') and self._zoom_optimized:
+            return
+            
+        # Hide detailed text and show only essential info
+        for node in self.app.nodes.values():
+            if 'dialogue_text' in node.canvas_item_ids:
+                # Hide dialogue text when zoomed out
+                self.canvas.itemconfig(node.canvas_item_ids['dialogue_text'], state='hidden')
+            
+        self._zoom_optimized = True
+    
+    def _restore_normal_node_view(self):
+        """Restores normal node view when zooming back in."""
+        for node in self.app.nodes.values():
+            if 'dialogue_text' in node.canvas_item_ids:
+                # Show dialogue text when zoomed in
+                self.canvas.itemconfig(node.canvas_item_ids['dialogue_text'], state='normal')
+                
+        self._zoom_optimized = False

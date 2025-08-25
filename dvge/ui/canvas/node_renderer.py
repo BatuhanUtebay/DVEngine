@@ -20,10 +20,11 @@ class NodeRenderer:
         x, y = node.x, node.y
         tags = ("node", node.id)
         
-        # Calculate text height
+        # Calculate text height with better wrapping
+        text_width = NODE_WIDTH - (NODE_PADDING * 2)  # Use proper padding
         temp_text = self.canvas.create_text(
             0, 0, text=node.text, font=FONT_DIALOGUE, 
-            anchor="nw", width=NODE_WIDTH - 40, state='hidden'
+            anchor="nw", width=text_width, state='hidden'
         )
         bbox = self.canvas.bbox(temp_text)
         node.calculated_text_height = bbox[3] - bbox[1] if bbox else 0
@@ -75,13 +76,16 @@ class NodeRenderer:
         """Creates the text elements for a node."""
         header_text = f"{'★' if is_start_node else ''} {node.id} | {node.npc}"
         node.canvas_item_ids['npc_text'] = self.canvas.create_text(
-            x + 20, y + 20, text=header_text, fill=COLOR_TEXT, 
+            x + NODE_PADDING, y + NODE_PADDING, text=header_text, fill=COLOR_TEXT, 
             anchor="w", font=FONT_NPC, tags=tags
         )
         
+        # Improved text positioning and wrapping
+        text_width = NODE_WIDTH - (NODE_PADDING * 2)
+        text_y = y + NODE_HEADER_HEIGHT + 15  # Better vertical positioning
         node.canvas_item_ids['dialogue_text'] = self.canvas.create_text(
-            x + 20, y + 60, text=node.text, fill=COLOR_TEXT_MUTED, 
-            anchor="nw", width=NODE_WIDTH - 40, font=FONT_DIALOGUE, tags=tags
+            x + NODE_PADDING, text_y, text=node.text, fill=COLOR_TEXT_MUTED, 
+            anchor="nw", width=text_width, font=FONT_DIALOGUE, tags=tags
         )
 
     def _create_node_content(self, node, x, y, tags):
